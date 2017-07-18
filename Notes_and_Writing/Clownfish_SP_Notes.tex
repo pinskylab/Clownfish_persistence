@@ -1,0 +1,81 @@
+\documentclass[12pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{color}
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or epsÂ§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[compact]{titlesec}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{rotating}
+\usepackage{soul}
+\usepackage{longtable}
+\usepackage{threeparttable}
+\usepackage{lineno}
+\usepackage[round]{natbib} %round makes parentheses instead of square brackets
+\usepackage{url}
+%\usepackage{authblk}
+\setcounter{secnumdepth}{4}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\graphicspath{ {images/} }
+
+\title{Notes on clownfish persistence}
+
+\begin{document}
+%\linenumbers
+\date{\today}
+\maketitle{}
+\section*{Literature notes}
+\subsection*{Clownfish life history}
+\subsection*{Larval dispersal and connectivity}
+\begin{itemize}
+\item \citep{almany2017larval}: use parentage analysis to estimate connectivity and dispersal kernels for two different coral reef fish in the Kimbe Bay area, including the clownfish species \textit{Amphiprion percula}. Should review methods of kernel and connectivity estimates more closely. Talk about both local retention and self-recruitment, use a slightly different def of LR ($\frac{\text{\# larvae returning home}}{\text{\# larvae that left and settled somewhere}}$) than Burgess and Botsford usually use, need to think more about if/how that matters.
+\end{itemize}
+\subsection*{Persistence}
+\begin{itemize}
+\item \citep{hastings_persistence_2006}: p.6068: "These persistence conditions [that they present] allow us to answer a variety of essential questions. What is the persistence condition if habitats are heterogeneous with different per capita propagule production or survival and nonuniform patterns of dispersal as would arise from physical advective processes such as in wind or water? In a heterogenous system, what parts of the system would be most important to protect to achieve persistence? How does a network of reserves function to ensure persistence of a species when a single reserve cannot?"
+\end{itemize}
+\subsection*{Metapopulation framing}
+\subsection*{Population parameters from the literature}
+Notes on how life history and demographic parameters were estimated or calculated in other similar studies, numbers and sources in table below:
+\begin{itemize}
+\item Mortality: directly estimated from genetic recaptures \citep{salles_coral_2015}
+\item Juveniles carrying capacity: highest value of mean number of juveniles per anemone of 4 sampling periods multiplied by the number of anemones in the subpopulation \citep{salles_coral_2015}
+\item Adult carrying capacity: number of anemones in the subpopulation (b/c can only have one breeding pair per anemone) \citep{salles_coral_2015}
+\end{itemize}
+
+\begin{longtable} { |p{1.5in}|p{1.0in}|p{1.5in}|p{1.5in}| } 
+\hline{}
+\textbf{Parameter} & \textbf{Value} & \textbf{Source} & \textbf{Notes} \\ \hline
+Mortality for various stages, male and female & juveniles: 0.18-0.49, males: 0.09-0.44, females: 0.19-0.55 & \citep{salles_coral_2015} & for \textit{Amphiprion percula} population around Kimbe Island in Kimbe Bay, see Table 1 in their paper for more details \\ \hline
+Percent self-recruits for whole Kimbe Bay island pop over multiple years of study & 20.9\% & \citep{salles_coral_2015} & 5 sampling events from 2005-2013, 1067 total recruits sampled \\ \hline
+Percent local recruits for whole Kimbe Bay island pop over multiple years of study & 33.3\% & \citep{salles_coral_2015} & 5 sampling events from 2005-2013, 1067 total recruits, local recruits means recruits from the other Kimbe Bay island subpopulations \\ \hline
+Percent immigrant recruits for whole Kimbe Bay island pop over multiple years of study & 45.8\%  & \citep{salles_coral_2015} & 5 sampling events from 2005-2013, 1067 total recruits, immigrants recruits means recruits not from any of the Kimbe Bay Island subpopulations \\ \hline
+\end{longtable}
+
+\subsection*{To-reads}
+\begin{itemize}
+\item Larval dispersal: \cite{d2015patterns}
+\item Connectivity:
+\item Clownfish: \cite{buston2011probability}
+\end{itemize}
+\section*{Leyte clownfish notes}
+
+\section*{Work plan and brainstorms}
+
+\begin{itemize}
+\item Bigger picture questions: I
+\end{itemize}
+\section*{Analysis progress}
+
+\bibliography{../../../BibTexReferences}
+\bibliographystyle{plainnat}
+
+\end{document}
