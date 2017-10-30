@@ -15,6 +15,7 @@ library(tidyr)
 library(RMark)
 library(lubridate)
 library(dbplyr)
+library(ggplot2)
 
 #Set parameters
 min_tag_size <- 6.0 #set minimum size for tagging (6.0cm - but this fluctuated in time so some fish were tagged smaller than that)
@@ -146,8 +147,120 @@ CreateEncounterSummary <- function(start.year, end.year, tagged.fish) {
   return(encounters.out)
 }
 
+# Gradient descent for 3 sample years, estimating 4 parameters (doesn't really seem to work, oscillates between all params essentially at 0 or all at 1)
+GradientDescent3SY4Params <- function(nvals, params0, nsteps, eps, del, highVal, lowVal) {
+  param1 <- rep(NA,1,nsteps)
+  out <- as.data.frame(param1)
+  out$param2 <- rep(NA,1,nsteps)
+  out$param3 <- rep(NA,1,nsteps)
+  out$param4 <- rep(NA,1,nsteps)
+  out$like <- rep(NA,1,nsteps)
+  
+  params <- params0
+  
+  n111 <- nvals[1]
+  n110 <- nvals[2]
+  n101 <- nvals[3]
+  n100 <- nvals[4]
+  
+  for (i in 1:nsteps) { #doesn't work with Palanas data b /c get NANs
+    #store parameter values and likelihood
+    out$param1[i] <- params[1]
+    out$param2[i] <- params[2]
+    out$param3[i] <- params[3]
+    out$param4[i] <- params[4]
+    out$like[i] <- Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4])
+    
+    #calculate the gradient and update the parameters
+    df <- rep(NA, length(params))
+    df[1] <- (Like3SampleYears(n111, n110, n101, n100, params[1]+eps, params[2], params[3], params[4]) - Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4]))/eps
+    df[2] <- (Like3SampleYears(n111, n110, n101, n100, params[1], params[2]+eps, params[3], params[4]) - Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4]))/eps
+    df[3] <- (Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3]+eps, params[4]) - Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4]))/eps
+    df[4] <- (Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4]+eps) - Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4]))/eps
+    
+    params <- params+del*df
+    
+    #if parameters have become <= 0 or >= 1, set to low val or high val
+    for (i in 1:length(params)) {
+      if (params[i] >= 1) {
+        params[i] <- highVal
+      }
+      if (params[i] <= 0) {
+        params[i] <- lowVal
+      }
+    }
+    #print(Like3SampleYears(n111, n110, n101, n100, params[1], params[2], params[3], params[4]))
+  }
+  return(out)
+}
+
+#Just try all values between 0 and 1 for p and s
+ParamRangeCheck3SY2P <- function(s_vec, p_vec, nvals) {
+  n111 <- nvals[1]
+  n110 <- nvals[2]
+  n101 <- nvals[3]
+  n100 <- nvals[4]
+  likemat <- matrix(NA, length(s_vec), length(p_vec))
+  
+  #survival <- rep(NA, 1, nsteps)
+  #out <- as.data.frame(survival)
+  #out$capture <- rep(NA, 1, nsteps)
+  #out$like <- rep(NA, 1, nsteps)
+  
+  for (i in 1:length(s_vec)) {
+    for (k in 1:length(p_vec)) {
+      likemat[i,k] <- Like3SampleYears2vars(n111, n110, n101, n100, s_vec[i], p_vec[k])
+    }
+  }
+  return(likemat)
+}
+
+#Same as above, just try the range of parameter values but this time return in a dataframe output to make plotting in ggplot easier
+ParamRangeCheck3SY2P_dfoutput <- function(s_vec, p_vec, nvals) {
+  n111 <- nvals[1]
+  n110 <- nvals[2]
+  n101 <- nvals[3]
+  n100 <- nvals[4]
+  
+  survival <- data.frame(survival=rep(s_vec,length(p_vec)))
+  out <- survival
+  capture_list <- rep(p_vec[1], length(s_vec))
+  for (i in 2:length(p_vec)) {
+    cap_toadd <- rep(p_vec[i], length(s_vec))
+    capture_list <- c(capture_list, cap_toadd)
+  }
+  out$capture <- capture_list
+  like = NULL
+  
+  for (i in 1:dim(out)[1]) {
+    like1 <- Like3SampleYears2vars(n111, n110, n101, n100, out$survival[i], out$capture[i])
+    like <- c(like, like1)
+  }
+  out$like=like
+  return(out)
+}
+
+## Function to calculate likelihood for 3 years of sampling (check this!!)
+Like3SampleYears <- function(n111, n110, n101, n100, s1, s2, p2, p3) {
+  #like <- ((s1*p2*s2*p3)^n111)*((s1*p2*(1-s2*p3))^n110)*((s1*(1-p2)*s2*p3)^n101)*((1-s1*p2-s1*(1-p2)*s2*p3)^n100)
+  like <- n111*log(s1*p2*s2*p3) + n110*log(s1*p2*(1-s2*p3)) + n101*log(s1*(1-p2)*s2*p3) + n100*log(1-s1*p2-s1*(1-p2)*s2*p3)
+  return(like)
+}
+
+## Function to calculate likelihood for 3 years of sampling, assuming s and p are same in each year
+Like3SampleYears2vars <- function(n111, n110, n101, n100, s, p) { #same as above but assume all survivals and prob of sample are the same across time 
+  #like <- ((s1*p2*s2*p3)^n111)*((s1*p2*(1-s2*p3))^n110)*((s1*(1-p2)*s2*p3)^n101)*((1-s1*p2-s1*(1-p2)*s2*p3)^n100)
+  like <- n111*log(s*p*s*p) + n110*log(s*p*(1-s*p)) + n101*log(s*(1-p)*s*p) + n100*log(1-s*p-s*(1-p)*s*p)
+  return(like)
+}
+
 #################### Running things! ####################
 leyte <- read_db("Leyte") #new function call that replaces conleyte
+allsites <- leyte %>% tbl("diveinfo") %>% select(site) %>% collect()
+
+#Sites: Cabatoan (26), Caridad Cemetery (8), Caridad Proper (18), Elementary School (16), Gabas (8), Haina (19), 
+# Hicgop (2), Hicgop South (10), Magbangon (35), Palanas(71), Pangasugan (3), Poroc Rose (17), Poroc San Flower (24), 
+# San Agustin (17), Sitio Baybayon (52), Sitio Lonas (3), Sitio Tugas, (2), Tamakin Dacot (31), Visca (50), Wangag (56)
 
 #could be useful for checking that number of tags that come out in encounter histories is the same as the number of unique tags in the input
   # n.tags <- n_distinct(tagged.fish$tag_id)
@@ -156,15 +269,169 @@ leyte <- read_db("Leyte") #new function call that replaces conleyte
 fishPal <- FishBySite('Palanas') #pull out all the fish from Palanas, with meta-data (like date) appended
 fishPalTagged <- fishPal %>% filter(!is.na(tag_id)) #just the tagged fish
 
-#create a cleaned up encounter history data frame, where all binary vectors are together and one column has the combined encounter history as a string
-encountersPal <- CreateYearlyEncounterHist(2015,2017,fishPalTagged)
-encountersPalClean <- encountersPal[[1]]
-encountersPalClean$sighted.2016 <- encountersPal[[2]][["sighted.2016"]] #FIGURE OUT HOW TO DO THIS AS A FUNCTION!
-encountersPalClean$sighted.2017 <- encountersPal[[3]][["sighted.2017"]]
-encountersPalClean$encounter.hist <- paste(encountersPalClean$sighted.2015, encountersPalClean$sighted.2016, encountersPalClean$sighted.2017, sep="") #FIGURE OUT HOW TO DO THIS AS A FUNCTION!!
+# #create a cleaned up encounter history data frame, where all binary vectors are together and one column has the combined encounter history as a string
+# encountersPal <- CreateYearlyEncounterHist(2015,2017,fishPalTagged)
+# encountersPalClean <- encountersPal[[1]]
+# encountersPalClean$sighted.2016 <- encountersPal[[2]][["sighted.2016"]] #FIGURE OUT HOW TO DO THIS AS A FUNCTION!
+# encountersPalClean$sighted.2017 <- encountersPal[[3]][["sighted.2017"]]
+# encountersPalClean$encounter.hist <- paste(encountersPalClean$sighted.2015, encountersPalClean$sighted.2016, encountersPalClean$sighted.2017, sep="") #FIGURE OUT HOW TO DO THIS AS A FUNCTION!!
   
 encountersPal2 <- CreateEncounterSummary(2015, 2017, fishPalTagged) #simpler way of getting encounter history like above using function
   
+##### Get encounter histories for each site (should be able to make these steps a function...)
+#Palanas 
+fishPal <- FishBySite('Palanas') #pull out all the fish from Palanas, with meta-data (like date) appended
+fishPalTagged <- fishPal %>% filter(!is.na(tag_id)) #just the tagged fish
+encountersPal <- CreateEncounterSummary(2015, 2017, fishPalTagged) #simpler way of getting encounter history like above using function
+
+#Cabatoan
+fishCab <- FishBySite('Cabatoan')
+fishCabTagged <- fishCab %>% filter(!is.na(tag_id)) #2015, 2016 - no fish recaptured
+encountersCab <- CreateEncounterSummary(2015, 2016, fishCabTagged)
+
+#Wangag
+fishWan <- FishBySite('Wangag')
+fishWanTagged <- fishWan %>% filter(!is.na(tag_id)) #2015, 2016, 2017
+encountersWan <- CreateEncounterSummary(2015, 2017, fishWanTagged)
+
+#Visca
+fishVis <- FishBySite('Visca')
+fishVisTagged <- fishVis %>% filter(!is.na(tag_id)) #2015, 2016, 2017
+encountersVis <- CreateEncounterSummary(2015, 2017, fishVisTagged)
+
+
+##### Make likelihood plots using general testing (not gradient descent)
+p_vec <- seq(0.01, 0.99, 0.01) #recapture prob
+s_vec <- seq(0.01, 0.99, 0.01) #survival prob
+
+#Palanas
+prange_Paldf <- ParamRangeCheck3SY2P_dfoutput(s_vec, p_vec, n_Pal)
+smax <- prange_Paldf$survival[which.max(prange_Paldf$like)]
+pmax <- prange_Paldf$capture[which.max(prange_Paldf$like)]
+pdf(file='Palanas_pands_18Oct2017.pdf',width=4,height=4,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=prange_Paldf, aes(x=survival, y=capture)) +
+  geom_tile(aes(fill=like)) +
+  geom_point(x=smax, y=pmax, col='yellow') +
+  #scale_fill_gradient(high='lightgray',low="steelblue") +
+  scale_fill_gradient(high='black',low='lightgray') +
+  labs(x='survival',y='capture') +
+  ggtitle('Palanas') +
+  theme_bw() +
+  theme(text = element_text(size=20)) 
+dev.off()
+
+#Wangag
+n_Wan <- c(0, 2, 3, 83)
+prange_Wandf <- ParamRangeCheck3SY2P_dfoutput(s_vec, p_vec, n_Wan)
+smax <- prange_Wandf$survival[which.max(prange_Wandf$like)]
+pmax <- prange_Wandf$capture[which.max(prange_Wandf$like)]
+pdf(file='Wangag_pands_18Oct2017.pdf',width=4,height=4,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=prange_Wandf, aes(x=survival, y=capture)) +
+  geom_tile(aes(fill=like)) +
+  geom_point(x=smax, y=pmax, col='yellow') +
+  #scale_fill_gradient(high='lightgray',low="steelblue") +
+  scale_fill_gradient(high='black',low='lightgray') +
+  labs(x='survival',y='capture') +
+  ggtitle('Wangag') +
+  theme_bw() +
+  theme(text = element_text(size=20)) 
+dev.off()
+
+#Visca
+n_Vis <- c(3, 1, 0, 9)
+prange_Visdf <- ParamRangeCheck3SY2P_dfoutput(s_vec, p_vec, n_Vis)
+pdf(file='Visca_pands_18Oct2017.pdf',width=4,height=4,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=prange_Visdf, aes(x=survival, y=capture)) +
+  geom_tile(aes(fill=like)) +
+  geom_point(x=0.41, y=0.99, col='yellow') +
+  #scale_fill_gradient(high='lightgray',low="steelblue") +
+  scale_fill_gradient(high='black',low='lightgray') +
+  labs(x='survival',y='capture') +
+  ggtitle('Visca') +
+  theme_bw() +
+  theme(text = element_text(size=20)) 
+dev.off()
+
+#Sites: Cabatoan (26), Caridad Cemetery (8), Caridad Proper (18), Elementary School (16), Gabas (8), Haina (19), 
+# Hicgop (2), Hicgop South (10), Magbangon (35), Palanas(71), Pangasugan (3), Poroc Rose (17), Poroc San Flower (24), 
+# San Agustin (17), Sitio Baybayon (52), Sitio Lonas (3), Sitio Tugas, (2), Tamakin Dacot (31), Visca (50), Wangag (56)
+
+
+##### Estimate parameter values manually using likelihood function and gradient descent 
+
+## Do gradient descent to estimate parameters
+s1_0 <- 0.5
+s2_0 <- 0.5
+p2_0 <- 6/7
+p3_0 <- 6/7
+s <- 0.5
+p <- 6/7
+params <- c(s1_0, s2_0, p2_0, p3_0)
+params <- c(s, p)
+eps <- 0.01
+del <- 0.1
+nsteps <- 100
+n111 <- 6 #from Palanas data
+n110 <- 5
+n101 <- 1
+n100 <- 79
+highVal <- 0.99
+lowVal <- 0.01
+n_Pal <- c(n111, n110, n101, n100)
+params0 <- c(s1_0, s2_0, p2_0, p3_0)
+params02 <- c(s,p)
+
+grad_Pal <- GradientDescent3SY4Params(n_Pal,params0, 100, eps, del, highVal, lowVal)
+
+
+for (i in 1:nsteps) {
+  df <- rep(NA, length(params))
+  df[1] <- (Like3SampleYears2vars(n111, n110, n101, n100, params[1]+eps, params[2]) - Like3SampleYears2vars(n111, n110, n101, n100, params[1], params[2]))/eps
+  df[2] <- (Like3SampleYears2vars(n111, n110, n101, n100, params[1], params[2]+eps) - Like3SampleYears2vars(n111, n110, n101, n100, params[1], params[2]))/eps
+  params <- params+del*df
+  print(Like3SampleYears2vars(n111, n110, n101, n100, params[1], params[2]))
+}
+
+testL <- Like3SampleYears(n111,n110,n101,n100,params[1],params[2],params[3],params[4])
+s1 <- params[1]
+s2 <- params[2]
+p2 <- params[3]
+p3 <- params[4]
+
+p_vec <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+s_vec <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+p_vec <- seq(0.01, 0.99, 0.01)
+s_vec <- seq(0.01, 0.99, 0.01)
+
+
+
+prange_Pal <- ParamRangeCheck3SY2P(s_vec, p_vec, n_Pal)
+prange_Paldf <- ParamRangeCheck3SY2P_dfoutput(s_vec, p_vec, n_Pal)
+image(x=s_vec, y=p_vec, z=prange_Pal)
+image.plot(x=s_vec, y=p_vec, z=prange_Pal)
+heatmap(prange_Pal)
+
+
+ggplot(data=prange_Paldf, aes(x=survival, y=capture)) +
+  geom_tile(aes(fill=like)) +
+  #scale_fill_gradient(high='lightgray',low="steelblue") +
+  scale_fill_gradient(high='black',low='lightgray') +
+  labs(x='survival',y='capture') +
+  theme_bw() +
+  theme(text = element_text(size=20)) 
+#dev.off()
+
+contour(x=1:99,y=1:99,z=likemat)
+min(likemat)
+max(likemat)
+image(x=seq(0.01,0.99,0.01), y=seq(0.01,0.99,0.01), z=likemat)
+likemat[99,99]
+
+  
+  
+  ### MAKE A FUNCTION FOR GRADIENT DESCENT TO ESTIMATE PARAMETERS
+  ### TRY RUNNING THOSE FOR A COUPLE OF SITES
+  ### MAKE SOME SUMMARY PLOTS
   
 
 
