@@ -12,6 +12,7 @@ library(tidyr)
 library(lubridate)
 library(dbplyr)
 library(ggplot2)
+library(cowplot)
 
 #################### Functions: ####################
 ##### Functions from Michelle's GitHub
@@ -73,63 +74,69 @@ anem.Visits.Sum <- anem.Visits %>% group_by(site) %>% summarize(n.2012 = sum(vis
 
 
 #2012
-pdf(file='AnemVisits_2012_31Oct2017.pdf')
-ggplot(data=anem.Visits.Sum, aes(site, n.2012)) +   
+#pdf(file='AnemVisits_2012_31Oct2017.pdf')
+hist2012 <- ggplot(data=anem.Visits.Sum, aes(site, n.2012)) +   
   geom_bar(position ="dodge", stat="identity") +
   xlab("site") + ylab("tagged anems visited") + ggtitle("2012") +
   theme_bw() +
   theme(text = element_text(size=12)) +
-  theme(axis.text.x = element_text(angle =  45, vjust = 1, hjust = 1))
-dev.off()
+  theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
+#dev.off()
 
 #2013
-pdf(file='AnemVisits_2013_31Oct2017.pdf')
-ggplot(data=anem.Visits.Sum, aes(site, n.2013)) +   
+#pdf(file='AnemVisits_2013_31Oct2017.pdf')
+hist2013 <- ggplot(data=anem.Visits.Sum, aes(site, n.2013)) +   
   geom_bar(position ="dodge", stat="identity") +
   xlab("site") + ylab("tagged anems visited") + ggtitle("2013") +
   theme_bw() +
   theme(text = element_text(size=12)) +
-  theme(axis.text.x = element_text(angle =  45, vjust = 1, hjust = 1))
-dev.off()
+  theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
+#dev.off()
 
 #2014
-pdf(file='AnemVisits_2014_31Oct2017.pdf')
-ggplot(data=anem.Visits.Sum, aes(site, n.2014)) +   
+#pdf(file='AnemVisits_2014_31Oct2017.pdf')
+hist2014 <- ggplot(data=anem.Visits.Sum, aes(site, n.2014)) +   
   geom_bar(position ="dodge", stat="identity") +
   xlab("site") + ylab("tagged anems visited") + ggtitle("2014") +
   theme_bw() +
   theme(text = element_text(size=12)) +
-  theme(axis.text.x = element_text(angle =  45, vjust = 1, hjust = 1))
-dev.off()
+  theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
+#dev.off()
 
 #2015
-pdf(file='AnemVisits_2015_31Oct2017.pdf')
-ggplot(data=anem.Visits.Sum, aes(site, n.2015)) +   
+#pdf(file='AnemVisits_2015_31Oct2017.pdf')
+hist2015 <- ggplot(data=anem.Visits.Sum, aes(site, n.2015)) +   
   geom_bar(position ="dodge", stat="identity") +
   xlab("site") + ylab("tagged anems visited") + ggtitle("2015") +
   theme_bw() +
   theme(text = element_text(size=12)) +
-  theme(axis.text.x = element_text(angle =  45, vjust = 1, hjust = 1))
-dev.off()
+  theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
+#dev.off()
 
 #2016
-pdf(file='AnemVisits_2016_31Oct2017.pdf')
-ggplot(data=anem.Visits.Sum, aes(site, n.2016)) +   
+#pdf(file='AnemVisits_2016_31Oct2017.pdf')
+hist2016 <- ggplot(data=anem.Visits.Sum, aes(site, n.2016)) +   
   geom_bar(position ="dodge", stat="identity") +
   xlab("site") + ylab("tagged anems visited") + ggtitle("2016") +
   theme_bw() +
   theme(text = element_text(size=12)) +
-  theme(axis.text.x = element_text(angle =  45, vjust = 1, hjust = 1))
-dev.off()
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1, size=8))
+#dev.off()
 
 #2017
-pdf(file='AnemVisits_2017_31Oct2017.pdf')
-ggplot(data=anem.Visits.Sum, aes(site, n.2017)) +   
+#pdf(file='AnemVisits_2017_31Oct2017.pdf')
+hist2017 <- ggplot(data=anem.Visits.Sum, aes(site, n.2017)) +   
   geom_bar(position ="dodge", stat="identity") +
   xlab("site") + ylab("tagged anems visited") + ggtitle("2017") +
   theme_bw() +
   theme(text = element_text(size=12)) +
-  theme(axis.text.x = element_text(angle =  45, vjust = 1, hjust = 1))
+  theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
+#dev.off()
+
+#arrange in a grid, using cowplot (not so much b/c these plots are useful, more to test cowplot)
+theme_set(theme_cowplot(font_size=12)) # reduce default font size
+pdf(file='AnemVisits_byYear_usinganem_id_03Nov2017.pdf')
+plot_grid(hist2012, hist2013, hist2014, hist2015, hist2016, hist2017)
 dev.off()
 
 #what about by dive type? could filter first by dive type, then do the same thing as above
