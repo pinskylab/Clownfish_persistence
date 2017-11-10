@@ -20,23 +20,79 @@ library(cowplot)
 script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
+#function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
+anemid_latlong <- function(anem.table.id) { #will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
+  
+  #find the dive info and time for this anem observation
+  dive <- leyte %>%
+    tbl("anemones") %>%
+    select(anem_table_id, obs_time, dive_table_id, anem_id) %>%
+    collect() %>%
+    filter(anem_table_id %in% anem.table.id)
+  
+  # find the date info and gps unit for this anem observation
+  date <- leyte %>% 
+    tbl("diveinfo") %>% 
+    select(dive_table_id, date, gps, site) %>% 
+    collect() %>% 
+    filter(dive_table_id %in% dive$dive_table_id)
+  
+  #join with anem info, format obs time
+  anem <- left_join(dive, date, by = "dive_table_id") %>% 
+    separate(obs_time, into = c("hour", "minute", "second"), sep = ":") %>% #this line and the next directly from Michelle's code
+    mutate(gpx_hour = as.numeric(hour) - 8)
+  
+  # find the lat long for this anem observation
+  latloninfo <- leyte %>%
+    tbl("GPX") %>%
+    select(lat, lon, time, unit) %>%
+    collect(n = Inf) %>% 
+    separate(time, into = c("date", "time"), sep = " ") %>% 
+    filter(date %in% anem$date) %>% 
+    separate(time, into = c("hour", "minute", "second"), sep = ":") %>% 
+    filter(as.numeric(hour) == anem$gpx_hour & as.numeric(minute) == anem$minute) 
+  
+  latloninfo$lat <- as.numeric(latloninfo$lat)
+  latloninfo$lon <- as.numeric(latloninfo$lon)
+  
+  #often get multiple records for each anem_table_id (like if sit there for a while) - so multiple GPS points for same visit to an anemone, not differences across visits
+  dups_lat <- which(duplicated(latloninfo$lat)) #vector of positions of duplicate values
+  dups_lon <- which(duplicated(latloninfo$lon))
+  
+  #either take the mean of the lat/lon readings or the duplicated values, depending if there are duplicate points
+  if(length(dups_lat) == 0) { #if all latitude points are different
+    anem$lat <- round(mean(latloninfo$lat), digits = 5) #take the mean of the latitude values (digits = 5 b/c that is what Michelle had)
+    anem$lon <- round(mean(latloninfo$lon), digits = 5) #take the mean of the longitude values
+  }else{
+    anem$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
+    anem$lon <- latloninfo$lon[dups_lon[1]]
+  }
+  
+  return(anem)
+  
+}
+
 #################### Running things! ####################
 leyte <- read_db("Leyte") 
 
-#select all the unique anem_ids, to initialize output data frame
-anem.IDs <- leyte %>% tbl("anemones") %>% select(anem_id, anem_obs) %>% distinct(anem_id) %>% collect() #pull out list of unique anem_ids
+#select all the unique anem_ids to initialize output data frame, also grab anem_obs if have it, should double-check that this is gettin the same list as before....
+anem.IDs <- leyte %>% tbl("anemones") %>% select(anem_id, anem_obs) %>% collect()
 anem.IDs <- anem.IDs %>% filter(!is.na(anem_id)) %>% collect() #remove the NAs
 anem.IDs <- anem.IDs %>% filter(anem_id != "") %>% collect() #remove blank anem_ids
 anem.IDs <- anem.IDs %>% filter(anem_id != "-9999") %>% collect() #remove -9999 anem_id
+anem.IDs <- distinct(anem.IDs, anem_id, .keep_all = TRUE) #just keep distinct observations of anem_id (so don't have multiple observations listed for each)
 
 #initiatlize output data frame with list of unique anem_ids
+anem.Obs <- data.frame(anem.IDs) #initialize data frame with list of unique anem_ids and their associated anem_obs
+anem.Obs$anem_id <- as.numeric(anem.Obs$anem_id) #make anem_ids numeric for joining in data frame later
+
 anem.Visits <- data.frame(anem.IDs) #initialize output data frame with list of unique anem_ids
 anem.Visits$anem_id <- as.numeric(anem.Visits$anem_id) #make anem_ids numeric for joining in data frame later
 
 #pull out relevant info from dive table and anemone table and merge so can match each anem_id to site and dates visited 
 dive.Info <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type, site) %>% collect() #pull out list of dive dates, sites, and types
 dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
-anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
+anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id, anem_obs) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
 
 #merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA
 anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>% filter(!is.na(anem_id)) #9853 rows when NAs left in, 4056 when filtered out
@@ -135,9 +191,17 @@ hist2017 <- ggplot(data=anem.Visits.Sum, aes(site, n.2017)) +
 
 #arrange in a grid, using cowplot (not so much b/c these plots are useful, more to test cowplot)
 theme_set(theme_cowplot(font_size=12)) # reduce default font size
-pdf(file='AnemVisits_byYear_usinganem_id_03Nov2017.pdf')
-plot_grid(hist2012, hist2013, hist2014, hist2015, hist2016, hist2017)
-dev.off()
+#pdf(file='AnemVisits_byYear_usinganem_id_03Nov2017.pdf')
+#pdf(file='AnemVisitsbyYearandSite_Nov2017.pdf')
+allsubplots <- plot_grid(hist2012, hist2013, hist2014, hist2015, hist2016, hist2017)
+#dev.off()
+
+save_plot("AnemVisitsbyYearandSite.pdf", allsubplots,
+          ncol = 2, # we're saving a grid plot of 2 columns
+          nrow = 3, # and 2 rows
+          # each individual subplot should have an aspect ratio of 1.3
+          base_aspect_ratio = 1.3
+)
 
 #what about by dive type? could filter first by dive type, then do the same thing as above
 
@@ -170,7 +234,6 @@ dev.off()
 #   encounters[[i]] <- anem.tags %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
 #   
 #   
-# }
 # 
 # 
 # dive.Dates <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type) %>% collect() #pull out list of dive dates and types
