@@ -152,6 +152,42 @@ anem.Obs <- left_join(anem.Obs, anems.2015.unqID, by="anem_id_unq")
 anem.Obs <- left_join(anem.Obs, anems.2016.unqID, by="anem_id_unq")
 anem.Obs <- left_join(anem.Obs, anems.2017.unqID, by="anem_id_unq")
 
+#here, number of anemones visited each year by site
+anem.Obs.Sum <- anem.Obs %>% group_by(site) %>% summarize(n.2012 = sum(visited.2012), n.2013 = sum(visited.2013), 
+                                                                n.2014 = sum(visited.2014), n.2015 = sum(visited.2015), 
+                                                                n.2016 = sum(visited.2016), n.2017 = sum(visited.2017))
+
+#re-configure the data frame so it's easier to plot each site as a different subplot, with years on x-axis and anems visited on y
+site_list <- anem.Obs.Sum$site #pull out sites
+
+#make a list with no spaces in the site names (plays better with labeling in ggplot facet)
+site_list_no_spaces <- site_list
+site_list_no_spaces[2] = "Caridad~Cemetery"
+site_list_no_spaces[3] = "Caridad~Proper"
+site_list_no_spaces[4] = "Elementary~School"
+site_list_no_spaces[7] = "Hicgop~South"
+site_list_no_spaces[10] = "Poroc~Rose"
+site_list_no_spaces[11] = "Poroc~San~Flower"
+site_list_no_spaces[12] = "San~Agustin"
+site_list_no_spaces[13] = "Sitio~Baybayon"
+site_list_no_spaces[14] = "Sitio~Lonas"
+site_list_no_spaces[15] = "Sitio~Tugas"
+site_list_no_spaces[16] = "Tamakin~Dacot"
+
+nsites <- length(site_list) #count number of sites
+start.Year <- 2012 #first year of sampling
+end.Year <- 2017 #last year of sampling
+nyears <- end.Year - start.Year + 1 #number of years sampled
+site_vec <- rep(site_list_no_spaces, nyears) #repeat sites so can have a data frame with sites, year, nsampled as the columns so easier to plot grouped by site or year in ggplot
+year_vec <- c(rep(2012, nsites), rep(2013, nsites), rep(2014, nsites), rep(2015, nsites), rep(2016, nsites), rep(2017, nsites))
+
+visits_vec <- c(anem.Obs.Sum$n.2012, anem.Obs.Sum$n.2013, anem.Obs.Sum$n.2014, anem.Obs.Sum$n.2015, anem.Obs.Sum$n.2016, anem.Obs.Sum$n.2017)
+
+anem.Obs.SumSite <- as.data.frame(site_vec)
+anem.Obs.SumSite <- rename(anem.Obs.SumSite, site = site_vec)
+anem.Obs.SumSite$year <- year_vec
+anem.Obs.SumSite$visits <- visits_vec
+
 # #make a unique id for each anemone - anem_obs if it has it, anem_id w/"id" at front if not (b/c set of numbers used for anem_ids and anem_obs overlap)
 # anem.Obs <- anem.Obs %>% mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), anem_obs))
 # #group by unique anem id (anem_id_unq), combine visitation histories 
@@ -237,8 +273,33 @@ save_plot("AnemVisitsbyYearandSite.pdf", allsubplots,
           base_aspect_ratio = 1.3
 )
 
-#####
+##### Summary of anemone visits by site and year (using anem_obs to match anem_ids known to be the same)
+pdf(file="AnemObs_VisitsbyYearSite_13Nov2017.pdf", width=10, height=3)
+ggplot(data=anem.Obs.SumSite, aes(year, visits)) +   
+  geom_bar(position ="dodge", stat="identity") +
+  facet_grid(.~site_wrap, labeller=label_parsed) +
+  xlab("year") + ylab("tagged anems visited") +
+  theme_bw() +
+  theme(text = element_text(size=8)) +
+  theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
+dev.off()
 
+# #attempts to get the site names to wrap from here: https://stackoverflow.com/questions/37174316/how-to-fit-long-text-into-ggplot2-facet-titles, didn't work...
+# swr = function(string, nwrap=15) {
+#   paste(strwrap(string, width=nwrap), collapse="\n")
+# }
+# swr = Vectorize(swr)
+# 
+# anem.Obs.SumSite$site_wrap <- swr(anem.Obs.SumSite$site)
+# 
+# #another idea from here: https://stackoverflow.com/questions/16654691/how-to-dynamically-wrap-facet-label-using-ggplot2
+# facet_wrap(~groupwrap, labeller = labeller(groupwrap = label_wrap_gen(10)))
+
+
+
+
+
+#####
 
 #what about by dive type? could filter first by dive type, then do the same thing as above
 
