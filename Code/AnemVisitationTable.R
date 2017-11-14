@@ -4,6 +4,8 @@
 rm(list=ls())
 
 #################### Set-up: ####################
+setwd("~/Box Sync/Rutgers postdoc/Clownfish_persistence/Code") #set working directory
+
 #Load relevant libraries
 library(RCurl) #allows running R scripts from GitHub
 library(RMySQL) #might need to load this to connect to the database?
@@ -21,7 +23,7 @@ script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scri
 eval(parse(text = script))
 
 #function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
-anemid_latlong <- function(anem.table.id) { #will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
+anemid_latlong <- function(anem.table.id, latlondata) { #anem.table.id is one anem_table_id value, latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
   #find the dive info and time for this anem observation
   dive <- leyte %>%
@@ -43,11 +45,7 @@ anemid_latlong <- function(anem.table.id) { #will need to think a bit more clear
     mutate(gpx_hour = as.numeric(hour) - 8)
   
   # find the lat long for this anem observation
-  latloninfo <- leyte %>%
-    tbl("GPX") %>%
-    select(lat, lon, time, unit) %>%
-    collect(n = Inf) %>% 
-    separate(time, into = c("date", "time"), sep = " ") %>% 
+  latloninfo <- latlondata %>%
     filter(date %in% anem$date) %>% 
     separate(time, into = c("hour", "minute", "second"), sep = ":") %>% 
     filter(as.numeric(hour) == anem$gpx_hour & as.numeric(minute) == anem$minute) 
@@ -63,9 +61,13 @@ anemid_latlong <- function(anem.table.id) { #will need to think a bit more clear
   if(length(dups_lat) == 0) { #if all latitude points are different
     anem$lat <- round(mean(latloninfo$lat), digits = 5) #take the mean of the latitude values (digits = 5 b/c that is what Michelle had)
     anem$lon <- round(mean(latloninfo$lon), digits = 5) #take the mean of the longitude values
+    #lat <- round(mean(latloninfo$lat), digits = 5) 
+    #lon <- round(mean(latloninfo$lon), digits = 5)
   }else{
     anem$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
     anem$lon <- latloninfo$lon[dups_lon[1]]
+    #lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
+    #lon <- latloninfo$lon[dups_lon[1]]
   }
   
   return(anem)
@@ -74,6 +76,13 @@ anemid_latlong <- function(anem.table.id) { #will need to think a bit more clear
 
 #################### Running things! ####################
 leyte <- read_db("Leyte") 
+
+#pull out all lat/lon info so can feed into function above (rather than having to pull out from database each time)
+alllatlons <- leyte %>%
+  tbl("GPX") %>%
+  select(lat, lon, time, unit) %>%
+  collect(n = Inf) %>% 
+  separate(time, into = c("date", "time"), sep = " ") 
 
 #select all the unique anem_ids to initialize output data frame, also grab anem_obs if have it, should double-check that this is gettin the same list as before....
 anem.IDs <- leyte %>% tbl("anemones") %>% select(anem_id, anem_obs) %>% collect()
@@ -195,6 +204,34 @@ anem.Obs.SumSite$visits <- visits_vec
 # test <- anem.AllInfo %>% mutate(anem_id_unq = paste("id", anem_id, sep=""), anem_obs_unq = paste("ob", anem_obs, sep=""))
 
 ##### Grouping anem_ids by proximity 
+# find the lat/lon for each anem observation (could probably do this without a for loop but then the averaging across multiple gps records per observation got hairy when trying to do it all w/dplyr as vectors...)
+anem.AllInfo$lat <- rep(NA, length(anem.AllInfo$anem_table_id))
+anem.AllInfo$lon <- rep(NA, length(anem.AllInfo$anem_table_id))
+
+#go through anem_table_ids and find the lat/lon for each anem observation
+for (i in 1:length(anem.AllInfo$anem_table_id)) {
+  outlatlon <- anemid_latlong(anem.AllInfo$anem_table_id[i], alllatlons) 
+  anem.AllInfo$lat[i] <- outlatlon$lat
+  anem.AllInfo$lon[i] <- outlatlon$lon
+  print(i)
+}
+
+#save output, since takes several minutes to run the above for loop
+save(anem.AllInfo, file='AnemAllInfowLatLon_14Nov2017.RData')
+
+#find how many times each anem marked w/anem_obs is visited (ultimate goal is here to find the distances between repeat observations of each anemone)
+anem.repeatobs <- anem.AllInfo %>% filter(!is.na(anem_obs)) %>% group_by(anem_obs) %>% summarize(nvisits = n()) #just using anem_obs (b/c if not have anem_obs, not visited multiple times by this definition)
+
+#just a visualization of how many times anems are visited (using anem_obs as indicator of revisitation)
+hist(anem.repeatobs$nvisits)
+
+#grouping by anem_id_unq (so anem_obs if has one, otherwise anem_id w/"id" in front), finding mean and sd of lat and lon measurements and nvisits
+#anem.LatLon <- anem.AllInfo %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat, na.rm = TRUE), sdlat = sd(lat, na.rm = TRUE), meanlon = mean(lon, na.rm = TRUE), sdlon = sd(lon, na.rm = TRUE), nvisits = n())
+#not all visits have a GPS measurement so find the number of visits that do...
+anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), sdlat = sd(lat), meanlon = mean(lon, na.rm = TRUE), sdlon = sd(lon, na.rm = TRUE), ngps = n())
+anem.LatLon <- left_join(anem.LatLon, select(anem.AllInfo, anem_id_unq, site), by = 'anem_id_unq') #add in site
+
+#testAnem <- anem.AllInfo %>% filter(anem_id_unq == 103) %>% collect() #for looking at particular case studies of examples...
 
 #################### Plots ####################
 
@@ -274,7 +311,7 @@ save_plot("AnemVisitsbyYearandSite.pdf", allsubplots,
 )
 
 ##### Summary of anemone visits by site and year (using anem_obs to match anem_ids known to be the same)
-pdf(file="AnemObs_VisitsbyYearSite_13Nov2017.pdf", width=10, height=3)
+pdf(file="AnemObs_VisitsbyYearSite.pdf", width=10, height=3)
 ggplot(data=anem.Obs.SumSite, aes(year, visits)) +   
   geom_bar(position ="dodge", stat="identity") +
   facet_grid(.~site_wrap, labeller=label_parsed) +
@@ -283,6 +320,17 @@ ggplot(data=anem.Obs.SumSite, aes(year, visits)) +
   theme(text = element_text(size=8)) +
   theme(axis.text.x = element_text(angle =  90, vjust = 1, hjust = 1, size=8))
 dev.off()
+
+##### Visualizing the standard deviation among estimates of anemone positions (just using anem_obs and anem_id as an estimate of repeat anem visits)
+pdf(file="AnemGPS_Estimates.pdf")
+ggplot(data=anem.LatLon, aes(sdlat, sdlon)) +
+  geom_point(aes(color=site, size=ngps)) +
+  #facet_grid(.~site_wrap, labeller=label_parsed) +
+  xlab("latitude standard deviation") + ylab("longitude standard deviation") + ggtitle("Standard deviation of anem positions across visits") +
+  theme_bw()
+dev.off()
+
+#for the way the gps measures things, 5th decimal point is meters (4th is 10m, 3rd is 100m, 2nd is 1000m, 1st is 10000m) (talked to Michelle 11/14/17)
 
 # #attempts to get the site names to wrap from here: https://stackoverflow.com/questions/37174316/how-to-fit-long-text-into-ggplot2-facet-titles, didn't work...
 # swr = function(string, nwrap=15) {
