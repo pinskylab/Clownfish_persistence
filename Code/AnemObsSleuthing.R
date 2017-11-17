@@ -26,10 +26,14 @@ n_occurMultiple <- n_occur[n_occur$Freq > 1,] #find the ones that occur more tha
 #pull out the info on the ones that appear in multiple sites
 multiSiteAnemObs <- anem.AllInfo %>% filter(anem_id_unq %in% n_occurMultiple$Var1) %>% arrange(anem_obs)
 
-#pull out the records for just one of the anem_obs2/
-anem.AllInfo %>% filter(anem_id_unq == 96)
+#pull out the records for just one of the anem_obs
+anem.AllInfo %>% filter(anem_id_unq == 7)
 
-#Summary (anem_obs and the sites):
+#New anem_obs w/site mis-match
+# 7: Palanas (2015, 2016) + Sitio Baybayon (2017)
+
+
+#Summary (anem_obs and the sites): (these are all fixed now...)
 # 51: Palanas + Poroc Rose
 # 100, 101: Cabatoan + Magbangon
 # 108: Cabatoan + Palanas
