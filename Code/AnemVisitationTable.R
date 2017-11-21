@@ -15,6 +15,9 @@ library(lubridate)
 library(dbplyr)
 library(ggplot2)
 library(cowplot)
+library(fields)
+
+#Can disable diagnostics (or try updating RStudio?) if get tired of the many warnings about unitialized or unknown columns: https://stackoverflow.com/questions/39041115/fixing-a-multiple-warning-unknown-column
 
 #################### Functions: ####################
 ##### Functions from Michelle's GitHub
@@ -98,7 +101,7 @@ anem.Obs$anem_id <- as.numeric(anem.Obs$anem_id) #make anem_ids numeric for join
 #pull out relevant info from dive table and anemone table and merge so can match each anem_id to site and dates visited 
 dive.Info <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type, site) %>% collect() #pull out list of dive dates, sites, and types
 dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
-anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id, anem_obs) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
+anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
 
 #merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA
 anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>% filter(!is.na(anem_id)) #9853 rows when NAs left in, 4056 when filtered out
@@ -203,7 +206,7 @@ anem.Obs.SumSite$visits <- visits_vec
 # test3 <- anem.Obs %>% group_by(anem_id_unq)
 # test <- anem.AllInfo %>% mutate(anem_id_unq = paste("id", anem_id, sep=""), anem_obs_unq = paste("ob", anem_obs, sep=""))
 
-##### Grouping anem_ids by proximity 
+##### Grouping anem_ids by anem_obs 
 # find the lat/lon for each anem observation (could probably do this without a for loop but then the averaging across multiple gps records per observation got hairy when trying to do it all w/dplyr as vectors...)
 anem.AllInfo$lat <- rep(NA, length(anem.AllInfo$anem_table_id))
 anem.AllInfo$lon <- rep(NA, length(anem.AllInfo$anem_table_id))
@@ -217,7 +220,8 @@ for (i in 1:length(anem.AllInfo$anem_table_id)) {
 }
 
 #save output, since takes several minutes to run the above for loop
-save(anem.AllInfo, file='AnemAllInfowLatLon_14Nov2017.RData')
+#save(anem.AllInfo, file='AnemAllInfowLatLon.RData')
+load(file="AnemAllInfowLatLon.RData")
 
 #find how many times each anem marked w/anem_obs is visited (ultimate goal is here to find the distances between repeat observations of each anemone)
 anem.repeatobs <- anem.AllInfo %>% filter(!is.na(anem_obs)) %>% group_by(anem_obs) %>% summarize(nvisits = n()) #just using anem_obs (b/c if not have anem_obs, not visited multiple times by this definition)
@@ -228,10 +232,136 @@ hist(anem.repeatobs$nvisits)
 #grouping by anem_id_unq (so anem_obs if has one, otherwise anem_id w/"id" in front), finding mean and sd of lat and lon measurements and nvisits
 #anem.LatLon <- anem.AllInfo %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat, na.rm = TRUE), sdlat = sd(lat, na.rm = TRUE), meanlon = mean(lon, na.rm = TRUE), sdlon = sd(lon, na.rm = TRUE), nvisits = n())
 #not all visits have a GPS measurement so find the number of visits that do...
-anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), sdlat = sd(lat), meanlon = mean(lon, na.rm = TRUE), sdlon = sd(lon, na.rm = TRUE), ngps = n())
-anem.LatLon <- left_join(anem.LatLon, select(anem.AllInfo, anem_id_unq, site), by = 'anem_id_unq') #add in site
 
-#testAnem <- anem.AllInfo %>% filter(anem_id_unq == 103) %>% collect() #for looking at particular case studies of examples...
+#this line left ~50 NAs in meanlon (maybe it removed all the NAs which was all the points for some anems so then the mean of nothing was NA?), replaced with line below
+#anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), sdlat = sd(lat), meanlon = mean(lon, na.rm = TRUE), sdlon = sd(lon, na.rm = TRUE), ngps = n())
+anem.IDUnqSites <- distinct(anem.AllInfo[c("anem_id_unq", "site")]) #pull out list of anem_id_unqs and their sites with only one row per each
+#anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') #add in site
+anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat) & !is.na(lon)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), sdlat = sd(lat), meanlon = mean(lon), sdlon = sd(lon), ngps = n())
+anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') 
+
+
+#some anem_obs point to anemones at different sites - see AnemObsSleuthing for details
+# test <- anem.AllInfo %>% filter(anem_id_unq == 159)
+# #testAnem <- anem.AllInfo %>% filter(anem_id_unq == 103) %>% collect() #for looking at particular case studies of examples...
+# 
+# #hmmm, some anem_id_unq show up at multiple sites - many seem to be Magbangon and Cabatoan - very close sites, prob is the same anem but dive got cataloged as one site or the other, even though went into both
+# n_occur <- data.frame(table(anem.LatLon$anem_id_unq)) #make a table of the anem_ids and the frequency with which they occur (to see why anem.Sites has more than anem.IDs)
+# n_occurMultiple <- n_occur[n_occur$Freq > 1,] #find the ones that occur more than once
+# #100, 101: Magbangon/Cabatoan
+# #108: Palanas, Cabatoan
+# #145: Palanas, Sitio Baybayon
+# 
+# multiSiteAnemObs <- anem.AllInfo %>% filter(anem_id_unq %in% n_occurMultiple$Var1) %>% arrange(anem_obs)
+
+##### Grouping anem_ids by proximity (using rdist.earth function from package "fields" - should double check a couple of the distance calcs at some point)
+x1 <- cbind(anem.LatLon$meanlon, anem.LatLon$meanlat) #vector of GPS coordinates (lon in 1st column, lat in 2nd), for input into rdist.earth
+zero_dist <- 0.0001 #distance between anems that counts as zero (arbitrarily set for now, some of the diagonal columns show up as e-05)
+
+#find the distance in km between each anemone - matrix mXn where nrow(x1)=m and and nrow(x2)=n
+distMat <- rdist.earth(x1, miles = FALSE)
+
+upper <- col(distMat) > row(distMat) #only need to consider each distance once
+hist(distMat[upper]) #just visualizing...
+
+#A bit concerned that the distances between two sets of the same GPS coordinates aren't always that close to 0... should check into why and see if has something to do with rounding or something in the function...
+#Until then, here's some code to check it out
+#check that distances from an anemone to itself (the diagonals of the distance matrix) are 0
+zero_check <- rep(NA, length(x1[,1]))
+
+for (i in 1:length(x1[,1])) {
+  if (distMat[i,i] >= zero_dist) {
+    zero_check[i] <- 1
+    print(i)
+  } else {
+    zero_check[i] <- 0
+    print(i)
+  }
+}
+if (sum(zero_check) > 0) {
+  print("ERROR: At least one anem not zero distance from itself!")
+} else {
+  print("Looks good!")
+}
+
+nonzeropos <- which(zero_check == 1) #where are the non-zero distance diagonals?
+length(nonzeropos) #how many are there?
+
+### Now go through and find all anems within a particular distance of each other 
+#set anem distance threshold to get same "anem_range" value
+anem_dist <- 0.01 #this is 10m in terms of km, right?
+
+matching_anems <- which(distMat <= anem_dist, arr.ind = TRUE) #gives two columns (row and col) with the row and column positions of elements of the distance matrix that are smaller than the anem_dist threshold
+
+#add a column to anem.LatLon for "anem_range" - will be an id that is the same for all anem_id_unqs that fall w/in a certain distance of each other (like anem_obs)
+anem.LatLon$anem_range <- rep(NA, length(anem.LatLon$anem_id_unq))
+
+#make matching_anems into a data frame so can pull out the corresponding anem_id_unqs for each sufficiently-short distance in the distance matrix
+anem_match <- as.data.frame(matching_anems)
+anem_match$anem1 <- rep(NA, length(anem_match$row))
+anem_match$anem2 <- rep(NA, length(anem_match$row))
+anem_match$distance <- rep(NA, length(anem_match$row))
+
+#fill in the distances for the anem_matches
+for (i in 1:length(anem_match$row)) {
+  anem_match$distance[i] <- distMat[anem_match$row[i], anem_match$col[i]]
+}
+
+#this should match for just the upper part of the matrix....
+for (i in 1:length(anem_match$row)) {
+   
+  if (anem_match$col[i] > anem_match$row[i]) { #only take distances in the upper part of the matrix (to avoid counting distances twice and diagonals)
+    a1 <- anem.LatLon$anem_id_unq[anem_match$row[i]] #find the anem specified by the row of the distMat
+    a2 <- anem.LatLon$anem_id_unq[anem_match$col[i]] #find the anem specified by the column of the distMat
+  } else {
+    a1 <- NA
+    a2 <- NA
+  }
+  anem_match$anem1[i] <- a1
+  anem_match$anem2[i] <- a2
+}
+
+#just take the matches in the upper, filter out the rest (where anem1 and anem2 are NA)
+anem_match <- anem_match %>% filter(!is.na(anem1))
+
+#now need to find anem groups that might include more than two anem_id_unqs (say anems w/multiple lost tags or several anems close together)
+anem_match_count <- as.data.frame(table(anem_match$anem1))
+
+#how to think about that? could easily end up w/chains of anems where each is next to a couple but we don't think they are all the same anem (or that visiting one on the far end of the chain means the one on the other end got visited too)
+#maybe all pairwise distances have to be the same to end up w/the same anem_range id? but then what about a group where one anem is close enough to another anem but it isn't close enough to the others to be part of the group?
+
+
+
+
+########## testing, etc.
+#find the position of anemones that have a distance less than the threshold
+anem_dist_pos <- rep(NA, , 2)
+for (i in 1:nrow(distMat)) {
+  for (j  in 1:ncol(distMat)) {
+    anem_dist_pos
+  }
+}
+
+m <- matrix(c(0, 1, 1, 0, 1, 0, 0, 0 ,0, 1, 1, 1, 0, 1, 0), nrow = 5)
+m2 <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15), nrow = 5)
+
+which(m != 0, arr.ind = TRUE)
+
+#position in matrix goes down the rows, by column (so 1:1708 are in column one, going down the rows, 1709:3416 are in column two, going down the rows)
+nrows <- nrow(m2)
+ncols <- ncol(m2)
+pos <- 10
+row_num <- nrows - (nrows - (pos %% nrows))
+col_num <- pos %% ncol + 1
+
+# Integer Division:
+> 5%/%2
+[1] 2
+> 
+  > # Remainder:
+  > 5%%2
+[1] 1
+
 
 #################### Plots ####################
 
