@@ -3,6 +3,11 @@
 
 rm(list=ls())
 
+##### TO-DOs:
+#1) update SD of anem measurements to be variance and multiplied by (N/N-1) b/c sample sizes are relatively small and not actually know the mean of the distribution 
+#2) NEED TO CONVERT VAR AND SD OF GPS MEASURMENTS INTO KM OR M!!! RIGHT NOW THEY ARE IN DEGREES - about 111km for one degree lat
+#2) deal with that whole distance measurement in the package thing, could just write own function for distance based on lat/lon, see if actually any different...
+
 #################### Set-up: ####################
 setwd("~/Box Sync/Rutgers postdoc/Clownfish_persistence/Code") #set working directory
 
@@ -77,6 +82,87 @@ anemid_latlong <- function(anem.table.id, latlondata) { #anem.table.id is one an
   
 }
 
+#function to make vector of strings for column names for something done each year (like columns for sampling each year or minimum distance sampled to each anem each year, etc.)
+makeYearlyColNames <- function(start.Year, end.Year, descriptor) { #start.Year is first year of sampling, end.Year is final year of sampling, descriptor is string to go before year in column name (like "min_dist_" if want columns like "min_dist_2012")
+  out <- as.vector(NA) #initalize output vector of column names
+  year <- start.Year 
+  
+  for (i in 1:(end.Year - start.Year + 1)) {
+    out[i] <- paste(descriptor, year, sep="") #create string like "min_dist_2012", where descriptor is something like "min_dist_" and year is the year sampled
+    year <- year + 1
+  }
+  
+  return(out)
+}
+
+# #function to pull out GPS points for all anemone samples for one sample year
+# #Inputs: sample.year=sampling year, latlondata=data frame of all lat/lon data downloaded from database, dive.types.vec=vector of dive types to include for that year, db_read=name of stored database read (usually leyte)
+# getYearGPS <- function(sample.year, dive.types.vec, latlondata=alllatlons, db_read=leyte) {
+#   
+#   diveinfo <- leyte %>%
+#     tbl("diveinfo") %>%
+#     select(dive_table_id, date, gps, site, dive_type, dive_num) %>%
+#     collect() %>%
+#     mutate(year = as.integer(substring(date, 1, 4))) %>% #make a year column
+#     filter(year == sample.year) %>% #filter only dives from the sample year specified
+#     filter(dive_type %in% dive.types.vec) #filter out only the dive_types specified
+#   
+#   GPSinfo <- latlondata %>%
+#     mutate(year = as.integer(substring(date, 1, 4))) %>% #make a year column
+#     filter(year == sample.year) %>% #filter only dives from the sample year specified
+#     rename(gps=unit)
+#   
+#     #select(lat, lon, date, time, unit) #don't actually want year for the merge b/c diveinfo already has one...
+#   
+#   
+#   outGPSdf <- left_join(diveinfo, GPSinfo, by = c("date" = "date", "gps" = "gps", "year" = "year"))
+#   
+#   outGPSdf2 <- left_join(GPSinfo, diveinfo, by = c("date" = "date", "gps" = "gps"))
+#   
+#   outGPSdf4 <- left_join(GPSinfo, diveinfo, by = c("date" = "date", "gps" = "gps", "year" = "year"))
+#   
+#   outGPSdf3 <- left_join(GPSinfo, diveinfo, by = c("date", "year", "gps"))
+#   
+#   #WHY ARE THESE DIFFERENT?
+#   diffs <- anti_join(outGPSdf, outGPSdf4, by = c("date", "year", "gps"))
+#   
+#   diffs_outGPS <- outGPSdf3 %>% filter(date == "2015-01-27")
+#   diffs2_GPSinfo <- GPSinfo %>% filter("2015-01-27" == date)
+#   diffs3_diveinfo <- diveinfo %>% filter("")
+#   outGPSdf3$date="2015-01-27"
+#   #rename utni to gps so simpler statement
+#   #is 4x the number of dives in 2015
+#   
+#   #maybe LHS is getting duplicated b/c more than one match in the RHS that matches the criteria - maybe play with antijoin? or semijoin?
+#   #maybe when I separated date from time, something got messed up in the formatting?
+#   ß
+#   left_join(d1, d2, by = c("x" = "x2", "y" = "y2"))
+#   
+#   dive.types.vec <- as.vector("A")
+#   dive.types.vec <- c("A","C")
+#   table(diveinfo$dive_type)
+#   sample.year <- 2015
+#   latlondata <- alllatlons
+#   
+#   date <- leyte %>% 
+#     tbl("diveinfo") %>% 
+#     select(dive_table_id, date, gps, site, dive_type, dive_num) %>% 
+#     collect() %>% 
+#     filter(dive_table_id %in% dive$dive_table_id)
+#   
+#   dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
+#   #join with anem info, format obs time
+#   anem <- left_join(dive, date, by = "dive_table_id") %>% 
+#     separate(obs_time, into = c("hour", "minute", "second"), sep = ":") %>% #this line and the next directly from Michelle's code
+#     mutate(gpx_hour = as.numeric(hour) - 8)
+#   
+#   # find the lat long for this anem observation
+#   latloninfo <- latlondata %>%
+#     filter(date %in% anem$date) %>% 
+#     separate(time, into = c("hour", "minute", "second"), sep = ":") %>% 
+#     filter(as.numeric(hour) == anem$gpx_hour & as.numeric(minute) == anem$minute) 
+#   
+# }
 #################### Running things! ####################
 leyte <- read_db("Leyte") 
 
@@ -237,9 +323,15 @@ hist(anem.repeatobs$nvisits)
 #anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), sdlat = sd(lat), meanlon = mean(lon, na.rm = TRUE), sdlon = sd(lon, na.rm = TRUE), ngps = n())
 anem.IDUnqSites <- distinct(anem.AllInfo[c("anem_id_unq", "site")]) #pull out list of anem_id_unqs and their sites with only one row per each
 #anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') #add in site
-anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat) & !is.na(lon)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), sdlat = sd(lat), meanlon = mean(lon), sdlon = sd(lon), ngps = n())
+anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat) & !is.na(lon)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), varlat = var(lat)*(n()/(n()-1)), sdlat = sqrt(varlat), meanlon = mean(lon), varlon = var(lon)*(n()/(n()-1)), sdlon = sqrt(varlon), ngps = n()) #need to multiply variance by N/N-1 (same as multiplying by 1/N-1 when doing the sum) b/c not know the mean of the dist, estimating it, and small sample size (per Douglas discussion Thanksgiving weekend 2017)
 anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') 
 
+mperlat <- 111.111*1000 #meters per degree of latitude
+anem.LatLon$sdlat_m <- anem.LatLon$sdlat*mperlat
+anem.LatLon$sdlon_m <- anem.LatLon$sdlon*mperlat*cos(anem.LatLon$meanlat*2*pi/360)
+
+#filter out anem_id_unq = 7, which has an issue (shows up at two sites, probably a typo in anem_id somewhere)
+anem.LatLon <- filter(anem.LatLon, anem_id_unq != 7)
 
 #some anem_obs point to anemones at different sites - see AnemObsSleuthing for details
 # test <- anem.AllInfo %>% filter(anem_id_unq == 159)
@@ -330,7 +422,24 @@ anem_match_count <- as.data.frame(table(anem_match$anem1))
 #how to think about that? could easily end up w/chains of anems where each is next to a couple but we don't think they are all the same anem (or that visiting one on the far end of the chain means the one on the other end got visited too)
 #maybe all pairwise distances have to be the same to end up w/the same anem_range id? but then what about a group where one anem is close enough to another anem but it isn't close enough to the others to be part of the group?
 
+##### New method: make table of anem_ids (or anem_id_unq), closest to them in each year based on gps tracks
+#add in a column for min distance for each year (closest distance the GPS tracks got to the anemone for that year)
+min_dist_cols <- makeYearlyColNames(start.Year, end.Year, "min_dist_") #make a list of column names (like "min_dist_2012")
+anem.LatLon[,min_dist_cols] <- NA #add them to the data frame
 
+#go through anems and GPS tracks from a particular year, find min distance sampled from that anem
+#Inputs: df=data frame with anemone info (like anem.LatLon), year=sampling year, col_name=column in df to put output in, anemlat=column in df with anem lats, anemlon= column in df with anem lons
+# findMinDist <- function(df, year, col_name, anemlat, anemlon, gpsdf) {
+#   anem_lonlats <- df[c(anemlon, anemlat)] #pull out the list of anem mean lons and lats
+#   
+#   distMat <- rdist.earth(df$anem_id_unq[c("meanlon, meanlat")])
+#   
+#   (x1, miles = FALSE)
+# }
+# 
+# anemlat <- "meanlat"
+# anemlon <- "meanlon"
+# df <- anem.LatLon
 
 
 ########## testing, etc.
@@ -452,13 +561,23 @@ ggplot(data=anem.Obs.SumSite, aes(year, visits)) +
 dev.off()
 
 ##### Visualizing the standard deviation among estimates of anemone positions (just using anem_obs and anem_id as an estimate of repeat anem visits)
+#
+meanVar <- filter(anem.LatLon, varlat <= 0.001) %>% summarize(mean(varlat))
+anem.LatLon.Abbr <- filter(anem.LatLon, sdlat_m < 50)
+
 pdf(file="AnemGPS_Estimates.pdf")
-ggplot(data=anem.LatLon, aes(sdlat, sdlon)) +
+ggplot(data=anem.LatLon, aes(sdlat_m, sdlon_m)) +
   geom_point(aes(color=site, size=ngps)) +
   #facet_grid(.~site_wrap, labeller=label_parsed) +
-  xlab("latitude standard deviation") + ylab("longitude standard deviation") + ggtitle("Standard deviation of anem positions across visits") +
+  xlab("latitude sd (m)") + ylab("longitude sd (m)") + ggtitle("Standard deviation of anem positions across visits") +
   theme_bw()
 dev.off()
+
+#histogram of sdlat_m less than 50m
+pdf(file="AnemGPS_Estimates_Hist.pdf")
+hist(anem.LatLon.Abbr$sdlat_m, breaks=50, xlab='Standard deviation of lat (m)', main='Histogram of sd of lat (m) values < 50m')
+dev.off()
+
 
 #for the way the gps measures things, 5th decimal point is meters (4th is 10m, 3rd is 100m, 2nd is 1000m, 1st is 10000m) (talked to Michelle 11/14/17)
 
