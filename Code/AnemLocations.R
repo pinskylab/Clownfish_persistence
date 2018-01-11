@@ -1,11 +1,7 @@
 #Assess variance in anem gps location across visits
 #File started: 11/30/17 (relevant code pulled from AnemVisitationTable.R)
 
-rm(list=ls())
-
 #################### Set-up: ####################
-setwd("~/Box Sync/Rutgers postdoc/Clownfish_persistence/Code") #set working directory
-
 #Load relevant libraries
 library(RCurl) #allows running R scripts from GitHub
 library(RMySQL) #might need to load this to connect to the database?
@@ -16,8 +12,9 @@ library(dbplyr)
 library(ggplot2)
 library(cowplot)
 library(fields)
+library(here)
 
-#Load input files
+#Load input files (code below creates these, just give the option to load here b/c takes several minutes to generate)
 load(file="AnemAllInfowLatLon.RData") #gives anem.AllInfo w/lat and lons averaged for each anem visit
 load(file="AnemLatLonObsbyAnem.RData") #gives anem.LatLon w/sd and var of lats and lons across vists to each anem 
 
@@ -113,34 +110,34 @@ alllatlons <- leyte %>%
   separate(time, into = c("date", "time"), sep = " ") 
 
 #the commented code below produces anem.AllInfo w/lat lon obs for each anem visit, currently commented out b/c can just load saved output file at the top
-# #pull out relevant info from dive table and anemone table and merge so can match each anem_id to site and dates visited 
-# dive.Info <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type, site) %>% collect() #pull out list of dive dates, sites, and types
-# dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
-# anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
-# 
-# #merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA
-# anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>% filter(!is.na(anem_id)) #9853 rows when NAs left in, 4056 when filtered out
-# anem.AllInfo$anem_id <- as.numeric(anem.AllInfo$anem_id) #make anem_id numeric to make future joins/merges easier
-# anem.AllInfo <- anem.AllInfo %>% filter(anem_id != "-9999") %>% collect() #remove -9999 anem_id
-# anem.AllInfo <- anem.AllInfo %>% filter(anem_id != "") %>% collect() #remove blank anem_id
-# 
-# #grouping anem_ids by anem_obs values (so anemones we already know from tag surveys are actually the same one)
-# anem.AllInfo <- anem.AllInfo %>% mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), anem_obs)) #add unique anem id to anem.AllInfo
-# 
-# #find the lat/lon for each anem observation (could probably do this without a for loop but then the averaging across multiple gps records per observation got hairy when trying to do it all w/dplyr as vectors...)
-# anem.AllInfo$lat <- rep(NA, length(anem.AllInfo$anem_table_id))
-# anem.AllInfo$lon <- rep(NA, length(anem.AllInfo$anem_table_id))
-# 
-# # this commented code produces the output file below that now I just load in to save time... creates on lat/lon observation per visit
-# # #go through anem_table_ids and find the lat/lon for each anem observation 
-# for (i in 1:length(anem.AllInfo$anem_table_id)) {
-#   outlatlon <- anemid_latlong(anem.AllInfo$anem_table_id[i], alllatlons)
-#   anem.AllInfo$lat[i] <- outlatlon$lat
-#   anem.AllInfo$lon[i] <- outlatlon$lon
-#   print(i)
-# }
-# # #save output, since takes several minutes to run the above for loop
-# # #save(anem.AllInfo, file='AnemAllInfowLatLon.RData')
+#pull out relevant info from dive table and anemone table and merge so can match each anem_id to site and dates visited
+dive.Info <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type, site) %>% collect() #pull out list of dive dates, sites, and types
+dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
+anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
+
+#merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA
+anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>% filter(!is.na(anem_id)) #9853 rows when NAs left in, 4056 when filtered out
+anem.AllInfo$anem_id <- as.numeric(anem.AllInfo$anem_id) #make anem_id numeric to make future joins/merges easier
+anem.AllInfo <- anem.AllInfo %>% filter(anem_id != "-9999") %>% collect() #remove -9999 anem_id
+anem.AllInfo <- anem.AllInfo %>% filter(anem_id != "") %>% collect() #remove blank anem_id
+
+#grouping anem_ids by anem_obs values (so anemones we already know from tag surveys are actually the same one)
+anem.AllInfo <- anem.AllInfo %>% mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) #add unique anem id to anem.AllInfo
+
+#find the lat/lon for each anem observation (could probably do this without a for loop but then the averaging across multiple gps records per observation got hairy when trying to do it all w/dplyr as vectors...)
+anem.AllInfo$lat <- rep(NA, length(anem.AllInfo$anem_table_id))
+anem.AllInfo$lon <- rep(NA, length(anem.AllInfo$anem_table_id))
+
+# CODE BELOW PRODUCES THE OUTPUT FILES LOADED AT THE TOP ... creates on lat/lon observation per visit
+# #go through anem_table_ids and find the lat/lon for each anem observation
+for (i in 1:length(anem.AllInfo$anem_table_id)) {
+  outlatlon <- anemid_latlong(anem.AllInfo$anem_table_id[i], alllatlons)
+  anem.AllInfo$lat[i] <- outlatlon$lat
+  anem.AllInfo$lon[i] <- outlatlon$lon
+  print(i)
+}
+# #save output, since takes several minutes to run the above for loop
+save(anem.AllInfo, file='AnemAllInfowLatLon.RData')
 
 #pull out list of anem_id_unqs and their sites with only one row per each
 anem.IDUnqSites <- distinct(anem.AllInfo[c("anem_id_unq", "site")]) 
@@ -154,13 +151,65 @@ anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') #add 
 anem.LatLon$sdlat_m <- anem.LatLon$sdlat*mperlat #convert latitudes
 anem.LatLon$sdlon_m <- anem.LatLon$sdlon*mperlat*cos(anem.LatLon$meanlat*2*pi/360) #convert longitudes (distance of a degree depends on latitude)
 
-#filter out anem_id_unq = 7, which has an issue (shows up at two sites)
-anem.LatLon <- filter(anem.LatLon, anem_id_unq != 7)
-#save(anem.LatLon, file="AnemLatLonObsbyAnem.RData")
+#filter out anem_obs = 7, which has an issue (shows up at two sites) 
+anem.LatLon <- filter(anem.LatLon, anem_id_unq != "obs7")
 
+#save data frame for ease in accessing in the future
+save(anem.LatLon, file="AnemLatLonObsbyAnem.RData")
+
+##### NOW BACK TO CODE THAT IS NOT LOADED AT THE TOP
 #filter out just the sds less than a threshold value to zoom in on histogram 
 anem.LatLon.Abbr <- filter(anem.LatLon, sdlat_m < distance_thresh)
 
+# ##### Checking modified/synthesized/analyzed data against more raw data pulled straight from database - I think the whole issue here was that anem_id_unq was not always anem_id (so sometimes it looked like it was pulling the wrong thing if anem_obs was actually what it was using)
+# # maybe something in here could get turned into a test? like checking that the time zones are handled appropriately (if that in fact turns out to be the problem)?
+# #just pull out a couple of anem_ids to check
+# # get anem info for just one anem_id
+# ### There seems to be some confusion between whether a particular anem is coded by anem_id or anem_obs - 10 for anem_id is at Visca w/2 visits, 10 for anem_obs is at Wangag w/more visits
+# ### Could some of those be getting combined to create anems with more visits than they actually have and across sites?
+# ### Think more about how to check
+# 
+# # anem_id = 10: filtering from database, see two visits (5/22/13, 5/13/12), site is Visca; filtering in anem.LatLon or anem.AllInfo for anem_id_unq=10, see 7 visits, site is Wangag - has different anem_ids (2038, 890) and anem_obs is 10
+# # also, anem_id = 10 has anem_obs = 297 (but don't see any other anem_ids associated with that anem_obs...)
+# exanem = 10 # choose an anem_id to look at
+# exanem <- c(2038, 890)
+# anemidex <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, obs_time, dive_table_id, anem_id, old_anem_id, anem_obs) %>%
+#   collect() %>%
+#   filter(anem_id %in% exanem)
+# 
+# anemidex <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, obs_time, dive_table_id, anem_id, old_anem_id, anem_obs) %>%
+#   collect() %>%
+#   filter(anem_obs %in% exanem)
+# 
+# 
+# # get the dive info for that anem_id
+# anemiddiveinfoex <- leyte %>%
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, date, gps, site) %>%
+#   collect() %>%
+#   filter(dive_table_id %in% anemidex$dive_table_id)
+# 
+# #and what does my anem.LatLon say?
+# anemLatLonex <- anem.LatLon %>%
+#   filter(anem_id_unq %in% exanem) 
+# 
+# #what does anem.AllInfo say?
+# anemAllInfoex <- anem.AllInfo %>%
+#   filter(anem_id_unq %in% exanem) #so the error is in anem.AllInfo - pulls visits from wrong site and too many
+
+##### What are the anems that have large sdlat_m and sdlon_m? 
+largeSDanems <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m
+
+#look at them individually to see if anything strange is going on
+# obs1014, obs1028, obs1034, obs1044, obs1046, obs135, obs231, obs306, obs327, obs334, obs379, obs516, obs533, obs582, obs663, obs672
+# all at Magbangon and Wangag
+idtocheck <- 'obs672'
+anem.AllInfo %>% filter(anem_id_unq == idtocheck)
+  
 #################### Plots ####################
 pdf(file="AnemGPS_Estimates.pdf")
 ggplot(data=anem.LatLon, aes(sdlat_m, sdlon_m)) +
@@ -173,4 +222,9 @@ dev.off()
 #histogram of sdlat_m less than distance_thresh (here 50m)
 pdf(file="AnemGPS_Estimates_Hist.pdf")
 hist(anem.LatLon.Abbr$sdlat_m, breaks=50, xlab='Standard deviation of lat (m)', main=paste('Histogram of sd of lat (m) values < ', distance_thresh, sep=""))
+dev.off()
+
+#histogram of all sdlat_m
+pdf(file="AnemGPS_Estimates_Hist_All.pdf")
+hist(anem.LatLon$sdlat_m, breaks=50, xlab='Standard deviation of lat (m)', main=paste('Histogram of sd of lat (m) values'))
 dev.off()
