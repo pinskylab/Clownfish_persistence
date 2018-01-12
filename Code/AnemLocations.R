@@ -17,6 +17,8 @@ library(here)
 #Load input files (code below creates these, just give the option to load here b/c takes several minutes to generate)
 load(file="AnemAllInfowLatLon.RData") #gives anem.AllInfo w/lat and lons averaged for each anem visit
 load(file="AnemLatLonObsbyAnem.RData") #gives anem.LatLon w/sd and var of lats and lons across vists to each anem 
+load(file="LargeSDanems_100_dbdata.RData") #data from database of anems with SDlat between 100-200m
+load(file="LargeSDanems_200_dbdata.RData") #data from database of anems with SDlat >200m
 
 #Set constants
 mperlat <- 111.111*1000 #meters per degree of latitude
@@ -99,6 +101,11 @@ makeYearlyColNames <- function(start.Year, end.Year, descriptor) { #start.Year i
   return(out)
 }
 
+#function to see if rows with the same anem_obs also have the same site 
+compareObsandSite <- function(df) {
+  
+}
+
 #################### Running things! ####################
 leyte <- read_db("Leyte") 
 
@@ -109,7 +116,8 @@ alllatlons <- leyte %>%
   collect(n = Inf) %>% 
   separate(time, into = c("date", "time"), sep = " ") 
 
-#the commented code below produces anem.AllInfo w/lat lon obs for each anem visit, currently commented out b/c can just load saved output file at the top
+###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
+###### THERE ARE A FEW LINES OF CODE AT THE BOTTOM OF THIS SECTION THAT FILTER OUT ANEMONES WITH LARGE SDs TO LOOK AT MORE CLOSELY
 #pull out relevant info from dive table and anemone table and merge so can match each anem_id to site and dates visited
 dive.Info <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type, site) %>% collect() #pull out list of dive dates, sites, and types
 dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
@@ -128,15 +136,14 @@ anem.AllInfo <- anem.AllInfo %>% mutate(anem_id_unq = ifelse(is.na(anem_obs), pa
 anem.AllInfo$lat <- rep(NA, length(anem.AllInfo$anem_table_id))
 anem.AllInfo$lon <- rep(NA, length(anem.AllInfo$anem_table_id))
 
-# CODE BELOW PRODUCES THE OUTPUT FILES LOADED AT THE TOP ... creates on lat/lon observation per visit
-# #go through anem_table_ids and find the lat/lon for each anem observation
+#go through anem_table_ids and find the lat/lon for each anem observation (this is the step that takes a long time to do, prints row (out of 4044) so can track progress)
 for (i in 1:length(anem.AllInfo$anem_table_id)) {
   outlatlon <- anemid_latlong(anem.AllInfo$anem_table_id[i], alllatlons)
   anem.AllInfo$lat[i] <- outlatlon$lat
   anem.AllInfo$lon[i] <- outlatlon$lon
   print(i)
 }
-# #save output, since takes several minutes to run the above for loop
+#save output, since takes several minutes to run the above for loop
 save(anem.AllInfo, file='AnemAllInfowLatLon.RData')
 
 #pull out list of anem_id_unqs and their sites with only one row per each
@@ -158,9 +165,67 @@ anem.LatLon <- filter(anem.LatLon, anem_id_unq != "obs7")
 save(anem.LatLon, file="AnemLatLonObsbyAnem.RData")
 
 ##### NOW BACK TO CODE THAT IS NOT LOADED AT THE TOP
-#filter out just the sds less than a threshold value to zoom in on histogram 
+#filter out just the sds less than a threshold value to zoom in on histogram for plotting
 anem.LatLon.Abbr <- filter(anem.LatLon, sdlat_m < distance_thresh)
 
+#### THIS CODE PULLS OUT DATA FROM THE DATABASE FOR THE ANEMS WITH HIGH SDs (>100m), SAVED IN DATAFRAMES THAT CAN BE LOADED AT THE TOP
+##### What are the anems that have large sdlat_m and sdlon_m? 
+largeSDanems_200 <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m (16 of these)
+largeSDanems_100 <- anem.LatLon %>% filter(sdlat_m > 100 & sdlat_m < 200) #filter out anems with sds between 100m and 200m (20 of these)
+
+#look at them ones >200m individually to see if anything strange is going on
+# obs1014, obs1028, obs1034, obs1044, obs1046, obs135, obs231, obs306, obs327, obs334, obs379, obs516, obs533, obs582, obs663, obs672
+# all at Magbangon and Wangag
+idtocheck <- 'obs672'
+anem.AllInfo %>% filter(anem_id_unq == idtocheck)
+
+#pull the data from the database for the ones >200 and save
+#all of the anems with sdlat_m > 100m have anem_id_unq that start with obs so don't need to filter out for id (but might in future)
+largeSDanems_200_anemobstopull <- largeSDanems_200 %>% mutate(idtopull = substr(anem_id_unq, 4, length(anem_id_unq))) #separate out just the anem_obs number from "obsXXX"
+#largeSDanems_200_anemobstopull$idtopull <- as.numeric(largeSDanems_200_anemobstopull$idtopull) #convert from character to numeric
+
+#now, pull info for those anems from the database to see if anything odd jumps out
+largeSDanems_200_dbdata_anems <- leyte %>% #pull anem info
+  tbl('anemones') %>%
+  select(anem_table_id, obs_time, dive_table_id, anem_id, anem_obs, old_anem_id) %>%
+  collect() %>%
+  filter(anem_obs %in% largeSDanems_200_anemobstopull$idtopull)
+
+largeSDanems_200_dbdata_dive <- leyte %>% #pull dive info for those anem visits
+  tbl('diveinfo') %>%
+  select(dive_table_id, date, gps, site, dive_type) %>%
+  collect() %>%
+  filter(dive_table_id %in% largeSDanems_200_dbdata_anems$dive_table_id)
+
+largeSDanems_200_dbdata <- left_join(largeSDanems_200_dbdata_anems, largeSDanems_200_dbdata_dive, by="dive_table_id") #join the two together
+largeSDanems_200_dbdata <- arrange(largeSDanems_200_dbdata, anem_obs) #arrange by anem_obs
+
+#now pull the data from the database for the ones between 100 and 200m and save
+#all of the anems with sdlat_m > 100m have anem_id_unq that start with obs so don't need to filter out for id (but might in future)
+largeSDanems_100_anemobstopull <- largeSDanems_100 %>% mutate(idtopull = substr(anem_id_unq, 4, length(anem_id_unq))) #separate out just the anem_obs number from "obsXXX"
+#largeSDanems_100_anemobstopull$idtopull <- as.numeric(largeSDanems_100_anemobstopull$idtopull) #convert from character to numeric
+
+#now, pull info for those anems from the database to see if anything odd jumps out
+largeSDanems_100_dbdata_anems <- leyte %>% #pull anem info
+  tbl('anemones') %>%
+  select(anem_table_id, obs_time, dive_table_id, anem_id, anem_obs, old_anem_id) %>%
+  collect() %>%
+  filter(anem_obs %in% largeSDanems_100_anemobstopull$idtopull)
+
+largeSDanems_100_dbdata_dive <- leyte %>% #pull dive info for those anem visits
+  tbl('diveinfo') %>%
+  select(dive_table_id, date, gps, site, dive_type) %>%
+  collect() %>%
+  filter(dive_table_id %in% largeSDanems_100_dbdata_anems$dive_table_id)
+
+largeSDanems_100_dbdata <- left_join(largeSDanems_100_dbdata_anems, largeSDanems_100_dbdata_dive, by="dive_table_id") #join the two together
+largeSDanems_100_dbdata <- arrange(largeSDanems_100_dbdata, anem_obs) #arrange by anem_obs
+
+#save these two dataframes for future checking
+save(largeSDanems_100_dbdata, file="largeSDanems_100_dbdata.RData")
+save(largeSDanems_200_dbdata, file="largeSDanems_200_dbdata.RData")
+
+##### Below was some code for checking to see if some anems were pulled from database incorrectly - not relevant now but don't want to delete yet (plot section is below)
 # ##### Checking modified/synthesized/analyzed data against more raw data pulled straight from database - I think the whole issue here was that anem_id_unq was not always anem_id (so sometimes it looked like it was pulling the wrong thing if anem_obs was actually what it was using)
 # # maybe something in here could get turned into a test? like checking that the time zones are handled appropriately (if that in fact turns out to be the problem)?
 # #just pull out a couple of anem_ids to check
@@ -200,15 +265,6 @@ anem.LatLon.Abbr <- filter(anem.LatLon, sdlat_m < distance_thresh)
 # #what does anem.AllInfo say?
 # anemAllInfoex <- anem.AllInfo %>%
 #   filter(anem_id_unq %in% exanem) #so the error is in anem.AllInfo - pulls visits from wrong site and too many
-
-##### What are the anems that have large sdlat_m and sdlon_m? 
-largeSDanems <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m
-
-#look at them individually to see if anything strange is going on
-# obs1014, obs1028, obs1034, obs1044, obs1046, obs135, obs231, obs306, obs327, obs334, obs379, obs516, obs533, obs582, obs663, obs672
-# all at Magbangon and Wangag
-idtocheck <- 'obs672'
-anem.AllInfo %>% filter(anem_id_unq == idtocheck)
   
 #################### Plots ####################
 pdf(file="AnemGPS_Estimates.pdf")
