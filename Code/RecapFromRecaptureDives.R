@@ -25,11 +25,23 @@ eval(parse(text = script))
 script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-# Peterson estimate (biased for small sample sizes)
-mr_Peterson <- function(n, m, M) { # n = total individuals caputured (in second capture event), m = marked individuals captured (in second capture event), M = total marked individuals
-  N <- (n/m)*M  # estimated total population size
-  pr <- m/M    # estimated probablility of recapture
-  out <- data.frame(n = n, prob_recap = pr)
+# Lincoln-Peterson estimate (biased for small sample sizes)
+mr_LicolnPeterson <- function(x11, x10, x01) { # x11 = individuals captured in both sampling sessions, x10 = individuals captured only in the first sampling session, x01 = individuals captured only in the second sampling session
+  n1 <- x11 + x10     #animals caught + marked in first sampling period (and total number of marked individuals) 
+  n2 <- x11 + x01     #number of animals caught in the second sampling event
+  m2 <- x11           #number of animals caught in both periods
+  r <- n1 + n2 - m2   #number of distinct animals caught during study
+  
+  Nest <- (n1*n2)/m2
+  varN <- ((n1 + 1)*(n2 + 1)*(n1 - m2)*(n2 - m2))/(((m2 + 1)^2)*(m2 + 2))
+  prob_r <- m2/n2
+  prob_rv2 <- m2/n1
+  
+  out <- data.frame(Nest = Nest, varN = varN, prob_r = prob_r, prob_rv2 = prob_rv2)
+  # # n = total individuals caputured (in second capture event), m = marked individuals captured (in second capture event), M = total marked individuals
+  # N <- (n/m)*M  # estimated total population size
+  # pr <- m/M    # estimated probablility of recapture
+  # out <- data.frame(n = n, prob_recap = pr)
   return(out)
 }
 
