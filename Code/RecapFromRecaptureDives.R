@@ -45,6 +45,28 @@ mr_LicolnPeterson <- function(x11, x10, x01) { # x11 = individuals captured in b
   return(out)
 }
 
+# Lincoln-Peterson estimate (biased for small sample sizes), alternate
+mr_LincolnPeterson_alt <- function(n1, n2, m2) { # x11 = individuals captured in both sampling sessions, x10 = individuals captured only in the first sampling session, x01 = individuals captured only in the second sampling session
+  #n1 <- x11 + x10     #animals caught + marked in first sampling period (and total number of marked individuals) 
+  #n2 <- x11 + x01     #number of animals caught in the second sampling event
+  #m2 <- x11           #number of animals caught in both periods
+  r <- n1 + n2 - m2   #number of distinct animals caught during study
+  
+  Nest <- (n1*n2)/m2
+  varN <- ((n1 + 1)*(n2 + 1)*(n1 - m2)*(n2 - m2))/(((m2 + 1)^2)*(m2 + 2))
+  prob_r <- m2/n2
+  prob_rv2 <- m2/n1
+  prop_caught <- r/Nest
+  prop_caught_n1 <- n1/Nest
+  
+  out <- data.frame(Nest = Nest, varN = varN, prob_r = prob_r, prob_rv2 = prob_rv2, prop_caught = prop_caught, prop_caught_n1 = prop_caught_n1)
+  # # n = total individuals caputured (in second capture event), m = marked individuals captured (in second capture event), M = total marked individuals
+  # N <- (n/m)*M  # estimated total population size
+  # pr <- m/M    # estimated probablility of recapture
+  # out <- data.frame(n = n, prob_recap = pr)
+  return(out)
+}
+
 # Chapman estimated (unbiased for large N)
 mr_Chapman <- function(n, m, M) {
   N <- (((M+1)*(n+1))/(m+1)) - 1 # estimated total population size
@@ -72,7 +94,7 @@ allfish_anems <- leyte %>%
   collect() %>%
   filter(anem_table_id %in% allfish_fish$anem_table_id)
 
-# Pull out the dives associated with thsoe fish
+# Pull out the dives associated with those fish
 allfish_dives <- leyte %>%
   tbl("diveinfo") %>%
   select(dive_table_id, dive_type, date, site, gps) %>%
@@ -127,3 +149,41 @@ estimates_PorocSF <- mr_Peterson((n_fish_seen_R %>% filter(site == "Poroc San Fl
 estimates_PorocSF2017 <- mr_Peterson((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2017))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2017))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2017))$ntags)
 estimates_PorocSF2016_C <- mr_Chapman((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2016))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2016))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2016))$ntags)
 estimates_PorocSF2017_C <- mr_Chapman((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2017))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2017))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2017))$ntags)
+
+##### Try running for all sites with recap dives, without filtering by area at all (not a great plan, will way underestimate proportion sampled)
+# initialize data frame
+#prop_sampled <- data.frame(site=as.character(site_vec), stringsAsFactors = FALSE)
+recap_dive_sites_2016 <- c("Cabatoan","Palanas","Poroc Rose","Poroc San Flower","Wangag")
+recap_dive_sites_2017 <- c("Gabas", "Palanas", "Poroc Rose", "Poroc San Flower", "Visca")
+prop_sampled <- data.frame(site=c(recap_dive_sites_2016,recap_dive_sites_2017), stringsAsFactors = FALSE)
+prop_sampled$year <- c(rep(2016, length(recap_dive_sites_2016)), rep(2017, length(recap_dive_sites_2017)))
+prop_sampled$Nest <- rep(NA, length(prop_sampled$year))
+prop_sampled$Nvar <- rep(NA, length(prop_sampled$year))
+prop_sampled$prop_sampled_noQGIS_total <- rep(NA, length(prop_sampled$year))
+prop_sampled$prop_sampled_noQGIS_n1 <- rep(NA, length(prop_sampled$year))
+
+# run through sites and years
+for(i in 1:length(prop_sampled$year)){
+  siteval <- prop_sampled$site[i]
+  y <- prop_sampled$year[i]
+  
+  n1 = (n_tagged_fish %>% filter(site == siteval, year == y))$ntags
+  n2 = (n_fish_seen_R %>% filter(site == siteval, year == y))$nfish
+  m2 = (n_recaptured_fish_R %>% filter(site == siteval, year == y))$ntags
+  
+  # if( (n1 == 0 | n2 == 0 | m2 == 0) == TRUE) {
+  #   prop_sampled$Nest[index] = NA
+  #   prop_sampled$prop_sampled_noQGIS_total[index] = NA
+  #   prop_sampled$prop_sampled_noQGIS_n1[index] = NA
+  # } else {
+    out = mr_LincolnPeterson_alt(n1, n2, m2)
+    prop_sampled$Nest[i] = out$Nest
+    prop_sampled$Nvar[i] = out$varN
+    prop_sampled$prop_sampled_noQGIS_total[i] = out$prop_caught
+    prop_sampled$prop_sampled_noQGIS_n1[i] = out$prop_caught_n1
+ # }
+}
+
+
+
+
