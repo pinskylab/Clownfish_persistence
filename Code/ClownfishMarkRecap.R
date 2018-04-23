@@ -2,9 +2,6 @@
 # Somewhat cleaned-up version of code from ClownfishSurvivalEstimates.R
 
 #################### Set-up: ####################
-#Set path for mark executable so that RMark can find it (haven't gotten this to work so commenting it out for now)
-#MarkPath = "~/Box Sync/Rutgers postdoc/Clownfish_persistence/Code"
-
 #Load relevant libraries
 library(RCurl) #allows running R scripts from GitHub
 library(RMySQL) #might need to load this to connect to the database?
@@ -12,7 +9,7 @@ library(dplyr)
 library(tidyr)
 library(RMark)
 library(lubridate)
-library(dbplyr)
+#library(dbplyr)
 library(ggplot2)
 library(here)
 
@@ -239,33 +236,33 @@ GradientDescent3SY2Params <- function(nvals, params0, nsteps, eps, del, highVal,
 #################### Running things: ####################
 leyte <- read_db("Leyte")
 
-# Pull out all the tagged fish (here, using saved database tables, not leyte)
-allfish_fish <- leyte %>% 
-  tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
-  collect() %>%
-  filter(!is.na(tag_id)) 
-
-allfish_anems <- leyte %>%
-  tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
-  collect() %>%
-  filter(anem_table_id %in% allfish_fish$anem_table_id)
-
-allfish_dives <- leyte %>%
-  tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  collect() %>%
-  filter(dive_table_id %in% allfish_anems$dive_table_id)
-
-# pull out just the year and put that in a separate column
-allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
-
-#join together
-allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
-allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
-
+# # Pull out all the tagged fish (here, using saved database tables, not leyte)
+# allfish_fish <- leyte %>% 
+#   tbl("clownfish") %>%
+#   select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
+#   collect() %>%
+#   filter(!is.na(tag_id)) 
 # 
+# allfish_anems <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+#   collect() %>%
+#   filter(anem_table_id %in% allfish_fish$anem_table_id)
+# 
+# allfish_dives <- leyte %>%
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   collect() %>%
+#   filter(dive_table_id %in% allfish_anems$dive_table_id)
+# 
+# # pull out just the year and put that in a separate column
+# allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
+# 
+# #join together
+# allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
+# allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
+# 
+# # 
 allfish_fish <- leyte %>% 
   tbl("clownfish") %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
@@ -291,6 +288,92 @@ allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
 allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
 
+allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
+
+##### Trying out MARK
+#Create input file for MARK
+# Pull out all the tags and their encounter history from 2015-2018
+encounters_all <- CreateEncounterSummary(2015, 2018, allfish) #simpler way of getting encounter history like above using function
+
+# Remove the NA tag id at the end
+encounters_all <- encounters_all[1:(length(encounters_all$tag_id)-1),] 
+
+# Find site and add it in
+site_info <- allfish %>% filter(!is.na(tag_id)) %>%
+  filter(tag_id %in% encounters_all$tag_id) %>%
+  group_by(tag_id) %>%
+  summarize(site = site[1]) # this assumes that the fish was only seen/caught at one site - should probably check that at some point...
+
+encounters_all <- left_join(encounters_all, site_info, by="tag_id")
+
+# Rename to fit mark input expectations
+encounters_all <- encounters_all %>% rename(ch = encounter.hist)
+
+# Add in tagging size
+tag_size <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  group_by(tag_id) %>%
+  summarize(tag_size = min(size)) # this assumes it was tagged at the smallest size recorded for it... will not be true when include genetic recaps (and might not be true now anyway...)
+  
+encounters_all <- left_join(encounters_all, tag_size, by="tag_id")
+
+# Add in tail color (could probably do these all together in one command... look into that later..)
+tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2015) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2015 = color[1])
+
+tail_color_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2016) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2016 = color[1])
+
+tail_color_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2017) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2017 = color[1])
+
+tail_color_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2018) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2018 = color[1])
+
+#encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
+
+encounters_all <- left_join(encounters_all, tail_color_2015, by="tag_id")
+encounters_all <- left_join(encounters_all, tail_color_2016, by="tag_id")
+encounters_all <- left_join(encounters_all, tail_color_2017, by="tag_id")
+encounters_all <- left_join(encounters_all, tail_color_2018, by="tag_id")
+
+# Add in size in each of the years
+size_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2015) %>%
+  group_by(tag_id) %>% 
+  summarize(size_2015 = mean(size, rm.na = TRUE))
+
+size_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2016) %>%
+  group_by(tag_id) %>% 
+  summarize(size_2016 = mean(size, rm.na = TRUE))
+
+size_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2017) %>%
+  group_by(tag_id) %>% 
+  summarize(size_2017 = mean(size, rm.na = TRUE))
+
+size_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2018) %>%
+  group_by(tag_id) %>% 
+  summarize(size_2018 = mean(size, rm.na = TRUE))
+
+encounters_all <- left_join(encounters_all, size_2015, by="tag_id")
+encounters_all <- left_join(encounters_all, size_2016, by="tag_id")
+encounters_all <- left_join(encounters_all, size_2017, by="tag_id")
+encounters_all <- left_join(encounters_all, size_2018, by="tag_id")
+
+##### Now, try running MARK!
+tagged.site <- mark(data=encounters_all, model = "CJS")
+
+##### Previous work using own likelihood functions...
 # Now, create encounter histories for fish at all sites combined
 encountersAll <- CreateEncounterSummary(2015, 2017, allfish) #simpler way of getting encounter history like above using function
 nvals_allfish <- as.data.frame(table(encountersAll$encounter.hist))
@@ -378,7 +461,12 @@ Vis <- allfish %>% filter(site == "Visca")
 Vis_pop <- as.data.frame(table(Vis$year))
 
 
-# testing R Mark
+#################################### R MARK work ############# 
+# need to get data in format for R Mark
+# column ch - has cenounter history (like 1011001)
+# then columns with characteristics - should have tag_id, size (at first capture), site, could have distance to any anem it was caught it to that year's track for each year...
+#encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
+
 
 #Load practice data sets
 data(dipper)
