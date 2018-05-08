@@ -1,6 +1,11 @@
 #Assess variance in anem gps location across visits
 #File started: 11/30/17 (relevant code pulled from AnemVisitationTable.R)
 
+#### To-dos:
+# Check that lat/lons are pulled right (the last one on 1/14/15 for anem_obs 10 is different than what Michelle shows on the map)
+# Could be that sometimes time - 8 hours is actually a different day -- should check for that possibility (not common but some)
+# Check how I am calculating SD among measurements - is that actually the best way to do it? Would it be better to calculate average distance between points for the anem?
+
 #################### Set-up: ####################
 #Load relevant libraries
 library(RCurl) #allows running R scripts from GitHub
@@ -14,11 +19,11 @@ library(cowplot)
 library(fields)
 library(here)
 
-#Load input files (code below creates these, just give the option to load here b/c takes several minutes to generate)
-load(file="AnemAllInfowLatLon.RData") #gives anem.AllInfo w/lat and lons averaged for each anem visit
-load(file="AnemLatLonObsbyAnem.RData") #gives anem.LatLon w/sd and var of lats and lons across vists to each anem 
-load(file="LargeSDanems_100_dbdata.RData") #data from database of anems with SDlat between 100-200m
-load(file="LargeSDanems_200_dbdata.RData") #data from database of anems with SDlat >200m
+# #Load input files (code below creates these, just give the option to load here b/c takes several minutes to generate)
+# load(file="AnemAllInfowLatLon.RData") #gives anem.AllInfo w/lat and lons averaged for each anem visit
+# load(file="AnemLatLonObsbyAnem.RData") #gives anem.LatLon w/sd and var of lats and lons across vists to each anem 
+# load(file="largeSDanems_100_dbdata.RData") #data from database of anems with SDlat between 100-200m
+# load(file="largeSDanems_200_dbdata.RData") #data from database of anems with SDlat >200m
 
 #Set constants
 mperlat <- 111.111*1000 #meters per degree of latitude
@@ -27,7 +32,12 @@ distance_thresh <- 50 #distance threshold for zooming in on histogram of lat and
 #Can disable diagnostics (or try updating RStudio?) if get tired of the many warnings about unitialized or unknown columns: https://stackoverflow.com/questions/39041115/fixing-a-multiple-warning-unknown-column
 
 #################### Functions: ####################
-#helper functions from Michelle's GitHub - do various tasks w/database (like assigning dates and site to fish and such)
+# Functions and constants from my GitHub function/constant collection
+script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQJT5uCEwjgDGYOneY0W6Zdjol5axks5alHmBwA%3D%3D", ssl.verifypeer = FALSE)
+eval(parse(text = script))
+
+# Functions from Michelle's GitHub helpers script
+#helper functions - do various tasks w/database (like assigning dates and site to fish and such)
 script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
@@ -83,24 +93,6 @@ anemid_latlong <- function(anem.table.id, latlondata) { #anem.table.id is one an
   
 }
 
-#function to make vector of strings for column names for something done each year (like columns for sampling each year or minimum distance sampled to each anem each year, etc.)
-makeYearlyColNames <- function(start.Year, end.Year, descriptor) { #start.Year is first year of sampling, end.Year is final year of sampling, descriptor is string to go before year in column name (like "min_dist_" if want columns like "min_dist_2012")
-  
-  if (start.Year > end.Year) {
-    out <- NULL
-  } 
-  else {
-    out <- as.vector(NA) #initalize output vector of column names
-    year <- start.Year 
-    
-    for (i in 1:(end.Year - start.Year + 1)) {
-      out[i] <- paste(descriptor, year, sep="") #create string like "min_dist_2012", where descriptor is something like "min_dist_" and year is the year sampled
-      year <- year + 1
-    }
-  }
-  return(out)
-}
-
 #function to see if rows with the same anem_obs also have the same site 
 compareObsandSite <- function(df) {
   
@@ -109,28 +101,39 @@ compareObsandSite <- function(df) {
 #################### Running things! ####################
 leyte <- read_db("Leyte") 
 
-#pull out all lat/lon info so can feed into function above (rather than having to pull out from database each time)
+#pull out GPS, dive, anem info from database
 alllatlons <- leyte %>%
   tbl("GPX") %>%
   select(lat, lon, time, unit) %>%
   collect(n = Inf) %>% 
   separate(time, into = c("date", "time"), sep = " ") 
 
+dive.Info <- leyte %>%
+  tbl("diveinfo") %>%
+  select(dive_table_id, date, dive_type, site) %>%
+  collect() %>%
+  mutate(year = as.integer(substring(date,1,4)))
+
+anem.Info <- leyte %>%
+  tbl("anemones") %>%
+  select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id) %>%
+  collect()
+
+#merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA, add in unique anem id
+anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>% 
+  filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
+  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
+  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
+  mutate(lon = as.numeric(rep(NA, length(anem_table_id))))
+
+
+
+
+
+
 ###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
 ###### THERE ARE A FEW LINES OF CODE AT THE BOTTOM OF THIS SECTION THAT FILTER OUT ANEMONES WITH LARGE SDs TO LOOK AT MORE CLOSELY
-#pull out relevant info from dive table and anemone table and merge so can match each anem_id to site and dates visited
-dive.Info <- leyte %>% tbl("diveinfo") %>% select(date, dive_table_id, dive_type, site) %>% collect() #pull out list of dive dates, sites, and types
-dive.Info$year <- as.integer(substring(dive.Info$date, 1, 4)) #add a year column
-anem.Info <- leyte %>% tbl("anemones") %>% select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id) %>% collect() #pull out anem_id, dive_table_id, anem_table_id to match up with dive info
-
-#merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA
-anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>% filter(!is.na(anem_id)) #9853 rows when NAs left in, 4056 when filtered out
-anem.AllInfo$anem_id <- as.numeric(anem.AllInfo$anem_id) #make anem_id numeric to make future joins/merges easier
-anem.AllInfo <- anem.AllInfo %>% filter(anem_id != "-9999") %>% collect() #remove -9999 anem_id
-anem.AllInfo <- anem.AllInfo %>% filter(anem_id != "") %>% collect() #remove blank anem_id
-
-#grouping anem_ids by anem_obs values (so anemones we already know from tag surveys are actually the same one)
-anem.AllInfo <- anem.AllInfo %>% mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) #add unique anem id to anem.AllInfo
 
 #find the lat/lon for each anem observation (could probably do this without a for loop but then the averaging across multiple gps records per observation got hairy when trying to do it all w/dplyr as vectors...)
 anem.AllInfo$lat <- rep(NA, length(anem.AllInfo$anem_table_id))
