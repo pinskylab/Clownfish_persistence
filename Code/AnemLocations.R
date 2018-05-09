@@ -13,10 +13,10 @@ library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
 library(lubridate)
-library(dbplyr)
+#library(dbplyr)
 library(ggplot2)
-library(cowplot)
-library(fields)
+#library(cowplot)
+#library(fields)
 library(here)
 
 # #Load input files (code below creates these, just give the option to load here b/c takes several minutes to generate)
@@ -44,52 +44,36 @@ eval(parse(text = script))
 #function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
 anemid_latlong <- function(anem.table.id, latlondata) { #anem.table.id is one anem_table_id value, latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
-  #find the dive info and time for this anem observation
-  dive <- leyte %>%
-    tbl("anemones") %>%
-    select(anem_table_id, obs_time, dive_table_id, anem_id) %>%
-    collect() %>%
-    filter(anem_table_id %in% anem.table.id)
-  
-  # find the date info and gps unit for this anem observation
-  date <- leyte %>% 
-    tbl("diveinfo") %>% 
-    select(dive_table_id, date, gps, site) %>% 
-    collect() %>% 
-    filter(dive_table_id %in% dive$dive_table_id)
-  
-  #join with anem info, format obs time
-  anem <- left_join(dive, date, by = "dive_table_id") %>% 
+  #find the dive info and time for this anem observation, format obs time
+  dive <- anem.AllInfo %>%
+    filter(anem_table_id %in% anem.table.id) %>% 
     separate(obs_time, into = c("hour", "minute", "second"), sep = ":") %>% #this line and the next directly from Michelle's code
     mutate(gpx_hour = as.numeric(hour) - 8)
-  
+    
   # find the lat long for this anem observation
   latloninfo <- latlondata %>%
-    filter(date %in% anem$date) %>% 
+    filter(date %in% dive$date & unit == dive$gps) %>% #filter out just the GPS unit associated with this anem observation (added since previous time)
     separate(time, into = c("hour", "minute", "second"), sep = ":") %>% 
-    filter(as.numeric(hour) == anem$gpx_hour & as.numeric(minute) == anem$minute) 
+    filter(as.numeric(hour) == dive$gpx_hour & as.numeric(minute) == dive$minute) %>%
+    mutate(lat = as.numeric(lat)) %>%
+    mutate(lon = as.numeric(lon))
   
-  latloninfo$lat <- as.numeric(latloninfo$lat)
-  latloninfo$lon <- as.numeric(latloninfo$lon)
-  
+  #NOT SURE THIS IS WORKING RIGHT NOW...
   #often get multiple records for each anem_table_id (like if sit there for a while) - so multiple GPS points for same visit to an anemone, not differences across visits
-  dups_lat <- which(duplicated(latloninfo$lat)) #vector of positions of duplicate values
+  dups_lat <- which(duplicated(latloninfo$lat)) #vector of positions of duplicate values 
   dups_lon <- which(duplicated(latloninfo$lon))
   
   #either take the mean of the lat/lon readings or the duplicated values, depending if there are duplicate points
   if(length(dups_lat) == 0) { #if all latitude points are different
-    anem$lat <- round(mean(latloninfo$lat), digits = 5) #take the mean of the latitude values (digits = 5 b/c that is what Michelle had)
-    anem$lon <- round(mean(latloninfo$lon), digits = 5) #take the mean of the longitude values
-    #lat <- round(mean(latloninfo$lat), digits = 5) 
-    #lon <- round(mean(latloninfo$lon), digits = 5)
-  }else{
-    anem$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
-    anem$lon <- latloninfo$lon[dups_lon[1]]
-    #lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
-    #lon <- latloninfo$lon[dups_lon[1]]
+    dive$lat <- round(mean(latloninfo$lat), digits = 5) #take the mean of the latitude values (digits = 5 b/c that is what Michelle had)
+    dive$lon <- round(mean(latloninfo$lon), digits = 5) #take the mean of the longitude values
+   }else{
+    dive$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
+    dive$lon <- latloninfo$lon[dups_lon[1]]
+    print(paste("Dups in lat lons at anem_table_id", dive$anem_table_id, sep = " "))
   }
   
-  return(anem)
+  return(dive)
   
 }
 
@@ -110,13 +94,13 @@ alllatlons <- leyte %>%
 
 dive.Info <- leyte %>%
   tbl("diveinfo") %>%
-  select(dive_table_id, date, dive_type, site) %>%
+  select(dive_table_id, date, dive_type, site, gps) %>%
   collect() %>%
   mutate(year = as.integer(substring(date,1,4)))
 
 anem.Info <- leyte %>%
   tbl("anemones") %>%
-  select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id) %>%
+  select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id, obs_time) %>%
   collect()
 
 #merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem), filter out anem_ids that are NA, add in unique anem id
