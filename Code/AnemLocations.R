@@ -117,7 +117,8 @@ anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id")
 #process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
 anem.Processed <- anem.AllInfo %>%
   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
-  filter(!is.null(anem_spp) | is.na(anem_spp)) %>%
+  filter(is.null(anem_spp) == FALSE) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
+  filter(is.na(anem_spp) == FALSE) %>% #or anem_spp that is NA
   mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
   mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
   mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
@@ -131,13 +132,18 @@ anem.Processed <- anem.AllInfo %>%
          sec = second(obs_time), 
          year = year(obs_time))
 
-#test function
-testanem <- 9172
+#sometimes filtering issues so check to make sure various things gotten taken out
+anemsppNA <- anem.Processed %>% filter(is.na(anem_spp)) #any nas in anem_spp?
+if(length(anemsppNA$anem_table_id != 0)) {
+  print("There are still NA anem_spp entries!")
+}
+anemsppNULL <- anem.Processed %>% filter(is.null(anem_spp)) #any nulls in anem_spp?
+if(length(anemsppNULL$anem_table_id != 0)) {
+  print("There are still NULL anem_spp entries!")
+}
 
-test <- anemid_latlong(testanem, anem.Processed, gps.Info)
-# anem.AnemObs <- anem.AllInfo %>% #hmm, if phantom anems are still in there... strange that this isn't pulling anything out of anem.AllInfo - same number of ros
-#   filter(!is.null(anem_spp) | is.na(anem_spp))
-# NEED TO CHECK / MAKE SURE FILTERING OUT "PHANTOM" ANEM OBSERVATIONS (LIKE BY THE CLOWNFISH OBSERVER) CORRECTLY B/C THEY'RE BACK IN THE DB FOR NOW
+###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
+###### THERE ARE A FEW LINES OF CODE AT THE BOTTOM OF THIS SECTION THAT FILTER OUT ANEMONES WITH LARGE SDs TO LOOK AT MORE CLOSELY
 
 #go through anem_table_ids and find the lat/lon for each anem observation (this is the step that takes a long time to do, prints row (out of 4977) so can track progress)
 for (i in 1:length(anem.Processed$anem_table_id)) {
@@ -147,59 +153,71 @@ for (i in 1:length(anem.Processed$anem_table_id)) {
   print(i)
 }
 
-
-###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
-###### THERE ARE A FEW LINES OF CODE AT THE BOTTOM OF THIS SECTION THAT FILTER OUT ANEMONES WITH LARGE SDs TO LOOK AT MORE CLOSELY
-
-
-####THIS IS THE VERSION OF THE FUNCTION I AM EDITING RIGHT NOW...
-
-
-
-
-#for anem_table_id 10921, pulls out three sets of time points (and only 3 per minute?) when filter into latloninfo like above
-#see if it is there multiple times in latlondata - yes it is there three times in alllatlons and in latlondata 
-# and if filter for lat = 10.7691211626 (the lat for the "2018-03-22" at "07:18:07" point, it does appear to be in the database three times)
-testout <- alllatlons %>%
-  filter(date == "2014-03-22") %>%
-  filter(time == "07:18:07")
-# 
-# testout2 <- latlondata %>% 
-#   filter(date == "2018-03-22") %>%
-#   filter(time == "07:18:07")
-
-
 #save output, since takes several minutes to run the above for loop
-save(anem.AllInfo, file='AnemAllInfowLatLon.RData')
+save(anem.Processed, file='AnemAllInfowLatLon.RData')
 
 #pull out list of anem_id_unqs and their sites with only one row per each
-anem.IDUnqSites <- distinct(anem.AllInfo[c("anem_id_unq", "site")]) 
+anem.IDUnqSites <- distinct(anem.Processed[c("anem_id_unq", "site")]) 
 
 #filter out NAs in lat/lons, then find the mean, variance, and sd of lat observations and lon observations by anem_id_unq
 #use Bessel's correction (https://en.wikipedia.org/wiki/Bessel%27s_correction) for the variance calculation (use (n-1) in demon instead of n, here mulitply var by n/(n-1)) b/c not know the true mean of the distribution and the sample size is small so otherwise variance biased low
-anem.LatLon <- anem.AllInfo %>% filter(!is.na(lat) & !is.na(lon)) %>% group_by(anem_id_unq) %>% summarize(meanlat = mean(lat), varlat = var(lat)*(n()/(n()-1)), sdlat = sqrt(varlat), meanlon = mean(lon), varlon = var(lon)*(n()/(n()-1)), sdlon = sqrt(varlon), ngps = n()) #need to multiply variance by N/N-1 (same as multiplying by 1/N-1 when doing the sum) b/c not know the mean of the dist, estimating it, and small sample size (per Douglas discussion Thanksgiving weekend 2017)
-anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') #add sites back in
+anem.LatLon <- anem.Processed %>%
+  filter(!is.na(lat) & !is.na(lon)) %>% #keep only non-NA lat and lon measurements
+  group_by(anem_id_unq) %>% #group anems known to be the same through anem_id and anem_obs
+  summarize(meanlat = mean(lat),
+            varlat = var(lat)*(n()/(n()-1)),
+            sdlat = sqrt(varlat),
+            meanlon = mean(lon),
+            varlon = var(lon)*(n()/(n()-1)),
+            sdlon = sqrt(varlon),
+            ngps = n()) #need to multiply variance by N/N-1 (same as multiplying by 1/N-1 when doing the sum) b/c not know the mean of the dist, estimating it, and small sample size (per Douglas discussion Thanksgiving weekend 2017)
+
+#join sites back in
+anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') 
 
 #convert sd from degrees of lat and lon to meters
 anem.LatLon$sdlat_m <- anem.LatLon$sdlat*mperlat #convert latitudes
 anem.LatLon$sdlon_m <- anem.LatLon$sdlon*mperlat*cos(anem.LatLon$meanlat*2*pi/360) #convert longitudes (distance of a degree depends on latitude)
-
-#filter out anem_obs = 7, which has an issue (shows up at two sites) 
-anem.LatLon <- filter(anem.LatLon, anem_id_unq != "obs7")
 
 #save data frame for ease in accessing in the future
 save(anem.LatLon, file="AnemLatLonObsbyAnem.RData")
 
 ##### NOW BACK TO CODE THAT IS NOT LOADED AT THE TOP
 #filter out just the sds less than a threshold value to zoom in on histogram for plotting
-anem.LatLon.Abbr <- filter(anem.LatLon, sdlat_m < distance_thresh)
+anem.LatLon.Abbr <- anem.LatLon %>% filter(sdlat_m < distance_thresh & sdlon_m < distance_thresh)
 
 #### THIS CODE PULLS OUT DATA FROM THE DATABASE FOR THE ANEMS WITH HIGH SDs (>100m), SAVED IN DATAFRAMES THAT CAN BE LOADED AT THE TOP
 ##### What are the anems that have large sdlat_m and sdlon_m? 
-largeSDanems_200 <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m (16 of these)
-largeSDanems_100 <- anem.LatLon %>% filter(sdlat_m > 100 & sdlat_m < 200) #filter out anems with sds between 100m and 200m (20 of these)
+largeSDanems_200 <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m (4 of these - was 16 before...)
+largeSDanems_100 <- anem.LatLon %>% filter(sdlat_m > 100 & sdlat_m < 200) #filter out anems with sds between 100m and 200m (7 of these, was 20 before...)
 
 #look at them ones >200m individually to see if anything strange is going on
+#obs307, obs330, obs423, obs513, obs523 (largeSDanems_100)
+#id3225 (Haina), id3225 (Tamakin Dacot), obs1054, obs590
+
+#go through these in detail
+#id3225 - shows up at Tamakin Dacot and Haina on dives on 4/4/18
+#obs24 - three observations, all at Palanas, in 2013, 2014, 2017 - coordinates are the same for 2013 and 2014 (anem_id 131), different for 2017 (anem_id 2628) - note says for 2017 dive, the dive_id was changed to 470 from 107 b/c dive was done across two sites (also Magbangon)
+obs24 <- anem.Processed %>% filter(anem_obs == 24)
+#obs30
+obs30 <- anem.Processed %>% filter(anem_obs == 30)
+#obs307 - two observations, one in 2017, one in 2015, at Wangag, anem_id 2064 noted for both
+obs307 <- anem.Processed %>% filter(anem_obs == 307)
+#obs330
+obs330 <- anem.Processed %>% filter(anem_obs == 330)
+#obs423
+obs423 <- anem.Processed %>% filter(anem_obs == 423)
+#obs513
+obs513 <- anem.Processed %>% filter(anem_obs == 513)
+#obs523
+obs523 <- anem.Processed %>% filter(anem_obs == 523)
+#obs1054
+obs1054 <- anem.Processed %>% filter(anem_obs == 1054)
+#obs590
+obs590 <- anem.Processed %>% filter(anem_obs == 590)
+
+
+#oldlist (from pre-2018 season when was working on this before)
 # obs1014, obs1028, obs1034, obs1044, obs1046, obs135, obs231, obs306, obs327, obs334, obs379, obs516, obs533, obs582, obs663, obs672
 # all at Magbangon and Wangag
 idtocheck <- 'obs672'
@@ -300,6 +318,15 @@ ggplot(data=anem.LatLon, aes(sdlat_m, sdlon_m)) +
   xlab("latitude sd (m)") + ylab("longitude sd (m)") + ggtitle("Standard deviation of anem positions across visits") +
   theme_bw()
 dev.off()
+
+pdf(file="AnemGPS_Estimates_Abbrv.pdf")
+ggplot(data=anem.LatLon.Abbr, aes(sdlat_m, sdlon_m)) +
+  geom_point(aes(color=site, size=ngps)) +
+  #facet_grid(.~site_wrap, labeller=label_parsed) +
+  xlab("latitude sd (m)") + ylab("longitude sd (m)") + ggtitle("Standard deviation of anem positions across visits for those <50m") +
+  theme_bw()
+dev.off()
+
 
 #histogram of sdlat_m less than distance_thresh (here 50m)
 pdf(file="AnemGPS_Estimates_Hist.pdf")
