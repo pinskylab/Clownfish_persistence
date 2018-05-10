@@ -13,6 +13,7 @@ library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
 library(lubridate)
+library(stringr)
 #library(dbplyr)
 library(ggplot2)
 #library(cowplot)
@@ -38,131 +39,27 @@ eval(parse(text = script))
 
 # Functions from Michelle's GitHub helpers script
 #helper functions - do various tasks w/database (like assigning dates and site to fish and such)
-script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
+#script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
+#eval(parse(text = script))
+
+#field_helpers (similar idea, in field repository) - this might be the newer version of the helpers collection?
+script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-##### WORKING ON EDITS TO THIS BELOW
 #function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
-anemid_latlong <- function(anem.table.id, latlondata) { #anem.table.id is one anem_table_id value, latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
+anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
-  #find the dive info and time for this anem observation, format obs time
-  dive <- anem.AllInfo %>%
-    filter(anem_table_id %in% anem.table.id) %>% 
-    separate(obs_time, into = c("hour", "minute", "second"), sep = ":") %>% #this line and the next directly from Michelle's code
-    mutate(gpx_hour = as.numeric(hour) - 8)
-    
-  # find the lat long for this anem observation
-  latloninfo <- latlondata %>%
-    filter(date %in% dive$date & unit == dive$gps) %>% #filter out just the GPS unit associated with this anem observation (added since previous time)
-    separate(time, into = c("hour", "minute", "second"), sep = ":") %>% 
-    filter(as.numeric(hour) == dive$gpx_hour & as.numeric(minute) == dive$minute) %>%
-    mutate(lat = as.numeric(lat)) %>%
-    mutate(lon = as.numeric(lon))
-  
-  #NOT SURE THIS IS WORKING RIGHT NOW... maybe there are more digits in the lats and lons than show up on the screen?
-  #often get multiple records for each anem_table_id (like if sit there for a while) - so multiple GPS points for same visit to an anemone, not differences across visits
-  dups_lat <- which(duplicated(latloninfo$lat)) #vector of positions of duplicate values 
-  dups_lon <- which(duplicated(latloninfo$lon))
-  
-  #either take the mean of the lat/lon readings or the duplicated values, depending if there are duplicate points
-  if(length(dups_lat) == 0) { #if all latitude points are different
-    dive$lat <- round(mean(latloninfo$lat), digits = 5) #take the mean of the latitude values (digits = 5 b/c that is what Michelle had)
-    dive$lon <- round(mean(latloninfo$lon), digits = 5) #take the mean of the longitude values
-   }else{
-    dive$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
-    dive$lon <- latloninfo$lon[dups_lon[1]]
-    print(paste("Dups in lat lons at anem_table_id", dive$anem_table_id, sep = " "))
-  }
-  
-  return(dive)
-  
-}
-
-#function to see if rows with the same anem_obs also have the same site 
-compareObsandSite <- function(df) {
-  
-}
-
-#################### Running things! ####################
-leyte <- read_db("Leyte") 
-
-#pull out GPS, dive, anem info from database
-alllatlons <- leyte %>%
-  tbl("GPX") %>%
-  select(lat, lon, time, unit) %>%
-  collect(n = Inf) %>% 
-  separate(time, into = c("date", "time"), sep = " ") 
-
-dive.Info <- leyte %>%
-  tbl("diveinfo") %>%
-  select(dive_table_id, date, dive_type, site, gps) %>%
-  collect() %>%
-  mutate(year = as.integer(substring(date,1,4)))
-
-anem.Info <- leyte %>%
-  tbl("anemones") %>%
-  select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id, obs_time, anem_spp) %>%
-  collect()
-
-#merge into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem)
-anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id")
-
-#process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, separate time, add placeholder lat lon columns)
-anem.Processed <- anem.AllInfo %>%
-  filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
-  filter(!is.null(anem_spp) | is.na(anem_spp)) %>%
-  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
-  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
-  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
-  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
-  separate(obs_time, into = c("hour", "minute", "second"), sep = ":") %>% #this line and the next directly from Michelle's code
-  mutate(gpx_hour = as.numeric(hour) - 8)
-
-# anem.AnemObs <- anem.AllInfo %>% #hmm, if phantom anems are still in there... strange that this isn't pulling anything out of anem.AllInfo - same number of ros
-#   filter(!is.null(anem_spp) | is.na(anem_spp))
-
-
-
-
-#### WHY AREN'T DUPLICATE LAT LONS GETTING PICKED UP IN THE FUNCTION?
-#### WHY DOES IT PULL OUT POINTS FOR THE SAME MINUTE MULTIPLE TIMES?
-#### ARE "PHANTOM" ANEM OBSERVATIONS STILL SHOWING UP IN THERE, WHERE IT'S ACTUALLY THE CLOWNFISH OBSERVER? (apparently they're back in the database...)
-#### SLEUTHING....
-
-# For testing:
-latlondata <- alllatlons
-anem.table.id <- 10921
-anem.df <- anem.Processed
-# Is each minute pulled out normally in alllatlons?
-testanem <- 10921 #10832, 11384, 11410 another to try
-
-###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
-###### THERE ARE A FEW LINES OF CODE AT THE BOTTOM OF THIS SECTION THAT FILTER OUT ANEMONES WITH LARGE SDs TO LOOK AT MORE CLOSELY
-
-#go through anem_table_ids and find the lat/lon for each anem observation (this is the step that takes a long time to do, prints row (out of 4044) so can track progress)
-for (i in 1:length(anem.Processed$anem_table_id)) {
-  outlatlon <- anemid_latlong(anem.Processed$anem_table_id[i], anem.Processed, alllatlons)
-  anem.Processed$lat[i] <- outlatlon$lat
-  anem.Processed$lon[i] <- outlatlon$lon
-  print(i)
-}
-
-####THIS IS THE VERSION OF THE FUNCTION I AM EDITING RIGHT NOW...
-#function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
-anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
-  
-  anem <- anem.df %>% filter(anem_table_id == anem.table.id)
+  anem <- anem.df %>% filter(anem_table_id == anem.table.id) #get the relevant dive, time, site, etc. info for this anem_table_id
   
   # find the lat long for this anem observation
   latloninfo <- latlondata %>%
     filter(date %in% anem$date & unit == anem$gps) %>% #filter out just the GPS unit associated with this anem observation (added since previous time)
-    separate(time, into = c("hour", "minute", "second"), sep = ":") %>% 
-    filter(as.numeric(hour) == anem$gpx_hour & as.numeric(minute) == anem$minute) %>%
+    filter(hour == anem$hour & min == anem$min) %>%
     mutate(lat = as.numeric(lat)) %>%
     mutate(lon = as.numeric(lon))
   
-  #NOT SURE THIS IS WORKING RIGHT NOW... maybe there are more digits in the lats and lons than show up on the screen?
-  #often get multiple records for each anem_table_id (like if sit there for a while) - so multiple GPS points for same visit to an anemone, not differences across visits
+  #pull duplicates (so if sat in one place for enough time that multiple readings recorded there)
+  #(there are more digits in the lats and lons than show up on the screen so sometimes things look like duplicates but aren't)
   dups_lat <- which(duplicated(latloninfo$lat)) #vector of positions of duplicate values 
   dups_lon <- which(duplicated(latloninfo$lon))
   
@@ -173,12 +70,90 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   }else{
     anem$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
     anem$lon <- latloninfo$lon[dups_lon[1]]
-    print(paste("Dups in lat lons at anem_table_id", anem$anem_table_id, "on", anem$date, "with lat", anem$lat, sep = " "))
+    print(paste("Dups in lat lons at anem_table_id", anem$anem_table_id, "on", anem$date, "with lat", anem$lat, sep = " ")) #just have this while trouble-shooting repeat entries in the database
   }
   
   return(anem)
   
 }
+
+# #function to see if rows with the same anem_obs also have the same site 
+# compareObsandSite <- function(df) {
+#   
+# }
+
+#################### Running things! ####################
+leyte <- read_db("Leyte") 
+
+#pull out GPS info from database, format + separate observation dates and times
+gps.Info <- leyte %>%
+  tbl("GPX") %>%
+  select(lat, lon, time, unit) %>%
+  collect(n = Inf) %>%
+  mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
+  mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
+         day = day(obs_time), 
+         hour = hour(obs_time), 
+         min = minute(obs_time), 
+         sec = second(obs_time), 
+         year = year(obs_time)) %>%
+  separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
+
+#pull out dive info from database
+dive.Info <- leyte %>%
+  tbl("diveinfo") %>%
+  select(dive_table_id, date, dive_type, site, gps) %>%
+  collect()
+
+#pull out anem info
+anem.Info <- leyte %>%
+  tbl("anemones") %>%
+  select(dive_table_id, anem_table_id, anem_id, anem_obs, old_anem_id, obs_time, anem_spp) %>%
+  collect()
+
+#merge dive and anem into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem)
+anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id")
+
+#process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
+anem.Processed <- anem.AllInfo %>%
+  filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
+  filter(!is.null(anem_spp) | is.na(anem_spp)) %>%
+  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
+  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
+  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
+  mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
+  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+  mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+         day = day(obs_time), 
+         hour = hour(obs_time), 
+         min = minute(obs_time), 
+         sec = second(obs_time), 
+         year = year(obs_time))
+
+#test function
+testanem <- 9172
+
+test <- anemid_latlong(testanem, anem.Processed, gps.Info)
+# anem.AnemObs <- anem.AllInfo %>% #hmm, if phantom anems are still in there... strange that this isn't pulling anything out of anem.AllInfo - same number of ros
+#   filter(!is.null(anem_spp) | is.na(anem_spp))
+# NEED TO CHECK / MAKE SURE FILTERING OUT "PHANTOM" ANEM OBSERVATIONS (LIKE BY THE CLOWNFISH OBSERVER) CORRECTLY B/C THEY'RE BACK IN THE DB FOR NOW
+
+#go through anem_table_ids and find the lat/lon for each anem observation (this is the step that takes a long time to do, prints row (out of 4977) so can track progress)
+for (i in 1:length(anem.Processed$anem_table_id)) {
+  outlatlon <- anemid_latlong(anem.Processed$anem_table_id[i], anem.Processed, gps.Info)
+  anem.Processed$lat[i] <- outlatlon$lat
+  anem.Processed$lon[i] <- outlatlon$lon
+  print(i)
+}
+
+
+###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
+###### THERE ARE A FEW LINES OF CODE AT THE BOTTOM OF THIS SECTION THAT FILTER OUT ANEMONES WITH LARGE SDs TO LOOK AT MORE CLOSELY
+
+
+####THIS IS THE VERSION OF THE FUNCTION I AM EDITING RIGHT NOW...
+
 
 
 
