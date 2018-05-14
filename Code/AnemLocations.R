@@ -28,7 +28,7 @@ library(here)
 #Set constants
 mperlat <- 111.111*1000 #meters per degree of latitude
 distance_thresh <- 50 #distance threshold for zooming in on histogram of lat and lon standard devs plot
-
+tag1 <- 2938 #first anem tag in 2018 (based on scanning the entries in the google datasheets - confirm with Michelle or somehow?)
 #Can disable diagnostics (or try updating RStudio?) if get tired of the many warnings about unitialized or unknown columns: https://stackoverflow.com/questions/39041115/fixing-a-multiple-warning-unknown-column
 
 #################### Functions: ####################
@@ -81,6 +81,70 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
 #   
 # }
 
+# function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to them)
+attach2018anems <- function(anemdf) {
+  
+  #filter out anems that might be repeat visits (2018, tag_id less than the new tags for 2018 or new tag and old tag present)
+  anems2018 <- anemdf %>% #649
+    filter(year == 2018) %>%
+    filter(anem_id < tag1 | (anem_id >= tag1 & !is.na(old_anem_id))) #filter out the ones that could could have other anem_ids (sighting of existing anem_id tag or new tag with old_anem_id filled in), checked this (below) and think it is filtering out correctly...
+  
+  #other 2018 anems that aren't candidates for repeat obs
+  anems2018_2 <- anemdf %>% #270
+    filter(year == 2018) %>%
+    filter(anem_id >= tag1 & is.na(old_anem_id))
+  
+  #filter out anems that are candidates for revisits (just anything from before 2018...)
+  otheranems <- anemdf %>% #3230
+    filter(year != 2018)
+  
+  #go through anems2018 that might be revisits and see if there are anems from previous years that match
+  for (i in 1:length(anems2018$anem_id)) {
+    
+    testid <- anems2018$anem_id[i] #pull out anem_id to compare
+    testoldid <- anems2018$old_anem_id[i] #pull out old_anem_id
+    
+    matchanem <- filter(otheranems, anem_id == testid)  #does the anem_id match an anem_id record from the past?
+    matcholdanem <- filter(otheranems, anem_id == testoldid) #does the old_anem_id match an anem_id from the past?
+    
+    # does the anem_id match an anem_id from the past? 
+    if (length(matchanem$anem_id) > 0) { #if the anem_id matches an old one
+      # if so, does the site match?
+      if (matchanem$site[1] == anems2018$site[i]) { #make sure the site matches
+        anems2018$anem_id_unq2[i] = matchanem$anem_id_unq[1] #if there are multiple records from the past that match, take the first one
+      } else {
+        print(paste("Site does not match for anem_id", testid)) #print message if site doesn't match
+      }
+    # if not, does an old_anem_id match an anem_id from the past?
+    } else if (length(matcholdanem$anem_id) > 0) { #if the old_anem_id matches one from the past
+      # if so, does the site match?
+      if (matcholdanem$site[1] == anems2018$site[i]) { #check site
+        anems2018$anem_id_unq2[i] = matcholdanem$anem_id_unq[1]
+      } else {
+        print(paste("Site does not match for old_anem_id", testoldid))
+      }
+    } else {
+      anems2018$anem_id_unq2[i] = anems2018$anem_id_unq[i]
+      print(paste("No past anem matches found for testid ", testid, "and testoldid", testoldid))
+    }
+  }
+  out <- rbind(anems2018, anems2018_2, otheranems)
+  
+  if(length(out$anem_table_id) == (length(anemdf$anem_table_id)-3)) { #3 anems get lost in the filtering b/c not have a year associated with them (NA) (those three I sighted)
+    print("All anems accounted for.")
+  } else {
+    print("Some anems missing or double-counted.")
+  }
+  return(out)
+}
+
+#checking that the filtering used above is working as I expect...
+# test <- anemdf %>%
+#   filter(anem_id >= tag1 & !is.na(old_anem_id)) #65
+# 
+# test2 <- anemdf %>% #584
+#   filter(year == 2018 & anem_id < tag1)
+
 #################### Running things! ####################
 leyte <- read_db("Leyte") 
 
@@ -129,7 +193,8 @@ anem.Processed <- anem.AllInfo %>%
          hour = hour(obs_time), 
          min = minute(obs_time), 
          sec = second(obs_time), 
-         year = year(obs_time))
+         year = year(obs_time)) %>%
+  mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
 
 #sometimes filtering issues so check to make sure various things gotten taken out
 anemsppNA <- anem.Processed %>% filter(is.na(anem_spp)) #any nas in anem_spp?
@@ -154,6 +219,12 @@ for (i in 1:length(anem.Processed$anem_table_id)) {
 save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
 
 ###### NOW BACK TO CODE THAT TAKES NO TIME TO RUN
+#compare 2018 anems visits to previous anem_ids and old_anem_ids to match them up (b/c right now, 2018 anems don't have anem_obs)
+anem.Processed2 <- attach2018anems(anem.Processed)
+
+save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData'))
+
+
 #pull out list of anem_id_unqs and their sites with only one row per each
 anem.IDUnqSites <- distinct(anem.Processed[c("anem_id_unq", "site")]) 
 
