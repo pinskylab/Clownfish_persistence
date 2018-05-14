@@ -226,13 +226,13 @@ save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData'))
 
 
 #pull out list of anem_id_unqs and their sites with only one row per each
-anem.IDUnqSites <- distinct(anem.Processed[c("anem_id_unq", "site")]) 
+anem.IDUnqSites <- distinct(anem.Processed[c("anem_id_unq2", "site")]) 
 
 #filter out NAs in lat/lons, then find the mean, variance, and sd of lat observations and lon observations by anem_id_unq
 #use Bessel's correction (https://en.wikipedia.org/wiki/Bessel%27s_correction) for the variance calculation (use (n-1) in demon instead of n, here mulitply var by n/(n-1)) b/c not know the true mean of the distribution and the sample size is small so otherwise variance biased low
 anem.LatLon <- anem.Processed %>%
   filter(!is.na(lat) & !is.na(lon)) %>% #keep only non-NA lat and lon measurements
-  group_by(anem_id_unq) %>% #group anems known to be the same through anem_id and anem_obs
+  group_by(anem_id_unq2) %>% #group anems known to be the same through anem_id and anem_obs
   summarize(meanlat = mean(lat),
             varlat = var(lat)*(n()/(n()-1)),
             sdlat = sqrt(varlat),
@@ -242,7 +242,7 @@ anem.LatLon <- anem.Processed %>%
             ngps = n()) #need to multiply variance by N/N-1 (same as multiplying by 1/N-1 when doing the sum) b/c not know the mean of the dist, estimating it, and small sample size (per Douglas discussion Thanksgiving weekend 2017)
 
 #join sites back in
-anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq') 
+anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq2') 
 
 #convert sd from degrees of lat and lon to meters
 anem.LatLon$sdlat_m <- anem.LatLon$sdlat*mperlat #convert latitudes
@@ -291,15 +291,15 @@ table(anem.LatLon$ngps) #how many obs per anem are we getting? mostly 1, a coupl
 
 #look at the ones with 7
 anem.LatLon %>% filter(ngps == 7) #obs246 and obs97 - some have multiple obs within one dive (246 in 2017, both A), or seen in both 2015 seasons
-anem.Processed %>% filter(anem_id_unq %in% (anem.LatLon %>% filter(ngps == 7))$anem_id_unq) %>% arrange(anem_obs, date)
+anem.Processed %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 7))$anem_id_unq2) %>% arrange(anem_obs, date)
 
 #and the ones with 6
 anem.LatLon %>% filter(ngps == 6)
-anem.Processed %>% filter(anem_id_unq %in% (anem.LatLon %>% filter(ngps == 6))$anem_id_unq) %>% arrange(anem_obs, date)
+anem.Processed %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 6))$anem_id_unq2) %>% arrange(anem_obs, date)
 
 #and the ones with 5
 anem.LatLon %>% filter(ngps == 5)
-anem.Processed %>% filter(anem_id_unq %in% (anem.LatLon %>% filter(ngps == 5))$anem_id_unq) %>% arrange(anem_obs, date)
+anem.Processed %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 5))$anem_id_unq2) %>% arrange(anem_obs, date)
 
 #oldlist (from pre-2018 season when was working on this before)
 # obs1014, obs1028, obs1034, obs1044, obs1046, obs135, obs231, obs306, obs327, obs334, obs379, obs516, obs533, obs582, obs663, obs672
@@ -424,7 +424,7 @@ pdf(file=here("Plots/AnemLocations", "AnemGPS_Estimates_Hist_All.pdf"))
 hist(anem.LatLon$sdlat_m, breaks=500, xlab='Standard deviation of lat (m)', main=paste('Histogram of sd of lat (m) values'))
 dev.off()
 
-#histogram of all ngps (number of times an anem visited)
+#histogram of all ngps (number of times an anem visited) #THIS ISN'T UPDATED TO INCLUDE THE 2018 ANEMS ONCE MATCHED!
 pdf(file=here("Plots/AnemLocations","AnemVisits_Hist.pdf"))
 hist(anem.LatLon$ngps, breaks=7, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
 dev.off()
