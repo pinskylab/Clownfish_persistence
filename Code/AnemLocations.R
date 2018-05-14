@@ -186,13 +186,13 @@ anem.LatLon.Abbr <- anem.LatLon %>% filter(sdlat_m < distance_thresh & sdlon_m <
 
 #### THIS CODE PULLS OUT DATA FROM THE DATABASE FOR THE ANEMS WITH HIGH SDs (>100m), SAVED IN DATAFRAMES THAT CAN BE LOADED AT THE TOP
 ##### What are the anems that have large sdlat_m and sdlon_m? 
-largeSDanems_200 <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m (4 of these - was 16 before...)
+largeSDanems_200 <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m (2 now)
 largeSDanems_100 <- anem.LatLon %>% filter(sdlat_m > 100 & sdlat_m < 200) #filter out anems with sds between 100m and 200m (7 of these, was 20 before...)
 
 ##### Looking at the output and large SD anems in detail 
 #look at them ones >200m individually to see if anything strange is going on
-#obs307, obs330, obs423, obs513, obs523 (largeSDanems_100)
-#id3225 (Haina), id3225 (Tamakin Dacot), obs1054, obs590
+#obs24, obs30, obs307, obs330, obs423, obs513, obs523 (largeSDanems_100)
+#obs1054, obs590
 
 #go through these in detail
 #id3225 - shows up at Tamakin Dacot and Haina on dives on 4/4/18
@@ -333,7 +333,7 @@ ggplot(data=anem.LatLon, aes(sdlat_m, sdlon_m)) +
   theme_bw()
 dev.off()
 
-#scatter plot of just <50m sds ###NEED TO MAKE AXIS RANGES THE SAME ON THIS!!
+#scatter plot of just <50m sds 
 pdf(file=here("Plots/AnemLocations", "AnemGPS_Estimates_Abbrv.pdf"))
 ggplot(data=anem.LatLon.Abbr, aes(sdlat_m, sdlon_m)) +
   geom_point(aes(color=site, size=ngps)) +
@@ -350,7 +350,7 @@ dev.off()
 
 #histogram of all sdlat_m
 pdf(file=here("Plots/AnemLocations", "AnemGPS_Estimates_Hist_All.pdf"))
-hist(anem.LatLon$sdlat_m, breaks=50, xlab='Standard deviation of lat (m)', main=paste('Histogram of sd of lat (m) values'))
+hist(anem.LatLon$sdlat_m, breaks=500, xlab='Standard deviation of lat (m)', main=paste('Histogram of sd of lat (m) values'))
 dev.off()
 
 #histogram of all ngps (number of times an anem visited)
