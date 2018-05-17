@@ -121,11 +121,11 @@ attach2018anems <- function(anemdf) {
       if (matcholdanem$site[1] == anems2018$site[i]) { #check site
         anems2018$anem_id_unq2[i] = matcholdanem$anem_id_unq[1]
       } else {
-        print(paste("Site does not match for old_anem_id", testoldid))
+        print(paste("Site does not match for old_anem_id", testoldid, "and anem_id", testid))
       }
     } else {
       anems2018$anem_id_unq2[i] = anems2018$anem_id_unq[i]
-      print(paste("No past anem matches found for testid ", testid, "and testoldid", testoldid))
+      print(paste("No past anem matches found for testid", testid, "and testoldid", testoldid))
     }
   }
   out <- rbind(anems2018, anems2018_2, otheranems)
@@ -226,11 +226,11 @@ save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData'))
 
 
 #pull out list of anem_id_unqs and their sites with only one row per each
-anem.IDUnqSites <- distinct(anem.Processed[c("anem_id_unq2", "site")]) 
+anem.IDUnqSites <- distinct(anem.Processed2[c("anem_id_unq2", "site")]) 
 
 #filter out NAs in lat/lons, then find the mean, variance, and sd of lat observations and lon observations by anem_id_unq
 #use Bessel's correction (https://en.wikipedia.org/wiki/Bessel%27s_correction) for the variance calculation (use (n-1) in demon instead of n, here mulitply var by n/(n-1)) b/c not know the true mean of the distribution and the sample size is small so otherwise variance biased low
-anem.LatLon <- anem.Processed %>%
+anem.LatLon <- anem.Processed2 %>%
   filter(!is.na(lat) & !is.na(lon)) %>% #keep only non-NA lat and lon measurements
   group_by(anem_id_unq2) %>% #group anems known to be the same through anem_id and anem_obs
   summarize(meanlat = mean(lat),
@@ -268,38 +268,38 @@ largeSDanems_100 <- anem.LatLon %>% filter(sdlat_m > 100 & sdlat_m < 200) #filte
 #go through these in detail
 #id3225 - shows up at Tamakin Dacot and Haina on dives on 4/4/18
 #obs24 - three observations, all at Palanas, in 2013, 2014, 2017 - coordinates are the same for 2013 and 2014 (anem_id 131), different for 2017 (anem_id 2628) - note says for 2017 dive, the dive_id was changed to 470 from 107 b/c dive was done across two sites (also Magbangon)
-obs24 <- anem.Processed %>% filter(anem_obs == 24)
+obs24 <- anem.Processed2 %>% filter(anem_obs == 24)
 #obs30
-obs30 <- anem.Processed %>% filter(anem_obs == 30)
+obs30 <- anem.Processed2 %>% filter(anem_obs == 30)
 #obs307 - two observations, one in 2017, one in 2015, at Wangag, anem_id 2064 noted for both
-obs307 <- anem.Processed %>% filter(anem_obs == 307)
+obs307 <- anem.Processed2 %>% filter(anem_obs == 307)
 #obs330
-obs330 <- anem.Processed %>% filter(anem_obs == 330)
+obs330 <- anem.Processed2 %>% filter(anem_obs == 330)
 #obs423
-obs423 <- anem.Processed %>% filter(anem_obs == 423)
+obs423 <- anem.Processed2 %>% filter(anem_obs == 423)
 #obs513
-obs513 <- anem.Processed %>% filter(anem_obs == 513)
+obs513 <- anem.Processed2 %>% filter(anem_obs == 513)
 #obs523
-obs523 <- anem.Processed %>% filter(anem_obs == 523)
+obs523 <- anem.Processed2 %>% filter(anem_obs == 523)
 #obs1054
-obs1054 <- anem.Processed %>% filter(anem_obs == 1054)
+obs1054 <- anem.Processed2 %>% filter(anem_obs == 1054)
 #obs590
-obs590 <- anem.Processed %>% filter(anem_obs == 590)
+obs590 <- anem.Processed2 %>% filter(anem_obs == 590)
 
 #just checking stuff out... what about the anems that have a lot of observations? Do those look real or are phantom ones sneaking in?
 table(anem.LatLon$ngps) #how many obs per anem are we getting? mostly 1, a couple with 7 (2), some with 6 (10)
 
 #look at the ones with 7
 anem.LatLon %>% filter(ngps == 7) #obs246 and obs97 - some have multiple obs within one dive (246 in 2017, both A), or seen in both 2015 seasons
-anem.Processed %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 7))$anem_id_unq2) %>% arrange(anem_obs, date)
+anem.Processed2 %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 7))$anem_id_unq2) %>% arrange(anem_obs, date)
 
 #and the ones with 6
 anem.LatLon %>% filter(ngps == 6)
-anem.Processed %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 6))$anem_id_unq2) %>% arrange(anem_obs, date)
+anem.Processed2 %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 6))$anem_id_unq2) %>% arrange(anem_obs, date)
 
 #and the ones with 5
 anem.LatLon %>% filter(ngps == 5)
-anem.Processed %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 5))$anem_id_unq2) %>% arrange(anem_obs, date)
+anem.Processed2 %>% filter(anem_id_unq2 %in% (anem.LatLon %>% filter(ngps == 5))$anem_id_unq2) %>% arrange(anem_obs, date)
 
 #oldlist (from pre-2018 season when was working on this before)
 # obs1014, obs1028, obs1034, obs1044, obs1046, obs135, obs231, obs306, obs327, obs334, obs379, obs516, obs533, obs582, obs663, obs672
