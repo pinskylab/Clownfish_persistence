@@ -220,6 +220,7 @@ save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
 
 ###### NOW BACK TO CODE THAT TAKES NO TIME TO RUN
 #compare 2018 anems visits to previous anem_ids and old_anem_ids to match them up (b/c right now, 2018 anems don't have anem_obs)
+#okay that 2747 doesn't have a pre-2018 visit - it was one of Katrina's pilot study anems and not supposed to be re-visited
 anem.Processed2 <- attach2018anems(anem.Processed)
 
 save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData'))
