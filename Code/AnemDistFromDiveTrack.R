@@ -24,6 +24,7 @@ load(file=here("Data", "encounters_all.RData"))
 
 # Set a few things
 sample_years = c(2015,2016,2017,2018)
+
 #################### Functions: ####################
 # Functions and constants from my GitHub function/constant collection
 # script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQAXExRItr2tnepmkRr7NRt4hylZrks5aciBtwA%3D%3D", ssl.verifypeer = FALSE)
@@ -36,48 +37,69 @@ eval(parse(text = script))
 script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-# Pull out tagged fish - create a data frame that has tag, season tagged, seasons caught, anem_ids (first and others)
-
-# CreateTaggedFishSummary <- function(start.year, end.year, tagged.fish) {
-#   sample.years <- seq(start.year, end.year, 1) #make a vector of years the fish could have been seen
-#   encounters <- list() #initalize an empty list to store the various encounter data frames by year
-#   anem_encounters <- list() #initialize another empty list to store the anemones (?)
-#   
-#   for(i in 1:length(sample.years)) {
-#     year.name <- sample.years[i] #get year
-#     var.name <- paste("caught", as.character(sample.years[i]), sep=".") #create dynamic column names for encounters - caught.[samplingyear]
-#     #anem.var.name <- paste("anem", as.character(sample.years[i]), sep=".") #create dynamic column names for anemone fish is associated with each year
-#     
-#     encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
-# 
-#   }
-#   
-#   
-# }
-CreateEncounterSummary <- function(start.year, end.year, tagged.fish) {
+#Go through table, match anem_id to entry in anem.Processed2, take lat/lon from there (should do this better, by using average lat/lons - partial work on this below)
+addLatLons <- function(anem_vec, anemdf, latorlon) {
+  out = rep(NA, length(anem_vec))
   
-  sample.years <- seq(start.year, end.year, 1) #make a vector of years the fish could have been seen
-  encounters <- list(); #initialize an empty list to store the various encounter data frames by year
-  # encounters <- data.frame()
-  
-  for (i in 1:length(sample.years)) { #pull out encounter vector by tag for each year, store each as a data frame of tag ids and binary encounters in the encounter list
+  for(i in 1:length(anem_vec)) {
+    testid = anem_vec[i]
     
-    year.name <- sample.years[i] #get year 
-    var.name <- paste("sighted", as.character(sample.years[i]), sep=".") #create dynamic column names for encounters - sighted.[samplingyear]
-    
-    encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
-    
+    if(!is.na(testid)) { #if the anem_id isn't NA
+      matches = anemdf %>% filter(anem_id %in% testid) #see if there are matches
+      if(length(matches$dive_table_id) != 0) {
+        if(latorlon == "lat") {
+          out[i] = matches$lat[1]
+        } else if (latorlon == "lon") {
+          out[i] = matches$lon[1]
+        }
+      } else if (length(matches$dive_table_id) == 0) {
+        print(paste("No id matches for",testid, sep=" "))
+      }
+    }
   }
-  
-  encounters.out <- as.data.frame(encounters[[1]]) #seed summary data frame with list of tag ids and encounter in 1st year
-  colnames(encounters.out)<- c("tag_id","encounter.hist") #rename the columns so the encounter.hist column can be pasted to iteratively in next step
-  
-  for (i in 2:length(sample.years)) {
-    encounters.out$encounter.hist <- paste(encounters.out$encounter.hist, encounters[[i]][[2]], sep="") #paste on the other encounter 1/0s so get overall encounter histories as strings
-  }
-  
-  return(encounters.out)
+  return(out)
 }
+
+# Attempted function to get mean lat/lon of all anem observations rather than just the one from the year in consideration - mostly an issue w/2018 anems b/c not have anem_obs yet
+# Could probably just add something to the other function (addLatLon) that pulls out anem_id_unq2 too, then could replace the anems in fish.Tagged with those and match up with anem.LatLon
+# # Go through table, if there is an anem_id, match it to anem_obs or anem_id from the past (if 2018), so can link up with anem_id_unq2 in anem.LatLon
+# updateAnemIds <- function(anem_vec, anem.Info, year) {
+#   
+#   out = rep(NA, length(anem_vec)) #output
+#   
+#   for(i in 1:length(anem_vec)) {
+#     testid = anem_vec[i]
+#     
+#     if(year == 2018) {
+#       
+#     }
+#     if(!is.na(testid)) { #if the anem_id in question is not NA
+#       matches = anem.Info %>% filter(anem_id %in% testid) #see if there are any matches in anem_id
+#       
+#       if(length(matches$anem_table_id) != 0) { #if something comes up
+#         if(!is.na(matches$anems_obs[1])) {
+#           out[i] = paste("obs", matches$anem_obs[1], sep="") #make the id that matches the format in anem_id_unq2 if there is an anem_obs
+#         } else {
+#           out[i] = paste("id", testid, sep="") #if not an anem_obs, use the anem_id
+#         }
+#         
+#       } else {
+#         matches2 = anem.Info %>% filter(old_anem_id %in% testid) #see if any matches in old_anem_id
+#       } if(length(matches2$anem_table_id) != 0) { #if something comes up
+#         out[i] = paste("obs", matches2$anem_obs[2], sep="") #make the id that matches the format in anem_id_unq2
+#       } else {
+#         print(paste("Found no anem_id or old_anem_id matches with anem_obs for",testid))
+#       }
+#     } 
+#     
+#     
+#     
+#     matches = anem.Info %>% filter(anem_id %in% testid)
+#     
+#   }
+# }
+# for (i in 1:length())
+
 
 #################### Running things: ####################
 # Pull out info from data base
@@ -135,30 +157,45 @@ for(i in 1:length(fish.Tagged$tag_id)) {
   
   if(length((fish.AllInfo %>% filter(tag_id == tag, year == year_tag))$anem_id) > 1) { print(paste("Multiple matching anems for fish",tag,"in year",year_tag))}
   
-  if(year_tagged == 2015){
+  if(year_tag == 2015){
     if(length((fish.AllInfo %>% filter(tag_id == tag, year == year_tag))$anem_id) > 1) { print(paste("Multiple matching anems for fish",tag,"in year",year_tag))}
-    fish.Tagged$anem_2015[i] = (fish.AllInfo %>% filter(tag_id == tag, year == year_tagged))$anem_id[1]
+    fish.Tagged$anem_2015[i] = (fish.AllInfo %>% filter(tag_id == tag, year == year_tag))$anem_id[1]
     fish.Tagged$anem_2016[i] = ifelse(length((fish.AllInfo %>% filter(tag_id == tag, year == 2016))$anem_id) != 0, (fish.AllInfo %>% filter(tag_id == tag, year == 2016))$anem_id, fish.Tagged$anem_2015[i])
     fish.Tagged$anem_2017[i] = ifelse(length((fish.AllInfo %>% filter(tag_id == tag, year == 2017))$anem_id) != 0, (fish.AllInfo %>% filter(tag_id == tag, year == 2017))$anem_id, fish.Tagged$anem_2016[i])
     fish.Tagged$anem_2018[i] = ifelse(length((fish.AllInfo %>% filter(tag_id == tag, year == 2018))$anem_id) != 0, (fish.AllInfo %>% filter(tag_id == tag, year == 2018))$anem_id, fish.Tagged$anem_2017[i])
-  } else if(year_tagged == 2016){
+  } else if(year_tag == 2016){
     fish.Tagged$anem_2016[i] = (fish.AllInfo %>% filter(tag_id == tag, year == year_tag))$anem_id[1]
     fish.Tagged$anem_2017[i] = ifelse(length((fish.AllInfo %>% filter(tag_id == tag, year == 2017))$anem_id) != 0, (fish.AllInfo %>% filter(tag_id == tag, year == 2017))$anem_id, fish.Tagged$anem_2016[i])
     fish.Tagged$anem_2018[i] = ifelse(length((fish.AllInfo %>% filter(tag_id == tag, year == 2018))$anem_id) != 0, (fish.AllInfo %>% filter(tag_id == tag, year == 2018))$anem_id, fish.Tagged$anem_2017[i])
-  } else if(year_tagged == 2017){
+  } else if(year_tag == 2017){
     fish.Tagged$anem_2017[i] = (fish.AllInfo %>% filter(tag_id == tag, year == year_tag))$anem_id[1]
     fish.Tagged$anem_2018[i] = ifelse(length((fish.AllInfo %>% filter(tag_id == tag, year == 2018))$anem_id) != 0, (fish.AllInfo %>% filter(tag_id == tag, year == 2018))$anem_id, fish.Tagged$anem_2017[i])
-  } else if(year_tagged == 2018){
+  } else if(year_tag == 2018){
     fish.Tagged$anem_2018[i] = (fish.AllInfo %>% filter(tag_id == tag, year == year_tag))$anem_id[1]
   }
 }
 
-#NEED TO EDIT THE ABOVE TO TAKE INTO ACCOUNT MULTIPLE SIGHTINGS OF THE SAME FISH IN ONE SEASON!
+#Get about 50 print-outs of the message that multiple anems were found for a particular tag in a particular season. 
+#Spot-checked a few and they had the same anem for each (usually 2nd capture was a recap dive) but should probably check more carefully at some point
+#The above misses some anems (~14 in 2015) - there are 469 ch that start with 1 (like 1001, 1000), but only 455 anems in the anem_2015 vec - haven't looked into at all so don't know what's up
 
-tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2015) %>%
-  group_by(tag_id) %>%
-  summarize(tail_color_2015 = color[1])
+# Add lat/lon columns for each year
+fish.Tagged <- fish.Tagged %>% 
+  mutate(lat2015 = rep(NA, length(fish.Tagged$tag_id)), lon2015 = rep(NA, length(fish.Tagged$tag_id)), 
+         lat2016 = rep(NA, length(fish.Tagged$tag_id)), lon2016 = rep(NA, length(fish.Tagged$tag_id)),
+         lat2017 = rep(NA, length(fish.Tagged$tag_id)), lon2017 = rep(NA, length(fish.Tagged$tag_id)),
+         lat2018 = rep(NA, length(fish.Tagged$tag_id)), lon2018 = rep(NA, length(fish.Tagged$tag_id)))
+
+# Fill in lat/lon columns
+fish.Tagged$lat2015 <- addLatLons(fish.Tagged$anem_2015, anem.Processed2, "lat")
+fish.Tagged$lon2015 <- addLatLons(fish.Tagged$anem_2015, anem.Processed2, "lon")
+fish.Tagged$lat2016 <- addLatLons(fish.Tagged$anem_2016, anem.Processed2, "lat")
+fish.Tagged$lon2016 <- addLatLons(fish.Tagged$anem_2016, anem.Processed2, "lon")
+fish.Tagged$lat2017 <- addLatLons(fish.Tagged$anem_2017, anem.Processed2, "lat")
+fish.Tagged$lon2017 <- addLatLons(fish.Tagged$anem_2017, anem.Processed2, "lon")
+fish.Tagged$lat2018 <- addLatLons(fish.Tagged$anem_2018, anem.Processed2, "lat")
+fish.Tagged$lon2018 <- addLatLons(fish.Tagged$anem_2018, anem.Processed2, "lon")
+
 
 # Go through table, if fish was caught in a year, find coordinates of anem from that year, then find distance from dives for that year (will be 0 usually, right?)
 # If year was before a fish was tagged, put in NA
@@ -169,6 +206,11 @@ tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
 
 ##############################################################################
 ############# Feeder code below this point ###################################
+tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2015) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2015 = color[1])
+
 #process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
 anem.Processed <- anem.AllInfo %>%
   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
