@@ -10,6 +10,7 @@ library(dplyr)
 library(tidyr)
 library(RMark)
 library(lubridate)
+library(geosphere)
 #library(dbplyr)
 library(ggplot2)
 library(here)
@@ -57,6 +58,38 @@ addLatLons <- function(anem_vec, anemdf, latorlon) {
       }
     }
   }
+  return(out)
+}
+
+# Find the min distance from the anem where the fish was caught or last caught to a recorded GPS point in each year
+findDist <- function(sitevec, latvec, lonvec, gpxdf, divedf, sampleyear){
+  out <- rep(NA, length(sitevec))
+  nsteps <- length(sitevec)
+  
+  for(i in 1:nsteps) {
+    testsite = sitevec[i]
+    testlat = as.numeric(latvec[i])
+    testlon = as.numeric(lonvec[i])
+    
+    if(!is.na(testlat)) {
+      #filter out dives at the right site in the right year
+      relevantdives <- divedf %>% 
+        filter(site == testsite, year == sampleyear)
+      
+      #filter out gps points from those dives
+      relevantgps <- gpsdf %>%
+        filter(date %in% relevantdives$date, year == sampleyear)
+      
+      distvec <- rep(NA, length(relevantgps$lat)) #set a place to store distances
+      
+      for(j in 1:length(distvec)) { #go through the list of coordinates
+        distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
+        #print(paste(j, "of", length(distvec)))
+      }
+      out[i] = min(distvec)
+    }
+    print(paste(i, "and", out[i]))
+  } 
   return(out)
 }
 
@@ -146,6 +179,7 @@ fish.Tagged <- encounters_all %>% select(tag_id, ch, site) %>%
   mutate(anem_2015 = rep(NA, length(tag_id)), anem_2016 = rep(NA, length(tag_id)), anem_2017 = rep(NA, length(tag_id)), anem_2018 = rep(NA, length(tag_id))) %>%
   mutate(year_tagged = rep(NA, length(tag_id)))
 
+# Go through the list of tagged fish, if it could have been caught in a year, assign it the anem where it was caught or most recently caught
 for(i in 1:length(fish.Tagged$tag_id)) {
   tag = fish.Tagged$tag_id[i]
   c2015 = as.integer(substring(fish.Tagged$ch[i],1,1)) #1/0 values for whether or not the fish was caught each sampling year
@@ -186,7 +220,7 @@ fish.Tagged <- fish.Tagged %>%
          lat2017 = rep(NA, length(fish.Tagged$tag_id)), lon2017 = rep(NA, length(fish.Tagged$tag_id)),
          lat2018 = rep(NA, length(fish.Tagged$tag_id)), lon2018 = rep(NA, length(fish.Tagged$tag_id)))
 
-# Fill in lat/lon columns
+# Fill in lat/lon columns - right now, just fills in the lat/lon for that anem observation, not the mean observation where old_anem_id and anem_obs info is taken into account (which would be in anem.LatLon)
 fish.Tagged$lat2015 <- addLatLons(fish.Tagged$anem_2015, anem.Processed2, "lat")
 fish.Tagged$lon2015 <- addLatLons(fish.Tagged$anem_2015, anem.Processed2, "lon")
 fish.Tagged$lat2016 <- addLatLons(fish.Tagged$anem_2016, anem.Processed2, "lat")
@@ -196,6 +230,16 @@ fish.Tagged$lon2017 <- addLatLons(fish.Tagged$anem_2017, anem.Processed2, "lon")
 fish.Tagged$lat2018 <- addLatLons(fish.Tagged$anem_2018, anem.Processed2, "lat")
 fish.Tagged$lon2018 <- addLatLons(fish.Tagged$anem_2018, anem.Processed2, "lon")
 
+# Find min distance (in m) from anem to a recorded gps point from that year (for now, no sorting by dive type or anything like that, just site and year)
+dist2015 <- findDist(fish.Tagged$site, fish.Tagged$lat2015, fish.Tagged$lon2015, gps.Info, dive.Info, 2015)
+dist2016 <- findDist(fish.Tagged$site, fish.Tagged$lat2016, fish.Tagged$lon2016, gps.Info, dive.Info, 2016)
+dist2017 <- findDist(fish.Tagged$site, fish.Tagged$lat2017, fish.Tagged$lon2017, gps.Info, dive.Info, 2017)
+dist2018 <- findDist(fish.Tagged$site, fish.Tagged$lat2018, fish.Tagged$lon2018, gps.Info, dive.Info, 2018)
+
+save(dist2015, file=here("Data", "dist2015.RData"))
+save(dist2016, file=here("Data", "dist2016.RData"))
+save(dist2017, file=here("Data", "dist2017.RData"))
+save(dist2018, file=here("Data", "dist2018.RData"))
 
 # Go through table, if fish was caught in a year, find coordinates of anem from that year, then find distance from dives for that year (will be 0 usually, right?)
 # If year was before a fish was tagged, put in NA
@@ -206,75 +250,75 @@ fish.Tagged$lon2018 <- addLatLons(fish.Tagged$anem_2018, anem.Processed2, "lon")
 
 ##############################################################################
 ############# Feeder code below this point ###################################
-tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2015) %>%
-  group_by(tag_id) %>%
-  summarize(tail_color_2015 = color[1])
-
-#process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
-anem.Processed <- anem.AllInfo %>%
-  filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
-  filter(is.null(anem_spp) == FALSE) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
-  filter(is.na(anem_spp) == FALSE) %>% #or anem_spp that is NA
-  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
-  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
-  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
-  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
-  mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
-  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
-  mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
-         day = day(obs_time), 
-         hour = hour(obs_time), 
-         min = minute(obs_time), 
-         sec = second(obs_time), 
-         year = year(obs_time)) %>%
-  mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
-
-
-  
-  anem.Processed <- anem.AllInfo %>%
-  filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
-  filter(is.null(anem_spp) == FALSE) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
-  filter(is.na(anem_spp) == FALSE) %>% #or anem_spp that is NA
-  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
-  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
-  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
-  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
-  mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
-  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
-  mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
-         day = day(obs_time), 
-         hour = hour(obs_time), 
-         min = minute(obs_time), 
-         sec = second(obs_time), 
-         year = year(obs_time)) %>%
-  mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
-
-# pull out just the year and put that in a separate column
-allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
-
-#join together
-allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
-allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
-
-allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
-
-
-
-# Pull out tagged fish - create a data frame that has tag, season tagged, seasons caught, anem_ids (first and others)
-
-# Go through table, if fish was caught in a year, find coordinates of anem from that year, then find distance from dives for that year (will be 0 usually, right?)
-# If year was before a fish was tagged, put in NA
-# If fish not caught in a year, find average coordinates of anem, then find distance from that to the tracks from sample year
-# Not sure if this would work best as a function (where put in year? or maybe site?) or as series of dplyr commands...
-
-
-#pull out all lat/lon info so can feed into function above (rather than having to pull out from database each time)
-alllatlons <- leyte %>%
-  tbl("GPX") %>%
-  select(lat, lon, time, unit) %>%
-  collect(n = Inf) %>% 
-  separate(time, into = c("date", "time"), sep = " ") 
+# tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2015) %>%
+#   group_by(tag_id) %>%
+#   summarize(tail_color_2015 = color[1])
+# 
+# #process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
+# anem.Processed <- anem.AllInfo %>%
+#   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
+#   filter(is.null(anem_spp) == FALSE) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
+#   filter(is.na(anem_spp) == FALSE) %>% #or anem_spp that is NA
+#   mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+#   mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
+#   mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
+#   mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
+#   mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
+#   mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+#   mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+#          day = day(obs_time), 
+#          hour = hour(obs_time), 
+#          min = minute(obs_time), 
+#          sec = second(obs_time), 
+#          year = year(obs_time)) %>%
+#   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
+# 
+# 
+#   
+#   anem.Processed <- anem.AllInfo %>%
+#   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
+#   filter(is.null(anem_spp) == FALSE) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
+#   filter(is.na(anem_spp) == FALSE) %>% #or anem_spp that is NA
+#   mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+#   mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
+#   mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
+#   mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
+#   mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
+#   mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+#   mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+#          day = day(obs_time), 
+#          hour = hour(obs_time), 
+#          min = minute(obs_time), 
+#          sec = second(obs_time), 
+#          year = year(obs_time)) %>%
+#   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
+# 
+# # pull out just the year and put that in a separate column
+# allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
+# 
+# #join together
+# allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
+# allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
+# 
+# allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
+# 
+# 
+# 
+# # Pull out tagged fish - create a data frame that has tag, season tagged, seasons caught, anem_ids (first and others)
+# 
+# # Go through table, if fish was caught in a year, find coordinates of anem from that year, then find distance from dives for that year (will be 0 usually, right?)
+# # If year was before a fish was tagged, put in NA
+# # If fish not caught in a year, find average coordinates of anem, then find distance from that to the tracks from sample year
+# # Not sure if this would work best as a function (where put in year? or maybe site?) or as series of dplyr commands...
+# 
+# 
+# #pull out all lat/lon info so can feed into function above (rather than having to pull out from database each time)
+# alllatlons <- leyte %>%
+#   tbl("GPX") %>%
+#   select(lat, lon, time, unit) %>%
+#   collect(n = Inf) %>% 
+#   separate(time, into = c("date", "time"), sep = " ") 
 
 # Distance to anemone where fish was previously caught
 # If fish was caught in that season, use the coordinates of the anem from that season
