@@ -12,6 +12,10 @@ library(lubridate)
 #library(dbplyr)
 library(ggplot2)
 library(here)
+library(rethinking)
+
+#Load data input
+load(file=here("Data", "fish_Tagged.RData")) #file with distances appended
 
 #################### Functions: ####################
 # Functions and constants from my GitHub function/constant collection
@@ -382,13 +386,21 @@ encounters_all <- left_join(encounters_all, size_2016, by="tag_id")
 encounters_all <- left_join(encounters_all, size_2017, by="tag_id")
 encounters_all <- left_join(encounters_all, size_2018, by="tag_id")
 
+# Add in distances to anem (from fish.Tagged, loaded above)
+encounters_all <- left_join(encounters_all, (fish.Tagged %>% select(tag_id, year_tagged, dist_2015, dist_2016, dist_2017, dist_2018)), by="tag_id")
+
 save(encounters_all, file=here("Data", "encounters_all.RData"))
 
 ##### Now, try running MARK!
 # specifying site as group
 # make process and design data
+#with site
 tagged.site.process = process.data(encounters_all, model="CJS", begin.time=2015, groups="site")
 tagged.site.ddl = make.design.data(tagged.site.process)
+
+#without sit
+tagged.process = process.data(encounters_all, model="CJS", begin.time=2015)
+tagged.ddl = make.design.data(tagged.process)
 
 # set different relationships
 Phi.dot = list(formula=~1)
@@ -402,6 +414,7 @@ p.site = list(formula=~site)
 p.siteplustime = list(formua=~site+time) # does this still pool sites at some level, assuming they come from the same dist and are related (like would in rethinking) or just break them out completely separately?
 
 # run some models
+tagged.phi.dot.p.dot = mark(tagged.process, tagged.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
 tagged.site.phi.dot.p.dot = mark(tagged.site.process, tagged.site.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
 tagged.site.phi.time.p.dot = mark(tagged.site.process, tagged.site.ddl, model.parameters=list(Phi=Phi.time, p=p.dot))
 tagged.site.phi.dot.p.time = mark(tagged.site.process, tagged.site.ddl, model.parameters=list(Phi=Phi.dot, p=p.time))
@@ -413,15 +426,18 @@ tagged.site.phi.time.p.siteplustime = mark(tagged.site.process, tagged.site.ddl,
 tagged.site.phi.siteplustime.p.time = mark(tagged.site.process, tagged.site.ddl, model.parameters=list(Phi=Phi.siteplustime, p=p.time))
 tagged.site.phi.siteplustime.p.siteplustime = mark(tagged.site.process, tagged.site.ddl, model.parameters=list(Phi=Phi.siteplustime, p=p.siteplustime))
 
-
-
-
 #tagged.site <- mark(data=encounters_all, model = "CJS")
 
+# Using the output
+## Note from MARK book - the Beta estimates at the top relate to the link function - thethey're the values actually estimated before the actual paramter values are re-constituted; they're estimates on the logit scale
+## So for survival and recap, the Beta estimates are the logit values (ln(p/(1-p))), for linear model constraints, they are the coefficients (slopes) for each term in the linear model
+## See pp.226-229 in MARK book for details
+#################################### Testing out doing mark-recap in rethinking ############# 
 
 
 
 
+#################################### Old stuff below ############# 
 
 ##### Previous work using own likelihood functions...
 # Now, create encounter histories for fish at all sites combined
@@ -511,6 +527,7 @@ Vis <- allfish %>% filter(site == "Visca")
 Vis_pop <- as.data.frame(table(Vis$year))
 
 
+
 #################################### R MARK work ############# 
 # need to get data in format for R Mark
 # column ch - has cenounter history (like 1011001)
@@ -525,3 +542,5 @@ data(dipper)
 dipper.Phidot.pdot=mark(dipper,threads=1)
 
 data(example.data)
+
+

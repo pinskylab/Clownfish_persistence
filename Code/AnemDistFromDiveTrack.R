@@ -241,6 +241,11 @@ save(dist2016, file=here("Data", "dist2016.RData"))
 save(dist2017, file=here("Data", "dist2017.RData"))
 save(dist2018, file=here("Data", "dist2018.RData"))
 
+# Add distance columns to fish.Tagged
+fish.Tagged <- fish.Tagged %>%
+  mutate(dist_2015 = dist2015, dist_2016 = dist2016, dist_2017 = dist2017, dist_2018 = dist2018)
+
+save(fish.Tagged, file=here("Data", "fish_Tagged.RData"))
 # Go through table, if fish was caught in a year, find coordinates of anem from that year, then find distance from dives for that year (will be 0 usually, right?)
 # If year was before a fish was tagged, put in NA
 # If fish not caught in a year, find average coordinates of anem, then find distance from that to the tracks from sample year
@@ -334,3 +339,31 @@ save(dist2018, file=here("Data", "dist2018.RData"))
 # Seems like output for here should be data frame with tag ID, years as columns and tag numbers and distance in each year as input (NA for seasons before a fish was tagged)
 
 #################### Plots: ####################
+# Histogram of distances from tracks to anems with tagged fish
+hist(fish.Tagged$dist_2015, xlab="distance (m) from track to fish anem", main="2015 distances")
+hist(fish.Tagged$dist_2016, xlab="distance (m) from track to fish anem", main="2016 distances")
+hist(fish.Tagged$dist_2017, breaks=100, xlab="distance (m) from track to fish anem", main="2017 distances")
+hist(fish.Tagged$dist_2018, xlab="distance (m) from track to fish anem", main="2018 distances")
+
+
+
+pdf(file=here("Plots/AnemLocations","AnemVisits_Hist.pdf"))
+hist(anem.LatLon$ngps, breaks=7, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
+dev.off()
+
+# Comparing C and A dives (plotted by year), adding in D,E,M for 2012
+pdf(file = here("Plots", "DistanceFromFishAnen_allsites_byyear.pdf"))
+ggplot(data = fish.Tagged, aes(lat2015)) +
+  geom_histogram(data = fish.Tagged, alpha=0.5, binwidth=1) +
+  facet_grid(.~year)
+
+ggplot(data = (fishInfo %>% filter(dive_type %in% c("A","C","D","E","M"))), aes(size_num, fill = dive_type)) +
+  geom_histogram(data = (fishInfo %>% filter(dive_type == "C")), alpha = 0.5, binwidth = 1) +
+  geom_histogram(data = (fishInfo %>% filter(dive_type == "A")), alpha = 0.5, binwidth = 1) +
+  geom_histogram(data = (fishInfo %>% filter(dive_type == "D")), alpha = 0.5, binwidth = 1) +
+  geom_histogram(data = (fishInfo %>% filter(dive_type == "E")), alpha = 0.5, binwidth = 1) +
+  geom_histogram(data = (fishInfo %>% filter(dive_type == "M")), alpha = 0.5, binwidth = 1) +
+  facet_grid(.~ year) +
+  xlab("size (cm)") + ylab("# fish") + ggtitle("Size histograms for fish from A,C,D,E,M dives (all sites combined)") +
+  theme_bw()
+dev.off()
