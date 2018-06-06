@@ -12,7 +12,7 @@ library(lubridate)
 #library(dbplyr)
 library(ggplot2)
 library(here)
-library(rethinking)
+#library(rethinking)
 
 #Load data input
 load(file=here("Data", "fish_Tagged.RData")) #file with distances appended
@@ -387,18 +387,88 @@ encounters_all <- left_join(encounters_all, size_2017, by="tag_id")
 encounters_all <- left_join(encounters_all, size_2018, by="tag_id")
 
 # Add in distances to anem (from fish.Tagged, loaded above)
-encounters_all <- left_join(encounters_all, (fish.Tagged %>% select(tag_id, year_tagged, dist_2015, dist_2016, dist_2017, dist_2018)), by="tag_id")
+encounters_all <- left_join(encounters_all, (fish.Tagged %>% select(tag_id, year_tagged, dist_2015, dist_2016, dist_2017, dist_2018)), by="tag_id") 
+
+# can't have NAs in the covariate columns so changing to mean of distances in each year (should also try replacing with 0, since it shouldn't matter)
+mean2015 <- mean(encounters_all$dist_2015, na.rm=TRUE)
+mean2016 <- mean(encounters_all$dist_2016, na.rm=TRUE)
+mean2017 <- mean(encounters_all$dist_2017, na.rm=TRUE)
+mean2018 <- mean(encounters_all$dist_2018, na.rm=TRUE)
+
+# replace the NAs (for years before the fish was tagged) with the mean distance that year
+encounters_means <- encounters_all %>%
+  rename(dist2015 = dist_2015, dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% #first, rename distance columns so easier for MARK to find
+  mutate(dist2015 = replace(dist2015, is.na(dist2015), mean2015)) %>%
+  mutate(dist2016 = replace(dist2016, is.na(dist2016), mean2016)) %>%
+  mutate(dist2017 = replace(dist2017, is.na(dist2017), mean2017)) %>%
+  mutate(dist2018 = replace(dist2018, is.na(dist2018), mean2018))
+
+# replace the NAs (for years before the fish was tagged) with 0 - could also just calculate distance to that anem, based on the first tag number in the year the fish was tagged in the original script that finds the distance
+encounters_0 <- encounters_all %>%
+  rename(dist2015 = dist_2015, dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% #first, rename distance columns so easier for MARK to find
+  mutate(dist2015 = replace(dist2015, is.na(dist2015), 0)) %>%
+  mutate(dist2016 = replace(dist2016, is.na(dist2016), 0)) %>%
+  mutate(dist2017 = replace(dist2017, is.na(dist2017), 0)) %>%
+  mutate(dist2018 = replace(dist2018, is.na(dist2018), 0))
 
 save(encounters_all, file=here("Data", "encounters_all.RData"))
+save(encounters_means, file=here("Data", "encounters_means.RData"))
+save(encounters_0, file=here("Data", "encounters_0.RData"))
 
-##### Now, try running MARK!
+##### Try running MARK (again), this time with time-varying individual constraints!
+# Trying one without site as a group, just with distance to anem as the time-varying individual constraint
+# data
+encounters_1 <- encounters_means %>% 
+  select(ch, dist2015, dist2016, dist2017, dist2018)
+
+# process data and make ddl
+fish.processed = process.data(encounters_1, model="CJS", begin.time=2015)
+fish.ddl = make.design.data(fish.processed)
+
+# set models for Phi 
+Phi.dot = list(formula=~1, link="logit")
+Phi.time = list(formula=~time, link="logit")
+
+# set models for p
+p.dot = list(formula=~1, link="logit")
+p.time = list(formula=~time, link="logit")
+p.dist = list(formula=~dist, link="logit")
+p.dist.plus.time = list(formula=~dist+time, link="logit")
+
+# run models individually
+e1.Phi.dot.p.dot = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
+e1.Phi.dot.p.time = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.dot, p=p.time))
+e1.Phi.dot.p.dist = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist))
+e1.Phi.dot.p.dist.plus.time = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist.plus.time))
+e1.Phi.time.p.dot = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.time, p=p.dot))
+e1.Phi.time.p.time = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.time, p=p.time))
+e1.Phi.time.p.dist = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.time, p=p.dist))
+e1.Phi.time.p.dist.plus.time = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.time, p=p.dist.plus.time))
+
+# run models using clm and wrapper
+
+# make plots to compare the models
+
+# compare using AIC?
+
+# run models using site as a group
+
+# run models with tagging size as covariate
+
+# run models with actual size as a covariate (can fill in missing data for un-recaught fish using Michelle's growth? or just assume it stays the same if not ever caught again, mean between two sizes on either size if one caputure missed, not sure what would do for fish pre-capture)
+
+# run models with distance where NAs were replaced with 0 and where actual distance to anem was calculated whether or not fish had been tagged yet, compare all three methods to make sure it doesn't matter
+
+# make some sort of data frame with estimate, 95% confidence bounds, with different assumptions (time, distance, site, etc. matters) shown, so can use as want in persistence metrics and analyses
+
+##### Now, try running MARK! (original attempt)
 # specifying site as group
 # make process and design data
 #with site
 tagged.site.process = process.data(encounters_all, model="CJS", begin.time=2015, groups="site")
 tagged.site.ddl = make.design.data(tagged.site.process)
 
-#without sit
+#without site
 tagged.process = process.data(encounters_all, model="CJS", begin.time=2015)
 tagged.ddl = make.design.data(tagged.process)
 
