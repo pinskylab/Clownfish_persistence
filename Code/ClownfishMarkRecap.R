@@ -415,6 +415,11 @@ save(encounters_all, file=here("Data", "encounters_all.RData"))
 save(encounters_means, file=here("Data", "encounters_means.RData"))
 save(encounters_0, file=here("Data", "encounters_0.RData"))
 
+##### Try running a MARK model with size-at-tagging as an individual constraint, site as grouping
+e2 <- encounters_all %>%
+  select(ch, tag_size, site)
+  
+
 ##### Try running MARK (again), this time with time-varying individual constraints!
 # Trying one without site as a group, just with distance to anem as the time-varying individual constraint
 # data
@@ -446,7 +451,14 @@ e1.Phi.time.p.dist = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Ph
 e1.Phi.time.p.dist.plus.time = mark(fish.processed, fish.ddl, model.parameters=list(Phi=Phi.time, p=p.dist.plus.time))
 
 # run models using clm and wrapper
+e1.cml = create.model.list("CJS")
+e1.model.wrap = mark.wrapper(e1.cml, data=fish.processed, ddl=fish.ddl)
 
+e1.model.wrap[[1]]$design.matrix # this is one of the ones with distance... not convinced it worked right..
+e1.model.wrap[[2]]$design.matrix #
+e1.model.wrap[[5]]$design.matrix
+
+e1.collect = collect.models(table=TRUE)
 # make plots to compare the models
 
 # compare using AIC?
