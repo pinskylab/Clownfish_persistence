@@ -416,9 +416,118 @@ save(encounters_means, file=here("Data", "encounters_means.RData"))
 save(encounters_0, file=here("Data", "encounters_0.RData"))
 
 ##### Try running a MARK model with size-at-tagging as an individual constraint, site as grouping
-e2 <- encounters_all %>%
-  select(ch, tag_size, site)
+site_size_at_tagging <- function() {
+  # select relevant data
+  e2 <- encounters_all %>%
+    select(ch, tag_size, site) %>%
+    mutate(site = as.factor(site))
   
+  e2_2 <- e2[complete.cases(e2),] #for using tag size, need no NAs...
+
+  
+  # process data, make ddl
+  e2.processed = process.data(e2, begin.time=2015, groups="site")
+  e2.ddl = make.design.data(e2.processed)
+  
+  # process data, make ddl for complete cases
+  e2_2.processed = process.data(e2_2, begin.time=2015, groups="site")
+  e2_2.ddl = make.design.data(e2_2.processed)
+  
+  
+  # define models for Phi and p
+  Phi.dot = list(formula=~1, link="logit") #one survival for all sizes and sites and times
+  Phi.site = list(formula=~site, link="logit") #survival depends on site
+  Phi.size = list(formula=~tag_size, link="logit") #survival depends on size
+  Phi.size.x.site = list(formula=~tag_size*site, link="logit") #survival depends on site and site-dependent slope for size
+  Phi.time = list(formula=~time, link="logit") #survival varies with time, same for all sites
+  Phi.time.plus.site = list(formula=~time+site, link="logit")
+  
+  p.dot = list(formula=~1, link="logit") #one recap prob for all sizes, sites, and time
+  p.site = list(formula=~site, link="logit")
+  p.time = list(formula=~time, link="logit")
+  
+  # create model list
+  #e2.cml = create.model.list("CJS")
+  
+  #run and return models
+  #return(mark.wrapper(e2.cml, data=e2.processed, ddl=e2.ddl))
+  
+  #create models
+  e2.Phi.dot.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
+  e2.Phi.site.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.site, p=p.dot))
+  e2.Phi.size.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
+  e2.Phi.size.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
+  e2.Phi.size.x.site.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size.x.site, p=p.site))
+  e2.Phi.site.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.site, p=p.site))
+  
+  e2_2.Phi.size.p.dot = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
+  e2_2.Phi.size.p.site = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
+  e2_2.Phi.size.x.site.p.site = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size.x.site, p=p.site))
+  
+}
+
+e2.results = site_size_at_tagging()
+
+logit_recip <- function(logitval) {
+  recip = (exp(logitval))/(1 + exp(logitval))
+  return(recip)
+}
+
+# Make some plots
+# e2.Phi.dot.p.dot (constant survival and recapture prob the whole time)
+e2.constant = as.data.frame(e2.Phi.dot.p.dot$results$beta) %>% 
+  mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
+  mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
+  
+e2.site = as.data.frame(e2.Phi.site.p.site$results$beta) %>%
+  mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
+  mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+                        "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) #add site column (Cabatoan is intercept)
+
+e2.site.real = as.data.frame(e2.Phi.site.p.site$results$real) %>%
+  mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
+  mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+                        "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) %>% #add site column (Cabatoan is intercept)
+  mutate(row = seq(1,30,1)) #add row numbers to make plotting easier
+
+
+#NEED TO ADD THE EFFECT OF EACH SITE TO THE INTERCEPT
+#### NEED TO SWITCH IT BACK FROM THE LOGIT SCALE FIRST!! AND THAT AFFECTS THE CONFIDENCE INTERVALS, RIGHT? CHECK THAT AGAIN....
+#### ALSO SHOULD PLOT +- SE TOO, SEE HOW THAT COMPARES/MATCHES UP TO LCL and UCL
+
+# Constant Phi and p across time and site, no covariates (e2.Phi.dot.p.dot)
+pdf(file = here("Plots/PhiandpEstimates", "e2_Phiandp_constant.pdf"))
+ggplot(data = e2.constant, aes(param, est, color=param)) +
+  geom_pointrange(aes(ymin=lower, ymax=upper), size=1) +
+  xlab("parameter") + ylab("estimate") + ggtitle("e2.Phi.dot.p.dot (constant p and Phi)") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+  
+# Constant Phi and p across time, variable across site, no covariates (e2.Phi.site.p.site)
+pdf(file = here("Plots/PhiandpEstimates", "e2_Phiandp_site.pdf"))
+ggplot(data = e2.site.real, aes(row, estimate, color=site, shape=param)) +
+  geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
+  xlab("parameter") + ylab("estimate") + ggtitle("e2.Phi.site.p.site (p and Phi by site)") +
+  #scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+# Phi has tagging size as a covariate, not dependent on site or time, p constant (e2_2.Phi.size.p.dot)
+minsize = min(e2_2$tag_size) #right now, this is 1.6 (prob b/c of a typo.... Michelle is looking at it)
+maxsize = max(e2_2$tag_size)
+size.values = minsize+(0:30)*(maxsize-minsize)/30
+Phibysize = covariate.predictions(e2_2.Phi.size.p.dot,data=data.frame(tag_size=size.values),indices=c(1))
+
+pdf(file = here("Plots/PhiandpEstimates", "e2_2Phisize.pdf"))
+ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
+  geom_ribbon(aes(ymin=lcl,ymax=ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("size at tagging (cm)") + ylab("Phi estimate") + ggtitle("e2_2.Phi.size.p.dot") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
 
 ##### Try running MARK (again), this time with time-varying individual constraints!
 # Trying one without site as a group, just with distance to anem as the time-varying individual constraint
