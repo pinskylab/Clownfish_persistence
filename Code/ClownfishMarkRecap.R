@@ -490,7 +490,7 @@ e2.site.real = as.data.frame(e2.Phi.site.p.site$results$real) %>%
                         "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) %>% #add site column (Cabatoan is intercept)
   mutate(row = seq(1,30,1)) #add row numbers to make plotting easier
 
-
+#Think this is handled for now, should check again to be sure...
 #NEED TO ADD THE EFFECT OF EACH SITE TO THE INTERCEPT
 #### NEED TO SWITCH IT BACK FROM THE LOGIT SCALE FIRST!! AND THAT AFFECTS THE CONFIDENCE INTERVALS, RIGHT? CHECK THAT AGAIN....
 #### ALSO SHOULD PLOT +- SE TOO, SEE HOW THAT COMPARES/MATCHES UP TO LCL and UCL
@@ -528,15 +528,125 @@ ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
   theme_bw()
 dev.off()
 
+##### Try running time-varying individual constraints - distance
+# data
+edist <- fish.Tagged %>%
+  select(ch, site, dist_2016, dist_2017, dist_2018) %>% #select just site and distance (not including 2015, first potential tagging year)
+  rename(dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% 
+  mutate(dist2016 = replace(dist2016, is.na(dist2016), 0)) %>% #replace NAs (before a fish was tagged) with 0s
+  mutate(dist2017 = replace(dist2017, is.na(dist2017), 0)) %>%
+  mutate(dist2018 = replace(dist2018, is.na(dist2018), 0))
+
+# process data and make ddl
+edist.processed = process.data(edist, model="CJS", begin.time=2015)
+edist.ddl = make.design.data(edist.processed)
+
+# set models for Phi
+Phi.dot = list(formula=~1, link="logit")
+Phi.time = list(formula=~time, link="logit")
+
+# set models for p
+p.dot = list(formula=~1, link="logit")
+p.time = list(formula=~time, link="logit")
+p.dist = list(formula=~dist, link="logit")
+p.time.plus.dist = list(formula=~time+dist, link="logit")
+
+# run some models
+edist.Phi.dot.p.dot = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
+edist.Phi.dot.p.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time)) #has issues running, can't estimate p in 2018
+edist.Phi.dot.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist)) #think this ran!!!
+# edist.Phi.dot.p.dist.plus.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time.plus.dist))
+# edist.Phi.time.p.dot = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dot))
+# edist.Phi.time.p.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time))
+# edist.Phi.time.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dist))
+# edist.Phi.time.p.time.plus.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time.plus.dist))
+
+# make some plots
+
+# Phi constant, not dependent on site or time, p depends on distance to anem (edist.Phi.dot.p.dist)
+mindist = min(edist$dist2016,edist$dist2017,edist$dist2018) 
+maxdist = max(edist$dist2016,edist$dist2017,edist$dist2018) #seems kind of high and probably due to an error
+maxdist2 = 400 #encompasses all but the highest value (which is an order of magnitude higher - 4874 compared to next highest of 352, both in 2017)
+maxdist3 = 200 #encompasses highest values in 2016, 2018 
+#tail(sort(edist$dist2016),10)
+#tail(sort(edist$dist2017),10) #really 2017 that has the high distances...
+#tail(sort(edist$dist2018),10)
+dist.values = mindist+(0:30)*(maxdist-mindist)/30
+dist.values2 = mindist+(0:30)*(maxdist2-mindist)/30
+dist.values3 = mindist+(0:30)*(maxdist3-mindist)/30
+
+# Not getting this to work - it doesn't change with distance... maybe/probably I'm specifying the index incorrectly?
+#pbydist1 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values),indices=c(7))
+#pbydist2 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values2),indices=c(1))
+#pbydist3 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values3),indices=c(1))
+
+edist.Phi.dot.p.dist.results = as.data.frame(edist.Phi.dot.p.dist$results$beta) 
+
+# Large range of distances (up to 5000m)
+pbydist_range1 = data.frame(dist = dist.values) %>%
+  mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+  mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+  mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+  mutate(p = logit_recip(p_logit)) %>%
+  mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+  mutate(p_ucl = logit_recip(p_ucl_logit)) 
+
+# Mid range of distances (up to 400m)
+pbydist_range2 = data.frame(dist = dist.values2) %>%
+  mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+  mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+  mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+  mutate(p = logit_recip(p_logit)) %>%
+  mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+  mutate(p_ucl = logit_recip(p_ucl_logit)) 
+  
+# Short range of distances (up to 200m)
+pbydist_range3 = data.frame(dist = dist.values3) %>%
+  mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+  mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+  mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+  mutate(p = logit_recip(p_logit)) %>%
+  mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+  mutate(p_ucl = logit_recip(p_ucl_logit)) 
+
+# Long dist values (up to 5000m from anem)
+pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues1.pdf"))
+ggplot(data = pbydist_range1, aes(dist, p)) +
+  geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+# Mid range dist values (up to 400m from anem)
+pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues2.pdf"))
+ggplot(data = pbydist_range2, aes(dist, p)) +
+  geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+# Short range dist values (up to 200m from anem)
+pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues3.pdf"))
+ggplot(data = pbydist_range3, aes(dist, p)) +
+  geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
 
 ##### Try running MARK (again), this time with time-varying individual constraints!
 # Trying one without site as a group, just with distance to anem as the time-varying individual constraint
 # data
-encounters_1 <- encounters_means %>% 
-  select(ch, dist2015, dist2016, dist2017, dist2018)
+e1 <- encounters_means %>% 
+  select(ch, dist2016, dist2017, dist2018)
 
 # process data and make ddl
-fish.processed = process.data(encounters_1, model="CJS", begin.time=2015)
+fish.processed = process.data(e1, model="CJS", begin.time=2015)
 fish.ddl = make.design.data(fish.processed)
 
 # set models for Phi 
