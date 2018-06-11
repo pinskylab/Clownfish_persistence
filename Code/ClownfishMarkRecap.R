@@ -29,6 +29,12 @@ eval(parse(text = script))
 script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
+# Finds the real parameter estimate from the logit estimate
+logit_recip <- function(logitval) {
+  recip = (exp(logitval))/(1 + exp(logitval))
+  return(recip)
+}
+
 # Creates the summarized encounter history by tag id: output is a data frame with 2 columns - tag id and summarized encounter history (i.e. 0010)
 CreateEncounterSummary <- function(start.year, end.year, tagged.fish) {
   
@@ -237,48 +243,9 @@ CreateEncounterSummary <- function(start.year, end.year, tagged.fish) {
 # }
 
 
-#################### Running things: ####################
+#################### Running things: data manipulation and setup ####################
 leyte <- read_db("Leyte")
 
-# fish <- leyte %>%
-#   tbl("clownfish")
-# 
-# anem <- leyte %>%
-#   tbl("anemones")
-# 
-# dives <- leyte %>%
-#   tbl("diveinfo")
-# save(fish, file='fish_db_05-07-2018')
-# save(anem, file='anem_db_05-07-2018')
-# save(dives, file='dives_db_05-07-2018')
-
-# # Pull out all the tagged fish (here, using saved database tables, not leyte)
-# allfish_fish <- leyte %>% 
-#   tbl("clownfish") %>%
-#   select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
-#   collect() %>%
-#   filter(!is.na(tag_id)) 
-# 
-# allfish_anems <- leyte %>%
-#   tbl("anemones") %>%
-#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
-#   collect() %>%
-#   filter(anem_table_id %in% allfish_fish$anem_table_id)
-# 
-# allfish_dives <- leyte %>%
-#   tbl("diveinfo") %>%
-#   select(dive_table_id, dive_type, date, site, gps) %>%
-#   collect() %>%
-#   filter(dive_table_id %in% allfish_anems$dive_table_id)
-# 
-# # pull out just the year and put that in a separate column
-# allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
-# 
-# #join together
-# allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
-# allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
-# 
-# # 
 allfish_fish <- leyte %>% 
   tbl("clownfish") %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
@@ -332,312 +299,612 @@ tag_size <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
   
 encounters_all <- left_join(encounters_all, tag_size, by="tag_id")
 
+# Add in tail color when tagged
+tail_color <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color = color[1])
+
+encounters_all <- left_join(encounters_all, tail_color, by="tag_id")
+
+## Code that adds in tail color by year, problem with that is that we only have it for fish that are caught, which isn't allowed for time-varying individual covariates (have to have a value for each fish at each time)
+##might be able to get around that by just doing the color at the last time it was caught but not sure that's worth it so for now, commenting out...
 # Add in tail color (could probably do these all together in one command... look into that later..)
-tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2015) %>%
-  group_by(tag_id) %>%
-  summarize(tail_color_2015 = color[1])
+# tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2015) %>%
+#   group_by(tag_id) %>%
+#   summarize(tail_color_2015 = color[1])
+# 
+# tail_color_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2016) %>%
+#   group_by(tag_id) %>%
+#   summarize(tail_color_2016 = color[1])
+# 
+# tail_color_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2017) %>%
+#   group_by(tag_id) %>%
+#   summarize(tail_color_2017 = color[1])
+# 
+# tail_color_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2018) %>%
+#   group_by(tag_id) %>%
+#   summarize(tail_color_2018 = color[1])
+# 
+# #encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
+# 
+# encounters_all <- left_join(encounters_all, tail_color_2015, by="tag_id")
+# encounters_all <- left_join(encounters_all, tail_color_2016, by="tag_id")
+# encounters_all <- left_join(encounters_all, tail_color_2017, by="tag_id")
+# encounters_all <- left_join(encounters_all, tail_color_2018, by="tag_id")
+#
 
-tail_color_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2016) %>%
-  group_by(tag_id) %>%
-  summarize(tail_color_2016 = color[1])
-
-tail_color_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2017) %>%
-  group_by(tag_id) %>%
-  summarize(tail_color_2017 = color[1])
-
-tail_color_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2018) %>%
-  group_by(tag_id) %>%
-  summarize(tail_color_2018 = color[1])
-
-#encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
-
-encounters_all <- left_join(encounters_all, tail_color_2015, by="tag_id")
-encounters_all <- left_join(encounters_all, tail_color_2016, by="tag_id")
-encounters_all <- left_join(encounters_all, tail_color_2017, by="tag_id")
-encounters_all <- left_join(encounters_all, tail_color_2018, by="tag_id")
-
+## Same issue with size in each year as with color above - don't have a value for the fish that weren't recaptured
+#Might be able to add some in based on growth curves using the relationships Michelle has, could get into that at some point but for now ignoring
 # Add in size in each of the years
-size_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2015) %>%
-  group_by(tag_id) %>% 
-  summarize(size_2015 = mean(size, rm.na = TRUE))
-
-size_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2016) %>%
-  group_by(tag_id) %>% 
-  summarize(size_2016 = mean(size, rm.na = TRUE))
-
-size_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2017) %>%
-  group_by(tag_id) %>% 
-  summarize(size_2017 = mean(size, rm.na = TRUE))
-
-size_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-  filter(year == 2018) %>%
-  group_by(tag_id) %>% 
-  summarize(size_2018 = mean(size, rm.na = TRUE))
-
-encounters_all <- left_join(encounters_all, size_2015, by="tag_id")
-encounters_all <- left_join(encounters_all, size_2016, by="tag_id")
-encounters_all <- left_join(encounters_all, size_2017, by="tag_id")
-encounters_all <- left_join(encounters_all, size_2018, by="tag_id")
+# size_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2015) %>%
+#   group_by(tag_id) %>% 
+#   summarize(size_2015 = mean(size, rm.na = TRUE))
+# 
+# size_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2016) %>%
+#   group_by(tag_id) %>% 
+#   summarize(size_2016 = mean(size, rm.na = TRUE))
+# 
+# size_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2017) %>%
+#   group_by(tag_id) %>% 
+#   summarize(size_2017 = mean(size, rm.na = TRUE))
+# 
+# size_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+#   filter(year == 2018) %>%
+#   group_by(tag_id) %>% 
+#   summarize(size_2018 = mean(size, rm.na = TRUE))
+# 
+# encounters_all <- left_join(encounters_all, size_2015, by="tag_id")
+# encounters_all <- left_join(encounters_all, size_2016, by="tag_id")
+# encounters_all <- left_join(encounters_all, size_2017, by="tag_id")
+# encounters_all <- left_join(encounters_all, size_2018, by="tag_id")
 
 # Add in distances to anem (from fish.Tagged, loaded above)
-encounters_all <- left_join(encounters_all, (fish.Tagged %>% select(tag_id, year_tagged, dist_2015, dist_2016, dist_2017, dist_2018)), by="tag_id") 
+encounters_all <- left_join(encounters_all, (fish.Tagged %>% select(tag_id, year_tagged, dist_2016, dist_2017, dist_2018)), by="tag_id") 
 
 # can't have NAs in the covariate columns so changing to mean of distances in each year (should also try replacing with 0, since it shouldn't matter)
-mean2015 <- mean(encounters_all$dist_2015, na.rm=TRUE)
+#mean2015 <- mean(encounters_all$dist_2015, na.rm=TRUE)
 mean2016 <- mean(encounters_all$dist_2016, na.rm=TRUE)
 mean2017 <- mean(encounters_all$dist_2017, na.rm=TRUE)
 mean2018 <- mean(encounters_all$dist_2018, na.rm=TRUE)
 
 # replace the NAs (for years before the fish was tagged) with the mean distance that year
 encounters_means <- encounters_all %>%
-  rename(dist2015 = dist_2015, dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% #first, rename distance columns so easier for MARK to find
-  mutate(dist2015 = replace(dist2015, is.na(dist2015), mean2015)) %>%
+  rename(dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% #first, rename distance columns so easier for MARK to find
   mutate(dist2016 = replace(dist2016, is.na(dist2016), mean2016)) %>%
   mutate(dist2017 = replace(dist2017, is.na(dist2017), mean2017)) %>%
   mutate(dist2018 = replace(dist2018, is.na(dist2018), mean2018))
 
 # replace the NAs (for years before the fish was tagged) with 0 - could also just calculate distance to that anem, based on the first tag number in the year the fish was tagged in the original script that finds the distance
 encounters_0 <- encounters_all %>%
-  rename(dist2015 = dist_2015, dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% #first, rename distance columns so easier for MARK to find
-  mutate(dist2015 = replace(dist2015, is.na(dist2015), 0)) %>%
+  rename(dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% #first, rename distance columns so easier for MARK to find
   mutate(dist2016 = replace(dist2016, is.na(dist2016), 0)) %>%
   mutate(dist2017 = replace(dist2017, is.na(dist2017), 0)) %>%
   mutate(dist2018 = replace(dist2018, is.na(dist2018), 0))
 
-save(encounters_all, file=here("Data", "encounters_all.RData"))
-save(encounters_means, file=here("Data", "encounters_means.RData"))
-save(encounters_0, file=here("Data", "encounters_0.RData"))
+#################### Running things: MARK models ####################
 
-##### Try running a MARK model with size-at-tagging as an individual constraint, site as grouping
-site_size_at_tagging <- function() {
-  # select relevant data
-  e2 <- encounters_all %>%
-    select(ch, tag_size, site) %>%
-    mutate(site = as.factor(site))
-  
-  e2_2 <- e2[complete.cases(e2),] #for using tag size, need no NAs...
-
-  
-  # process data, make ddl
-  e2.processed = process.data(e2, begin.time=2015, groups="site")
-  e2.ddl = make.design.data(e2.processed)
-  
-  # process data, make ddl for complete cases
-  e2_2.processed = process.data(e2_2, begin.time=2015, groups="site")
-  e2_2.ddl = make.design.data(e2_2.processed)
-  
-  
-  # define models for Phi and p
-  Phi.dot = list(formula=~1, link="logit") #one survival for all sizes and sites and times
-  Phi.site = list(formula=~site, link="logit") #survival depends on site
-  Phi.size = list(formula=~tag_size, link="logit") #survival depends on size
-  Phi.size.x.site = list(formula=~tag_size*site, link="logit") #survival depends on site and site-dependent slope for size
-  Phi.time = list(formula=~time, link="logit") #survival varies with time, same for all sites
-  Phi.time.plus.site = list(formula=~time+site, link="logit")
-  
-  p.dot = list(formula=~1, link="logit") #one recap prob for all sizes, sites, and time
-  p.site = list(formula=~site, link="logit")
-  p.time = list(formula=~time, link="logit")
-  
-  # create model list
-  #e2.cml = create.model.list("CJS")
-  
-  #run and return models
-  #return(mark.wrapper(e2.cml, data=e2.processed, ddl=e2.ddl))
-  
-  #create models
-  e2.Phi.dot.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
-  e2.Phi.site.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.site, p=p.dot))
-  e2.Phi.size.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
-  e2.Phi.size.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
-  e2.Phi.size.x.site.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size.x.site, p=p.site))
-  e2.Phi.site.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.site, p=p.site))
-  
-  e2_2.Phi.size.p.dot = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
-  e2_2.Phi.size.p.site = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
-  e2_2.Phi.size.x.site.p.site = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size.x.site, p=p.site))
-  
-}
-
-e2.results = site_size_at_tagging()
-
-logit_recip <- function(logitval) {
-  recip = (exp(logitval))/(1 + exp(logitval))
-  return(recip)
-}
-
-# Make some plots
-# e2.Phi.dot.p.dot (constant survival and recapture prob the whole time)
-e2.constant = as.data.frame(e2.Phi.dot.p.dot$results$beta) %>% 
-  mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
-  mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
-  
-e2.site = as.data.frame(e2.Phi.site.p.site$results$beta) %>%
-  mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
-  mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
-                        "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) #add site column (Cabatoan is intercept)
-
-e2.site.real = as.data.frame(e2.Phi.site.p.site$results$real) %>%
-  mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
-  mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
-                        "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) %>% #add site column (Cabatoan is intercept)
-  mutate(row = seq(1,30,1)) #add row numbers to make plotting easier
-
-#Think this is handled for now, should check again to be sure...
-#NEED TO ADD THE EFFECT OF EACH SITE TO THE INTERCEPT
-#### NEED TO SWITCH IT BACK FROM THE LOGIT SCALE FIRST!! AND THAT AFFECTS THE CONFIDENCE INTERVALS, RIGHT? CHECK THAT AGAIN....
-#### ALSO SHOULD PLOT +- SE TOO, SEE HOW THAT COMPARES/MATCHES UP TO LCL and UCL
-
-# Constant Phi and p across time and site, no covariates (e2.Phi.dot.p.dot)
-pdf(file = here("Plots/PhiandpEstimates", "e2_Phiandp_constant.pdf"))
-ggplot(data = e2.constant, aes(param, est, color=param)) +
-  geom_pointrange(aes(ymin=lower, ymax=upper), size=1) +
-  xlab("parameter") + ylab("estimate") + ggtitle("e2.Phi.dot.p.dot (constant p and Phi)") +
-  scale_y_continuous(limits = c(0, 1)) +
-  theme_bw()
-dev.off()
-  
-# Constant Phi and p across time, variable across site, no covariates (e2.Phi.site.p.site)
-pdf(file = here("Plots/PhiandpEstimates", "e2_Phiandp_site.pdf"))
-ggplot(data = e2.site.real, aes(row, estimate, color=site, shape=param)) +
-  geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
-  xlab("parameter") + ylab("estimate") + ggtitle("e2.Phi.site.p.site (p and Phi by site)") +
-  #scale_y_continuous(limits = c(0, 1)) +
-  theme_bw()
-dev.off()
-
-# Phi has tagging size as a covariate, not dependent on site or time, p constant (e2_2.Phi.size.p.dot)
-minsize = min(e2_2$tag_size) #right now, this is 1.6 (prob b/c of a typo.... Michelle is looking at it)
-maxsize = max(e2_2$tag_size)
-size.values = minsize+(0:30)*(maxsize-minsize)/30
-Phibysize = covariate.predictions(e2_2.Phi.size.p.dot,data=data.frame(tag_size=size.values),indices=c(1))
-
-pdf(file = here("Plots/PhiandpEstimates", "e2_2Phisize.pdf"))
-ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
-  geom_ribbon(aes(ymin=lcl,ymax=ucl),color="light blue",fill="light blue") +
-  geom_line(color="black") +
-  xlab("size at tagging (cm)") + ylab("Phi estimate") + ggtitle("e2_2.Phi.size.p.dot") +
-  scale_y_continuous(limits = c(0, 1)) +
-  theme_bw()
-dev.off()
-
-##### Try running time-varying individual constraints - distance
+#### Models with distance (with 0s put in for distance pre-fish first caught), size-at-tagging, site, tail color-at-tagging
 # data
-edist <- fish.Tagged %>%
-  select(ch, site, dist_2016, dist_2017, dist_2018) %>% #select just site and distance (not including 2015, first potential tagging year)
-  rename(dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% 
-  mutate(dist2016 = replace(dist2016, is.na(dist2016), 0)) %>% #replace NAs (before a fish was tagged) with 0s
-  mutate(dist2017 = replace(dist2017, is.na(dist2017), 0)) %>%
-  mutate(dist2018 = replace(dist2018, is.na(dist2018), 0))
+eall <- encounters_0 %>%
+  select(ch, site, tag_size, tail_color, dist2016, dist2017, dist2018) %>% #select relevant columns
+  mutate(site = as.factor(site))
+
+eall <- eall[complete.cases(eall),] #for using tag size, need no NAs...
 
 # process data and make ddl
-edist.processed = process.data(edist, model="CJS", begin.time=2015)
-edist.ddl = make.design.data(edist.processed)
+eall.processed = process.data(eall, model="CJS", begin.time=2015, groups="site")
+eall.ddl = make.design.data(eall.processed)
+
+eall.processed2 = process.data(eall, model="CJS", begin.time=2015, groups="tail_color")
+eall.ddl2 = make.design.data(eall.processed2)
+
 
 # set models for Phi
 Phi.dot = list(formula=~1, link="logit")
 Phi.time = list(formula=~time, link="logit")
+Phi.site = list(formula=~site, link="logit")
+Phi.size = list(formula=~tag_size, link="logit")
+Phi.color = list(formula=~tail_color, link="logit")
 
 # set models for p
 p.dot = list(formula=~1, link="logit")
 p.time = list(formula=~time, link="logit")
 p.dist = list(formula=~dist, link="logit")
 p.time.plus.dist = list(formula=~time+dist, link="logit")
+p.site = list(formula=~site, link="logit")
 
 # run some models
-edist.Phi.dot.p.dot = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
-edist.Phi.dot.p.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time)) #has issues running, can't estimate p in 2018
-edist.Phi.dot.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist)) #think this ran!!!
-# edist.Phi.dot.p.dist.plus.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time.plus.dist))
+eall.Phi.dot.p.dot = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
+eall.Phi.dot.p.time = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.dot, p=p.time)) #has issues running, can't estimate p in 2018
+eall.Phi.dot.p.dist = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist)) #think this ran!!!
+eall.Phi.size.p.dot = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
+eall.Phi.size.p.site = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
+eall.Phi.size.p.dist = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.size, p=p.dist))
+eall.Phi.site.p.site = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.site, p=p.site)) #this one has issues converging for some of the sites
+eall.Phi.color.p.dot = mark(eall.processed2, eall.ddl2, model.parameters=list(Phi=Phi.color, p=p.dot))
+eall.Phi.site.p.dot = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.site, p=p.dot)) #hmmm, something seems funny with this one...
+eall.Phi.site.p.dist = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.site, p=p.dist))
+
+#edist.Phi.dot.p.dist.plus.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time.plus.dist))
 # edist.Phi.time.p.dot = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dot))
 # edist.Phi.time.p.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time))
 # edist.Phi.time.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dist))
 # edist.Phi.time.p.time.plus.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time.plus.dist))
 
-# make some plots
+# organize output to get ready to make plots
+###### Constant survival and recapture prob, no covariates (eall.Phi.dot.p.dot)
+eall.constant = as.data.frame(eall.Phi.dot.p.dot$results$beta) %>% 
+  mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
+  mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
 
-# Phi constant, not dependent on site or time, p depends on distance to anem (edist.Phi.dot.p.dist)
-mindist = min(edist$dist2016,edist$dist2017,edist$dist2018) 
-maxdist = max(edist$dist2016,edist$dist2017,edist$dist2018) #seems kind of high and probably due to an error
-maxdist2 = 400 #encompasses all but the highest value (which is an order of magnitude higher - 4874 compared to next highest of 352, both in 2017)
-maxdist3 = 200 #encompasses highest values in 2016, 2018 
-#tail(sort(edist$dist2016),10)
-#tail(sort(edist$dist2017),10) #really 2017 that has the high distances...
-#tail(sort(edist$dist2018),10)
-dist.values = mindist+(0:30)*(maxdist-mindist)/30
+###### Survival constant, p varies by distance (eall.Phi.dot.p.dist)
+mindist = min(eall$dist2016,eall$dist2017,eall$dist2018) #this is 0, obv...
+maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high and probably due to an error
+maxdist2 = 200 #encompasses highest values in 2016, 2018 
+#tail(sort(eall$dist2016),10)
+#tail(sort(eall$dist2017),10) #really 2017 that has the high distances...
+#tail(sort(eall$dist2018),10)
+dist.values1 = mindist+(0:30)*(maxdist1-mindist)/30
 dist.values2 = mindist+(0:30)*(maxdist2-mindist)/30
-dist.values3 = mindist+(0:30)*(maxdist3-mindist)/30
 
 # Not getting this to work - it doesn't change with distance... maybe/probably I'm specifying the index incorrectly?
 #pbydist1 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values),indices=c(7))
 #pbydist2 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values2),indices=c(1))
 #pbydist3 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values3),indices=c(1))
 
-edist.Phi.dot.p.dist.results = as.data.frame(edist.Phi.dot.p.dist$results$beta) 
+# Set up dataframe 
+eall.Phi.dot.p.dist.results = as.data.frame(eall.Phi.dot.p.dist$results$beta) 
 
 # Large range of distances (up to 5000m)
-pbydist_range1 = data.frame(dist = dist.values) %>%
-  mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
-  mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
-  mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+pbydist_longrange= data.frame(dist = dist.values1) %>%
+  mutate(p_logit = (eall.Phi.dot.p.dist.results$estimate[2]) + (eall.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+  mutate(p_lcl_logit = eall.Phi.dot.p.dist.results$lcl[2] + (eall.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+  mutate(p_ucl_logit = eall.Phi.dot.p.dist.results$ucl[2] + (eall.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
   mutate(p = logit_recip(p_logit)) %>%
   mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
   mutate(p_ucl = logit_recip(p_ucl_logit)) 
 
-# Mid range of distances (up to 400m)
-pbydist_range2 = data.frame(dist = dist.values2) %>%
-  mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
-  mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
-  mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
-  mutate(p = logit_recip(p_logit)) %>%
-  mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
-  mutate(p_ucl = logit_recip(p_ucl_logit)) 
-  
 # Short range of distances (up to 200m)
-pbydist_range3 = data.frame(dist = dist.values3) %>%
-  mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
-  mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
-  mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+pbydist_shortrange = data.frame(dist = dist.values2) %>%
+  mutate(p_logit = (eall.Phi.dot.p.dist.results$estimate[2]) + (eall.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+  mutate(p_lcl_logit = eall.Phi.dot.p.dist.results$lcl[2] + (eall.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+  mutate(p_ucl_logit = eall.Phi.dot.p.dist.results$ucl[2] + (eall.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
   mutate(p = logit_recip(p_logit)) %>%
   mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
   mutate(p_ucl = logit_recip(p_ucl_logit)) 
 
-# Long dist values (up to 5000m from anem)
-pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues1.pdf"))
-ggplot(data = pbydist_range1, aes(dist, p)) +
-  geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
-  geom_line(color="black") +
-  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+###### Survival varies by tagging size, p constant (eall.Phi.size.p.dot)
+minsize = min(eall$tag_size) #right now, this is 1.6 (b/c of a typo.... Michelle fixed - need to re-call data from db and run distance calcs again)
+maxsize = max(eall$tag_size)
+size.values = minsize+(0:30)*(maxsize-minsize)/30
+Phibysize = covariate.predictions(eall.Phi.size.p.dot,data=data.frame(tag_size=size.values),indices=c(1)) #should do this the way I did distance too, make sure get the same thing...
+
+###### Survival varies by tail color, p constant (eall.Phi.color.p.dot)
+eall.color = as.data.frame(eall.Phi.color.p.dot$results$real) %>%
+  mutate(param = c(rep("Phi",6),"p")) %>%
+  mutate(color = c("BW","O","W","Y","YP","YR","all")) %>%
+  mutate(row = seq(1,7,1)) #makes plotting easier
+
+###### Survival varies by tagging size, p varies by distance (eall.Phi.size.p.dist)
+minsize = min(eall$tag_size) #right now, this is 2.6 (prob still a typo? Michelle fixed the 1.6 one but are there more that are too small?)
+maxsize = max(eall$tag_size)
+size.values = minsize+(0:30)*(maxsize-minsize)/30
+Phibysize = covariate.predictions(eall.Phi.size.p.dist,data=data.frame(tag_size=size.values),indices=c(1)) #should do this the way I did distance too, make sure get the same thing...
+
+mindist = min(eall$dist2016,eall$dist2017,eall$dist2018) #this is 0, obv...
+maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high and probably due to an error
+maxdist2 = 200 #encompasses highest values in 2016, 2018 
+dist.values1 = mindist+(0:30)*(maxdist1-mindist)/30
+dist.values2 = mindist+(0:30)*(maxdist2-mindist)/30
+
+eall.Phi.size.p.dist.results = as.data.frame(eall.Phi.size.p.dist$results$beta) 
+
+# Size
+pbydistPhisize_size= data.frame(tag_size = size.values) %>%
+  mutate(Phi_logit = (eall.Phi.size.p.dist.results$estimate[1]) + (eall.Phi.size.p.dist.results$estimate[2]*tag_size)) %>%
+  mutate(Phi_lcl_logit = eall.Phi.size.p.dist.results$lcl[1] + (eall.Phi.size.p.dist.results$lcl[2]*tag_size)) %>%
+  mutate(Phi_ucl_logit = eall.Phi.size.p.dist.results$ucl[1] + (eall.Phi.size.p.dist.results$ucl[2]*tag_size)) %>%
+  mutate(Phi = logit_recip(Phi_logit)) %>%
+  mutate(Phi_lcl = logit_recip(Phi_lcl_logit)) %>%
+  mutate(Phi_ucl = logit_recip(Phi_ucl_logit)) 
+
+# Large range of distances (up to 5000m)
+pbydistPhisize_longrange= data.frame(dist = dist.values1) %>%
+  mutate(p_logit = (eall.Phi.size.p.dist.results$estimate[3]) + (eall.Phi.size.p.dist.results$estimate[4]*dist)) %>%
+  mutate(p_lcl_logit = eall.Phi.size.p.dist.results$lcl[3] + (eall.Phi.size.p.dist.results$lcl[4]*dist)) %>%
+  mutate(p_ucl_logit = eall.Phi.size.p.dist.results$ucl[3] + (eall.Phi.size.p.dist.results$ucl[4]*dist)) %>%
+  mutate(p = logit_recip(p_logit)) %>%
+  mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+  mutate(p_ucl = logit_recip(p_ucl_logit)) 
+
+# Short range of distances (up to 200m)
+pbydistPhisize_shortrange = data.frame(dist = dist.values2) %>%
+  mutate(p_logit = (eall.Phi.size.p.dist.results$estimate[3]) + (eall.Phi.size.p.dist.results$estimate[4]*dist)) %>%
+  mutate(p_lcl_logit = eall.Phi.size.p.dist.results$lcl[3] + (eall.Phi.size.p.dist.results$lcl[4]*dist)) %>%
+  mutate(p_ucl_logit = eall.Phi.size.p.dist.results$ucl[3] + (eall.Phi.size.p.dist.results$ucl[4]*dist)) %>%
+  mutate(p = logit_recip(p_logit)) %>%
+  mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+  mutate(p_ucl = logit_recip(p_ucl_logit)) 
+
+###### Survival varies by site, p constant (eall.Phi.site.p.dot)
+eall.Phisite = as.data.frame(eall.Phi.site.p.dot$results$real) %>%
+  mutate(param = c(rep("Phi",15),"p")) %>%
+  mutate(site = c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+                 "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag","all")) %>%
+  mutate(row = seq(1,16,1))
+
+###### Survival varies by site, p by distance (eall.Phi.site.p.dist) - doesn't look like this one parsed distance correctly?
+eall.Phisitepdist_Phi = as.data.frame(eall.Phi.site.p.dist$results$real[1:15,]) %>%
+  mutate(param = c(rep("Phi",15))) %>%
+  mutate(site = c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+                  "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag")) %>%
+  mutate(row = seq(1,15,1))
+
+###### Survival varies by site, p varies by site (eall.Phi.site.p.site)
+eall.site = as.data.frame(eall.Phi.site.p.site$results$beta) %>%
+  mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
+  mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+                        "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) #add site column (Cabatoan is intercept)
+
+eall.site.real = as.data.frame(eall.Phi.site.p.site$results$real) %>%
+  mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
+  mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+                        "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) %>% #add site column (Cabatoan is intercept)
+  mutate(row = seq(1,30,1)) #add row numbers to make plotting easier
+
+# make some plots
+###### Constant survival and recapture prob, no covariates (eall.Phi.dot.p.dot)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phiandp_constant.pdf"))
+ggplot(data = eall.constant, aes(param, est, color=param)) +
+  geom_pointrange(aes(ymin=lower, ymax=upper), size=1) +
+  xlab("parameter") + ylab("estimate") + ggtitle("Constant p and Phi (eall.Phi.dot.p.dot)") +
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 dev.off()
 
-# Mid range dist values (up to 400m from anem)
-pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues2.pdf"))
-ggplot(data = pbydist_range2, aes(dist, p)) +
+###### Survival constant, p varies by distance (eall.Phi.dot.p.dist)
+# all distances included, up to 5000m from anem (even though large ones are probably an error...)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phidot_pdist_alldists.pdf"))
+ggplot(data = pbydist_longrange, aes(dist, p)) +
   geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
   geom_line(color="black") +
-  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("Constant Phi, p by distance (eall.Phi.dot.p.dist))") +
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 dev.off()
 
-# Short range dist values (up to 200m from anem)
-pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues3.pdf"))
-ggplot(data = pbydist_range3, aes(dist, p)) +
+# most distances included (all from 2016, 2018, not some of the higher ones from 2017)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phidot_pdist_shortdists.pdf"))
+ggplot(data = pbydist_shortrange, aes(dist, p)) +
   geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
   geom_line(color="black") +
-  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("Constant Phi, p by distance (eall.Phi.dot.p.dist))") +
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 dev.off()
+
+###### Survival varies by tagging size, p constant (eall.Phi.size.p.dot)
+pdf(file = here("Plots/PhiandpEstimates", "ell_Phisize.pdf"))
+ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
+  geom_ribbon(aes(ymin=lcl,ymax=ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("size at tagging (cm)") + ylab("Phi estimate") + ggtitle("Phi varies by tagging size, p constant (eall.Phi.size.p.dot)") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+###### Survival varies by tail color, p constant (eall.Phi.color.p.dot)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phicolor.pdf"))
+ggplot(data = eall.color, aes(row, estimate, color=color, shape=param)) +
+  geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
+  xlab("parameter") + ylab("estimate") + ggtitle("Phi by tail color, p constant (eall.Phi.color.p.dot)") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+###### Survival varies by tagging size, p varies by distance (eall.Phi.size.p.dist)
+# all distances included, up to 5000m from anem (even though large ones are probably an error...)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisize_pdist_alldists.pdf"))
+ggplot(data = pbydistPhisize_longrange, aes(dist, p)) +
+  geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("p: Phi by size, p by distance (eall.Phi.size.p.dist))") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+# most distances included (all from 2016, 2018, not some of the higher ones from 2017)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisize_pdist_shortdists.pdf"))
+ggplot(data = pbydistPhisize_shortrange, aes(dist, p)) +
+  geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("p: Phi by size, p by distance (eall.Phi.size.p.dist))") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+# Phi by tag_size
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisize_pdist_Phi.pdf"))
+ggplot(data = pbydistPhisize_size, aes(tag_size, Phi)) +
+  geom_ribbon(aes(ymin=Phi_lcl,ymax=Phi_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black") +
+  xlab("size at tagging (cm)") + ylab("Phi estimate") + ggtitle("Phi: Phi by size, p by distance (eall.Phi.size.p.dist))") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+###### Survival varies by site, p constant (eall.Phi.site.p.dot)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisite.pdf"))
+ggplot(data = eall.Phisite, aes(row, estimate, color=site, shape=param)) +
+  geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
+  xlab("parameter") + ylab("Phi estimate") + ggtitle("Phi by site, p constant (eall.Phi.site.p.dot)") +
+  #scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+###### Survival varies by site, p by distance (eall.Phi.site.p.dist) (doesn't look like this one did distance right - has a couple of params for it...)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisitepdist_Phi.pdf"))
+ggplot(data = eall.Phisitepdist_Phi, aes(row, estimate, color=site)) +
+  geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
+  xlab("parameter") + ylab("Phi estimate") + ggtitle("Phi: Phi by site, p by dist (eall.Phi.site.p.dist)") +
+  #scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+###### Survival varies by site, p varies by site (eall.Phi.site.p.site)
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phiandp_site.pdf"))
+ggplot(data = eall.site.real, aes(row, estimate, color=site, shape=param)) +
+  geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
+  xlab("parameter") + ylab("estimate") + ggtitle("Phi and p by site (eall.Phi.site.p.site)") +
+  #scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+dev.off()
+
+###### Comparing Phi and p across models
+
+#################### Saving files and outpu ####################
+save(encounters_all, file=here("Data", "encounters_all.RData"))
+save(encounters_means, file=here("Data", "encounters_means.RData"))
+save(encounters_0, file=here("Data", "encounters_0.RData"))
+
+#### TO DOS
+# Do runs with size for Phi, site for Phi?, dist for p
+# Make plots to look at those
+# Compare models (AIC? goodness of fit?) and summarize in some way
+# Check the outlier distances, re-run with any errors fixed there and a fresh pull from the db
+# Move on to metrics - write-up and placeholder script for those!
+
+
+#################### OLD CODE - BOTH MARK AND NOT ####################
+######## ORIGINAL WORK WITH SIZE AS A COVARIATE
+# ##### Try running a MARK model with size-at-tagging as an individual constraint, site as grouping
+# site_size_at_tagging <- function() {
+#   # select relevant data
+#   e2 <- encounters_all %>%
+#     select(ch, tag_size, site) %>%
+#     mutate(site = as.factor(site))
+#   
+#   e2_2 <- e2[complete.cases(e2),] #for using tag size, need no NAs...
+# 
+#   
+#   # process data, make ddl
+#   e2.processed = process.data(e2, begin.time=2015, groups="site")
+#   e2.ddl = make.design.data(e2.processed)
+#   
+#   # process data, make ddl for complete cases
+#   e2_2.processed = process.data(e2_2, begin.time=2015, groups="site")
+#   e2_2.ddl = make.design.data(e2_2.processed)
+#   
+#   
+#   # define models for Phi and p
+#   Phi.dot = list(formula=~1, link="logit") #one survival for all sizes and sites and times
+#   Phi.site = list(formula=~site, link="logit") #survival depends on site
+#   Phi.size = list(formula=~tag_size, link="logit") #survival depends on size
+#   Phi.size.x.site = list(formula=~tag_size*site, link="logit") #survival depends on site and site-dependent slope for size
+#   Phi.time = list(formula=~time, link="logit") #survival varies with time, same for all sites
+#   Phi.time.plus.site = list(formula=~time+site, link="logit")
+#   
+#   p.dot = list(formula=~1, link="logit") #one recap prob for all sizes, sites, and time
+#   p.site = list(formula=~site, link="logit")
+#   p.time = list(formula=~time, link="logit")
+#   
+#   # create model list
+#   #e2.cml = create.model.list("CJS")
+#   
+#   #run and return models
+#   #return(mark.wrapper(e2.cml, data=e2.processed, ddl=e2.ddl))
+#   
+#   #create models
+#   e2.Phi.dot.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
+#   e2.Phi.site.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.site, p=p.dot))
+#   e2.Phi.size.p.dot = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
+#   e2.Phi.size.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
+#   e2.Phi.size.x.site.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.size.x.site, p=p.site))
+#   e2.Phi.site.p.site = mark(e2.processed, e2.ddl, model.parameters=list(Phi=Phi.site, p=p.site))
+#   
+#   e2_2.Phi.size.p.dot = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
+#   e2_2.Phi.size.p.site = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size, p=p.site))
+#   e2_2.Phi.size.x.site.p.site = mark(e2_2.processed, e2_2.ddl, model.parameters=list(Phi=Phi.size.x.site, p=p.site))
+#   
+# }
+# 
+# e2.results = site_size_at_tagging()
+# 
+# 
+# # Make some plots
+# # e2.Phi.dot.p.dot (constant survival and recapture prob the whole time)
+# e2.constant = as.data.frame(e2.Phi.dot.p.dot$results$beta) %>% 
+#   mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
+#   mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
+#   
+# e2.site = as.data.frame(e2.Phi.site.p.site$results$beta) %>%
+#   mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
+#   mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+#                         "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) #add site column (Cabatoan is intercept)
+# 
+# e2.site.real = as.data.frame(e2.Phi.site.p.site$results$real) %>%
+#   mutate(param = c(rep("Phi",15),rep("p",15))) %>% #add a parameter column to make it easier to plot in ggplot
+#   mutate(site = c(rep(c("Cabatoan","Cardid Cemetery","Elementary School","Gabas","Haina","Hicgop South","Magbangon","Palanas",
+#                         "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) %>% #add site column (Cabatoan is intercept)
+#   mutate(row = seq(1,30,1)) #add row numbers to make plotting easier
+# 
+# #Think this is handled for now, should check again to be sure...
+# #NEED TO ADD THE EFFECT OF EACH SITE TO THE INTERCEPT
+# #### NEED TO SWITCH IT BACK FROM THE LOGIT SCALE FIRST!! AND THAT AFFECTS THE CONFIDENCE INTERVALS, RIGHT? CHECK THAT AGAIN....
+# #### ALSO SHOULD PLOT +- SE TOO, SEE HOW THAT COMPARES/MATCHES UP TO LCL and UCL
+# 
+# # Constant Phi and p across time and site, no covariates (e2.Phi.dot.p.dot)
+# pdf(file = here("Plots/PhiandpEstimates", "e2_Phiandp_constant.pdf"))
+# ggplot(data = e2.constant, aes(param, est, color=param)) +
+#   geom_pointrange(aes(ymin=lower, ymax=upper), size=1) +
+#   xlab("parameter") + ylab("estimate") + ggtitle("e2.Phi.dot.p.dot (constant p and Phi)") +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   theme_bw()
+# dev.off()
+#   
+# # Constant Phi and p across time, variable across site, no covariates (e2.Phi.site.p.site)
+# pdf(file = here("Plots/PhiandpEstimates", "e2_Phiandp_site.pdf"))
+# ggplot(data = e2.site.real, aes(row, estimate, color=site, shape=param)) +
+#   geom_pointrange(aes(ymin=lcl, ymax=ucl), size=1) +
+#   xlab("parameter") + ylab("estimate") + ggtitle("e2.Phi.site.p.site (p and Phi by site)") +
+#   #scale_y_continuous(limits = c(0, 1)) +
+#   theme_bw()
+# dev.off()
+# 
+# # Phi has tagging size as a covariate, not dependent on site or time, p constant (e2_2.Phi.size.p.dot)
+# minsize = min(e2_2$tag_size) #right now, this is 1.6 (prob b/c of a typo.... Michelle is looking at it)
+# maxsize = max(e2_2$tag_size)
+# size.values = minsize+(0:30)*(maxsize-minsize)/30
+# Phibysize = covariate.predictions(e2_2.Phi.size.p.dot,data=data.frame(tag_size=size.values),indices=c(1))
+# 
+# pdf(file = here("Plots/PhiandpEstimates", "e2_2Phisize.pdf"))
+# ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
+#   geom_ribbon(aes(ymin=lcl,ymax=ucl),color="light blue",fill="light blue") +
+#   geom_line(color="black") +
+#   xlab("size at tagging (cm)") + ylab("Phi estimate") + ggtitle("e2_2.Phi.size.p.dot") +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   theme_bw()
+# dev.off()
+
+###### ORIGINAL WORK WITH DISTANCE AS A TIME-VARYING INDIVIDUAL CONSTRAINT
+# ##### Try running time-varying individual constraints - distance
+# # data
+# edist <- fish.Tagged %>%
+#   select(ch, site, dist_2016, dist_2017, dist_2018) %>% #select just site and distance (not including 2015, first potential tagging year)
+#   rename(dist2016 = dist_2016, dist2017 = dist_2017, dist2018 = dist_2018) %>% 
+#   mutate(dist2016 = replace(dist2016, is.na(dist2016), 0)) %>% #replace NAs (before a fish was tagged) with 0s
+#   mutate(dist2017 = replace(dist2017, is.na(dist2017), 0)) %>%
+#   mutate(dist2018 = replace(dist2018, is.na(dist2018), 0))
+# 
+# # process data and make ddl
+# edist.processed = process.data(edist, model="CJS", begin.time=2015)
+# edist.ddl = make.design.data(edist.processed)
+# 
+# # set models for Phi
+# Phi.dot = list(formula=~1, link="logit")
+# Phi.time = list(formula=~time, link="logit")
+# 
+# # set models for p
+# p.dot = list(formula=~1, link="logit")
+# p.time = list(formula=~time, link="logit")
+# p.dist = list(formula=~dist, link="logit")
+# p.time.plus.dist = list(formula=~time+dist, link="logit")
+# 
+# # run some models
+# edist.Phi.dot.p.dot = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot))
+# edist.Phi.dot.p.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time)) #has issues running, can't estimate p in 2018
+# edist.Phi.dot.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist)) #think this ran!!!
+# # edist.Phi.dot.p.dist.plus.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time.plus.dist))
+# # edist.Phi.time.p.dot = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dot))
+# # edist.Phi.time.p.time = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time))
+# # edist.Phi.time.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dist))
+# # edist.Phi.time.p.time.plus.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time.plus.dist))
+# 
+# # make some plots
+# 
+# # Phi constant, not dependent on site or time, p depends on distance to anem (edist.Phi.dot.p.dist)
+# mindist = min(edist$dist2016,edist$dist2017,edist$dist2018) 
+# maxdist = max(edist$dist2016,edist$dist2017,edist$dist2018) #seems kind of high and probably due to an error
+# maxdist2 = 400 #encompasses all but the highest value (which is an order of magnitude higher - 4874 compared to next highest of 352, both in 2017)
+# maxdist3 = 200 #encompasses highest values in 2016, 2018 
+# #tail(sort(edist$dist2016),10)
+# #tail(sort(edist$dist2017),10) #really 2017 that has the high distances...
+# #tail(sort(edist$dist2018),10)
+# dist.values = mindist+(0:30)*(maxdist-mindist)/30
+# dist.values2 = mindist+(0:30)*(maxdist2-mindist)/30
+# dist.values3 = mindist+(0:30)*(maxdist3-mindist)/30
+# 
+# # Not getting this to work - it doesn't change with distance... maybe/probably I'm specifying the index incorrectly?
+# #pbydist1 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values),indices=c(7))
+# #pbydist2 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values2),indices=c(1))
+# #pbydist3 = covariate.predictions(edist.Phi.dot.p.dist,data=data.frame(dist=dist.values3),indices=c(1))
+# 
+# edist.Phi.dot.p.dist.results = as.data.frame(edist.Phi.dot.p.dist$results$beta) 
+# 
+# # Large range of distances (up to 5000m)
+# pbydist_range1 = data.frame(dist = dist.values) %>%
+#   mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+#   mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+#   mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+#   mutate(p = logit_recip(p_logit)) %>%
+#   mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+#   mutate(p_ucl = logit_recip(p_ucl_logit)) 
+# 
+# # Mid range of distances (up to 400m)
+# pbydist_range2 = data.frame(dist = dist.values2) %>%
+#   mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+#   mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+#   mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+#   mutate(p = logit_recip(p_logit)) %>%
+#   mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+#   mutate(p_ucl = logit_recip(p_ucl_logit)) 
+#   
+# # Short range of distances (up to 200m)
+# pbydist_range3 = data.frame(dist = dist.values3) %>%
+#   mutate(p_logit = (edist.Phi.dot.p.dist.results$estimate[2]) + (edist.Phi.dot.p.dist.results$estimate[3]*dist)) %>%
+#   mutate(p_lcl_logit = edist.Phi.dot.p.dist.results$lcl[2] + (edist.Phi.dot.p.dist.results$lcl[3]*dist)) %>%
+#   mutate(p_ucl_logit = edist.Phi.dot.p.dist.results$ucl[2] + (edist.Phi.dot.p.dist.results$ucl[3]*dist)) %>%
+#   mutate(p = logit_recip(p_logit)) %>%
+#   mutate(p_lcl = logit_recip(p_lcl_logit)) %>%
+#   mutate(p_ucl = logit_recip(p_ucl_logit)) 
+# 
+# # Long dist values (up to 5000m from anem)
+# pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues1.pdf"))
+# ggplot(data = pbydist_range1, aes(dist, p)) +
+#   geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+#   geom_line(color="black") +
+#   xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   theme_bw()
+# dev.off()
+# 
+# # Mid range dist values (up to 400m from anem)
+# pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues2.pdf"))
+# ggplot(data = pbydist_range2, aes(dist, p)) +
+#   geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+#   geom_line(color="black") +
+#   xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   theme_bw()
+# dev.off()
+# 
+# # Short range dist values (up to 200m from anem)
+# pdf(file = here("Plots/PhiandpEstimates", "edist_Phidot_pdist_distvalues3.pdf"))
+# ggplot(data = pbydist_range3, aes(dist, p)) +
+#   geom_ribbon(aes(ymin=p_lcl,ymax=p_ucl),color="light blue",fill="light blue") +
+#   geom_line(color="black") +
+#   xlab("distance from anem (m)") + ylab("p estimate") + ggtitle("edist.Phi.dot.p.dist (constant Phi, p by dist)") +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   theme_bw()
+# dev.off()
+
 
 ##### Try running MARK (again), this time with time-varying individual constraints!
 # Trying one without site as a group, just with distance to anem as the time-varying individual constraint
