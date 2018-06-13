@@ -80,6 +80,8 @@ mr_Chapman <- function(n, m, M) {
 ##### Pull out info from database
 leyte <- read_db("Leyte")
 
+meta <- leyte %>%
+  t
 # Pull out all the fish, filter for just APCL
 allfish_fish <- leyte %>% 
   tbl("clownfish") %>%
