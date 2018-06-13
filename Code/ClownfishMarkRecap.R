@@ -591,7 +591,7 @@ ggplot(data = pbydist_shortrange, aes(dist, p)) +
 dev.off()
 
 ###### Survival varies by tagging size, p constant (eall.Phi.size.p.dot)
-pdf(file = here("Plots/PhiandpEstimates", "ell_Phisize.pdf"))
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisize.pdf"))
 ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
   geom_ribbon(aes(ymin=lcl,ymax=ucl),color="light blue",fill="light blue") +
   geom_line(color="black") +
