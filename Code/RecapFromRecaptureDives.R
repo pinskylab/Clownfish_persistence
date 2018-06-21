@@ -26,7 +26,7 @@ script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scri
 eval(parse(text = script))
 
 # Lincoln-Peterson estimate (biased for small sample sizes)
-mr_LicolnPeterson <- function(x11, x10, x01) { # x11 = individuals captured in both sampling sessions, x10 = individuals captured only in the first sampling session, x01 = individuals captured only in the second sampling session
+mr_LincolnPeterson <- function(x11, x10, x01) { # x11 = individuals captured in both sampling sessions, x10 = individuals captured only in the first sampling session, x01 = individuals captured only in the second sampling session
   n1 <- x11 + x10     #animals caught + marked in first sampling period (and total number of marked individuals) 
   n2 <- x11 + x01     #number of animals caught in the second sampling event
   m2 <- x11           #number of animals caught in both periods
@@ -45,7 +45,7 @@ mr_LicolnPeterson <- function(x11, x10, x01) { # x11 = individuals captured in b
   return(out)
 }
 
-# Lincoln-Peterson estimate (biased for small sample sizes), alternate
+# Lincoln-Peterson estimate (biased for small sample sizes), alternate version (THIS IS THE ONE I'VE BEEN USING)
 mr_LincolnPeterson_alt <- function(n1, n2, m2) { # x11 = individuals captured in both sampling sessions, x10 = individuals captured only in the first sampling session, x01 = individuals captured only in the second sampling session
   #n1 <- x11 + x10     #animals caught + marked in first sampling period (and total number of marked individuals) 
   #n2 <- x11 + x01     #number of animals caught in the second sampling event
@@ -80,8 +80,6 @@ mr_Chapman <- function(n, m, M) {
 ##### Pull out info from database
 leyte <- read_db("Leyte")
 
-meta <- leyte %>%
-  t
 # Pull out all the fish, filter for just APCL
 allfish_fish <- leyte %>% 
   tbl("clownfish") %>%
@@ -123,6 +121,7 @@ allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
 #   filter(site == "Poroc Rose", year == 2017)
 
 # Find the number of fish marked during C dives (sampling session 1) -- this assumes no tags are encountered twice... will need to figure out how to deal with that
+#### THIS IS THE PART THAT WOULD NEED TO GET ALTERED FOR AREA - WOULD ONLY WANT THE FISH TAGGED (EITHER NEWLY OR ALREADY) FROM THE AREA COVERED BY THE RECAP DIVE
 n_tagged_fish <- allfish %>%
   filter(dive_type == "C", !is.na(tag_id)) %>%
   group_by(site, year) %>%
@@ -142,13 +141,12 @@ n_recaptured_fish_R <- allfish %>%
   summarise(ntags = n())
 
 # just looking...
-
 allfish %>% filter(site == "Poroc San Flower", year == 2016, dive_type == "R")
 
-##### Try running for a few sites...
+##### Try running for a few sites just to see how it looks...
 n_PSF <- n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2016)
-estimates_PorocSF <- mr_Peterson((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2016))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2016))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2016))$ntags)
-estimates_PorocSF2017 <- mr_Peterson((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2017))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2017))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2017))$ntags)
+estimates_PorocSF <- mr_LincolnPeterson((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2016))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2016))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2016))$ntags)
+estimates_PorocSF2017 <- mr_LincolnPeterson((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2017))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2017))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2017))$ntags)
 estimates_PorocSF2016_C <- mr_Chapman((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2016))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2016))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2016))$ntags)
 estimates_PorocSF2017_C <- mr_Chapman((n_fish_seen_R %>% filter(site == "Poroc San Flower", year == 2017))$nfish, (n_recaptured_fish_R %>% filter(site == "Poroc San Flower", year == 2017))$ntags, (n_tagged_fish %>% filter(site == "Poroc San Flower",  year == 2017))$ntags)
 
