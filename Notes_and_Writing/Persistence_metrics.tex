@@ -1,0 +1,108 @@
+\documentclass[12pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{color}
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or epsÂ§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[compact]{titlesec}
+\usepackage{float}
+\usepackage{pdflscape}
+%\usepackage{rotating}
+\usepackage{soul}
+%\usepackage{longtable}
+%\usepackage{threeparttable}
+%\usepackage{lineno}
+\usepackage[round]{natbib} %round makes parentheses instead of square brackets
+\usepackage{url}
+%\usepackage{authblk}
+\setcounter{secnumdepth}{4}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\graphicspath{ {images/} }
+
+\title{Persistence metrics and data connections}
+
+\begin{document}
+%\linenumbers
+\date{\today}
+\maketitle{}
+\section{Self-persistence calculation}
+\subsection*{Metric}
+A patch is self-persistent (Burgess et al. 2014) if
+\begin{equation}
+LEP \times LR \geq 1,
+\end{equation}
+
+where LEP (lifetime egg production)is the reproductive output from recruitment to death, where both recruit and the stage of offspring outputted need to be defined.is "lifetime egg production" from recruitment to death, where "recruit" can be defined as one likes. LEP is calculated by:
+
+\begin{equation}
+LEP = \Sigma_{a = 1}^{A} l(a)f(a),
+\end{equation}
+
+where $a$ is age, starting at age of recruitment, $A$ is age of death, $f(a)$ is fecundity at age $a$, and $l(a)$ is survival from recruitment to age $a$. Fecundity could be considered in terms of eggs or could include some mortality and be defined in terms of larvae, juveniles, recruits, etc. LEP could have site-specific survivals and fecundities.\\ %Is this right for l(a)??? 
+
+LR (local retention) is the fraction of larvae (or other stage) that are produced by a patch that return to settle,
+
+\begin{equation}
+LR = \frac{\text{\# arrivals returning home}}{\text{output from patch}}
+\end{equation}
+
+For this to work, the life stage considered as offspring in LEP and the life stage in LR should be the same. Basically, this is seeing whether a reproductive individual will be able to replace itself, considering its total lifetime output (and the survival of that output to a recruitment stage) and the probability of that output returning to its natal patch. Breeding females or 3.5cm 
+
+Putting this all together, for a 3.5cm recruit as the starting age and fecundity in terms of eggs, you get:
+\begin{equation}
+SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recruits}}{\text{egg}} \times \frac{\text{recuits arriving home to patch i}}{\frac{\text{recruits}}{\text{egg}} \times \# \text{eggs produced by patch i}} \geq 1, 
+\end{equation}
+
+which simplifies to be
+
+\begin{equation}
+SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recuits arriving home to patch i}}{\# \text{eggs produced by patch i}} \geq 1. %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+\end{equation}
+
+
+\subsection*{Data}
+\begin{itemize}
+\item $A$: assuming fish are 1 when they hit 3.5cm, can use the max number of years a fish has been recaught (checking with a histogram that this a minority of fish and likely that we have caught the tail, not the majority) or a number from the literature
+\item $f(a)$: can start with an average number of eggs per female multiplied by average number of reproductive events per year from Adam's work, then can nuance with size of female (and age from Michelle's growth work or a von-Bertalanffy to estimate age from size), if necessary. Then need to to multiply by probability of surviving from egg to recruit (either here or outside the sum). %Need to check: can you estimate age from size using a vB? Probably, think Lewis did it in that rockfish paper...
+\item $l(a)$: Use survival-at-size relationship to estimate annual survival at each size (or just use an annual survival) and multiply together to get survival to each age. This is survival from first age of reproduction to the other stages or survival from some other stage to the various ages - need to make sure that is really clearly defined. Could be lifetime egg production of a breeding female, of a 3.5cm recruit, or a larvae, etc.
+\item Can estimate egg-recruit survival ($\frac{\text{recruits}}{\text{egg}}$) by getting the number of 3.5cm-sized fish (or recruit defined at a different stage - reproductive fish, reproductive female) at each patch compared to the number of eggs produced by the patch the year before. This assumes eggs only recruit to their patch, though, which is what we're trying to test here, so would want to consider these ratios at different spatial scales, like the whole population together. Need to think about this a bit more. Given the number of females out there in each patch and overall population, how many recruits do we see the next year?
+\end{itemize}
+
+\section*{Network persistence: shortfall of SP}
+\subsection*{Metric}
+A patch is persistent through network persistence if it is persistent but not through self-persistence.
+
+Assess persistence by:
+\begin{equation}
+\frac{\text{recruits}}{\text{female}}*\text{survival to breeding} >= \text{annual mortality}*N_{\text{females}}
+\end{equation}
+
+\subsection*{Data}
+
+\section*{Network persistence: demographic connectivity matrix}
+A group of patches are network persistent if the largest eigenvalue of the demographic connectivity matrix (C) is > 1 (Burgess et al. 2017, Garavelli et al. 2018)
+
+\begin{equation}
+C_{ij} = LEP_i * p_{ij},
+\end{equation}
+
+where $LEP_i$ is the lifetime egg production at patch i and $p_{ij}$ is the probability of a recruit dispersing from patch i to patch j.
+
+reproductive output (in terms of "recruits") X dispersal prob (for "recruits") X probability of survival to maturity (females here) = realized connectivity matrix
+
+
+%\section*{Input-output balance}
+
+%\section*{Recuits/female}
+
+\bibliography{../../../BibTexReferences}
+\bibliographystyle{plainnat}
+
+\end{document}
