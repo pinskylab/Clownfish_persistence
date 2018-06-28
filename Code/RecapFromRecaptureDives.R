@@ -155,8 +155,9 @@ estimates_PorocSF2017_C <- mr_Chapman((n_fish_seen_R %>% filter(site == "Poroc S
 #prop_sampled <- data.frame(site=as.character(site_vec), stringsAsFactors = FALSE)
 recap_dive_sites_2016 <- c("Cabatoan","Palanas","Poroc Rose","Poroc San Flower","Wangag")
 recap_dive_sites_2017 <- c("Gabas", "Palanas", "Poroc Rose", "Poroc San Flower", "Visca")
-prop_sampled <- data.frame(site=c(recap_dive_sites_2016,recap_dive_sites_2017), stringsAsFactors = FALSE)
-prop_sampled$year <- c(rep(2016, length(recap_dive_sites_2016)), rep(2017, length(recap_dive_sites_2017)))
+recap_dive_sites_2018 <- c("Hicgop South", "Palanas", "San Agustin", "Sitio Baybayon")
+prop_sampled <- data.frame(site=c(recap_dive_sites_2016,recap_dive_sites_2017,recap_dive_sites_2018), stringsAsFactors = FALSE)
+prop_sampled$year <- c(rep(2016, length(recap_dive_sites_2016)), rep(2017, length(recap_dive_sites_2017)), rep(2018, length(recap_dive_sites_2018)))
 prop_sampled$Nest <- rep(NA, length(prop_sampled$year))
 prop_sampled$Nvar <- rep(NA, length(prop_sampled$year))
 prop_sampled$prop_sampled_noQGIS_total <- rep(NA, length(prop_sampled$year))
@@ -183,6 +184,9 @@ for(i in 1:length(prop_sampled$year)){
     prop_sampled$prop_sampled_noQGIS_n1[i] = out$prop_caught_n1
  # }
 }
+
+### Save output file so can access without having to re-run script
+save(prop_sampled, file=here("Data", "prop_sampled_RecapDives.RData"))
 
 
 
