@@ -160,10 +160,10 @@ ggplot(data = tag_years, aes(nyears)) +
 dev.off()
 
 # sites separated out
-pdf(file = here("Plots/PersistenceMetrics", "NYearsRecaught_bysite.pdf"))
+pdf(file = here("Plots/PersistenceMetrics", "NYearsRecaught_bysite.pdf"), width=11,height=5)
 ggplot(data = tag_years_site, aes(nyears)) +
   geom_histogram(binwidth=1) +
-  facet_grid(.~ site, labeller = label_wrap_gen(10)) + 
+  facet_grid(.~ site, labeller = label_wrap_gen(8)) + 
   xlab("number of years recaught") + ggtitle("# years tagged fish recaught by site") +
   theme_bw()
 dev.off()
