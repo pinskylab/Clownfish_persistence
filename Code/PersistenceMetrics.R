@@ -22,11 +22,21 @@ library(here)
 # Set a few things
 sample_years = c(2015,2016,2017,2018)
 
-# FAKE DATA FOR NOW THAT WILL GET REPLACED BY REAL DATA
-eggs_per_clutch = 200
-clutch_per_year = 5
+# PRELIM OR FAKE FOR NOW THAT WILL GET REPLACED BY REAL DATA
+eggs_per_clutch = 1763 #from LEP_calc_WillWhite.R
+clutch_per_year = 11.9 #from LEP_calc_WillWhite.R
 eggs_intercept = 100
-eggs_slope = 50
+eggs_slope = 107 #from Adam Y Aresty poster, #eggs/cm in female size
+
+# prelim dispersal kernel parameters from Katrina (from email sent 7/5/18)
+k_2012 = 0.1
+theta_2012 = 5
+k_2013 = 0.025
+theta_2013 = 2 #or 1
+k_2014 = 0.1
+theta_2014 = 2
+k_2015 = 0.4
+theta_2015 = 1
 
 #################### Functions: ####################
 # Functions and constants from my GitHub function/constant collection
@@ -47,9 +57,23 @@ eggsBySize <- function(intercept, slope, fish_size) {
 }
 
 # Calculate LEP - consider updating later to include some of the calculating of survivals and such in here instead of as inputs? Probably better as separate function, though
-findLEP <- function(l_vec, f_vec) {
+findLEP <- function(l_vec, f_vec) { #l_vec: vector of survivals-to-age, f_vec: vector of fecundities-at-age. Need to make sure first age of reproduction and max are are included in bounds, otherwise can define starting age as would like.
   out <- sum(l_vec*f_vec)
   return(out)
+}
+
+# Calculate LEP via an IPM (like Will did in LEP_calc_WillWhite.R)
+
+# Calculate self-persistence
+findSP <- function(LEP, home_recruits, egg_prod) { #LEP: lifetime egg production (see above), home_recruits: number o
+  SP <- LEP * (home_recruits/egg_prod)
+  return(SP)
+}
+
+# Calculate dispersal kernel (equation from Katrina email 7/5/18, based on Bode et al. 2017 paper)
+dispKernel <- function(k, theta, d) {
+  disp <- k*exp(-(k*d)^theta)
+  return(disp)
 }
 
 #################### Running things: ####################
@@ -82,11 +106,25 @@ allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
 
 allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
 
+#pull GPS info
+gps.Info <- leyte %>%
+  tbl("GPX") %>%
+  select(lat, lon, time, unit) %>%
+  collect(n = Inf) %>%
+  mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
+  mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
+         day = day(obs_time), 
+         hour = hour(obs_time), 
+         min = minute(obs_time), 
+         sec = second(obs_time), 
+         year = year(obs_time)) %>%
+  separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
+
 #pull out just tagged fish
 taggedfish <- allfish %>% filter(!is.na(tag_id))
 
 ########## Calculating values, constants, inputs from data
-# Find max age (A) - maximum number of times a fish has been caught
+##### Find max age (A) - maximum number of times a fish has been caught
 tag_years <- taggedfish %>% 
   group_by(tag_id) %>%
   summarize(firstyear = min(year), lastyear = max(year), nyears = max(year) - min(year))
@@ -143,10 +181,14 @@ anems_Visca <- leyte %>%
   collect() %>%
   filter(anem_table_id %in% (allfish %>% filter(site == "Visca"))$anem_table_id) 
 
+
+##### Find widths of sites (for SP calculation, used to calculate estimate home recruits from dispersal kernel)
+
 ########## Looking at eggs and recruits relationships
 
 
 ########## Assessing metrics
+##### Self-persistence
 
 
 #################### Plots: ####################
