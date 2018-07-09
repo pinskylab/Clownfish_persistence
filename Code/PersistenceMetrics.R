@@ -139,6 +139,11 @@ dispKernel <- function(k, theta, d) {
   return(disp)
 }
 
+# Dispersal kernel 2014
+dispKernel2014 <- function(d) {
+  k_2014*exp(-(k_2014*d)^theta_2014)
+}
+
 # Find lat lon for an anem (very similar function to anemid_latlong in AnemLocations.R - should probably combine the two and put in my common constants and code script...)
 anemid_latlong_2 <- function(anem.table.id, anemdf, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
@@ -347,6 +352,23 @@ for(i in 1:length(site_width_info$site)) {
 
 ########## Assessing metrics
 ##### Self-persistence
+
+## FAKE DATA FOR NOW, JUST TO SEE
+# Average number of recruits per site
+
+# Average egg output a year per site
+egg_output <- data.frame(site = site_vec)
+egg_output$breedingF <- c(30,10,10,5,10,40,30,100,200,5,5,5,300,0,0,50,15,200)
+egg_output$eggs_per_year <- egg_output
+
+## Finding number of recruits returning home for each site (numerator of LR fraction) 
+# Find prob of dispersing within the width of the site
+for(i in 1:length(site_width_info$site)){ #this doesn't work
+  site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+  site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
+}
+
+save(site_width_info, file=here("Data", "site_width_info.RData"))
 
 
 #################### Plots: ####################
