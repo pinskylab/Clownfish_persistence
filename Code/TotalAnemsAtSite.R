@@ -4,10 +4,7 @@
 # Load relevant libraries
 library(RCurl)
 library(dplyr)
-#library(tidyr)
-#library(tidyverse)
 library(lubridate)
-#library(dbplyr)
 library(ggplot2)
 library(here)
 
@@ -23,8 +20,7 @@ eval(parse(text = script))
 script <- getURL("https://raw.githubusercontent.com/mstuart1/helpers/master/scripts/helpers.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-# function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to them), from AnemLocations.R script
-### WAIT, some 2018 anems have anem_obs? But don't have old_anem_ids? What is going on with those?? Talk to Michelle, then work on this later...
+# function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to all of them), from AnemLocations.R script
 attach2018anems <- function(anemdf) {
   
   #filter out anems that might be repeat visits (2018, tag_id less than the new tags for 2018 or new tag and old tag present) and don't already have an anem_obs
@@ -129,68 +125,16 @@ for(i in 1:length(site_vec)) { #go through the sites
   dives <- alldives %>%
     filter(site == site_vec[i])
   
-
-  #pull out all anems seen (that have an anem_id, which means they were APCL at one point) on those dives with an anem_obs (so matching up anem_ids that are the same anem)
-  anems_wobs <- allanems_2018obsfixed %>%
+  # pull out all anems seen on those dives
+  anems_from_dives <- allanems_2018obsfixed %>%
     filter(dive_table_id %in% dives$dive_table_id) %>% #just the anems on those dives
-    filter(!is.na(anem_obs)) %>% #just those w/anem_obs
-    distinct(anem_obs, .keep_all=TRUE) #only keep one row of each anem_obs
-  
-  #pull out all anems on those dives that have an anem_id but no anem_obs (so catching anem_ids that are the only entry for an anem)
-  anems_obs_NA <- allanems_2018obsfixed %>%
-    filter(dive_table_id %in% dives$dive_table_id) %>%
-    filter(is.na(anem_obs)) %>% #filter out the ones that don't have anem_obs
-    distinct(anem_id, .keep_all=TRUE)
-  
-  anems_all <- rbind(anems_wobs, anems_obs_NA) #combine the anems
-  anems_total <- as.integer(anems_all %>% summarise(n())) #count up the number, save it as a number rather than a dataframe
+    distinct(anem_id_unq2, .keep_all = TRUE) #only keep one row of each anem_id_unq2 (which is obs if had it, id if not, updated for 2018 anems)
+
+  anems_total <- as.integer(anems_from_dives %>% summarise(n())) #count up the number, save it as a number rather than a dataframe
   
   total_anems_by_site$site[i] = site_vec[i]
   total_anems_by_site$total_anems[i] = anems_total 
 }
 
-Pal_dives <- alldives %>%
-  filter(site == "Palanas")
-
-# anems with an anem_obs
-Pal_anems_obs <- allanems_2018obsfixed %>% 
-  filter(dive_table_id %in% Pal_dives$dive_table_id) %>% ##just anems that have an anem_id (which means APCL have been seen there at some point) (1033 if filter to this line) 
-  filter(!is.na(anem_obs)) %>%
-  distinct(anem_obs, .keep_all=TRUE) #weed out any that have the same anem_obs (184 if filter to this line)
-  
-Pal_anems_obs_NA <- allanems_2018obsfixed %>%
-  filter(dive_table_id %in% Pal_dives$dive_table_id) %>%
-  filter(is.na(anem_obs)) %>% #filter out the ones that don't have anem_obs
-  distinct(anem_id, .keep_all=TRUE)
-
-Pal_anems <- rbind(Pal_anems_obs, Pal_anems_obs_NA) 
-
-##### Old code below
-
-# Pull out all the fish, filter for just APCL
-allfish_fish <- leyte %>% 
-  tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
-  collect() %>%
-  filter(fish_spp == "APCL")
-
-# Pull out the anems associated with those fish
-allfish_anems <- leyte %>%
-  tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
-  collect() %>%
-  filter(anem_table_id %in% allfish_fish$anem_table_id)
-
-# Pull out the dives associated with those fish
-allfish_dives <- leyte %>%
-  tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  collect() %>%
-  filter(dive_table_id %in% allfish_anems$dive_table_id)
-
-# Pull out just the year and put that in a separate column
-allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
-
-# Join together
-allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
-allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
+# save the output
+save(total_anems_by_site, file=here("Data", "total_anems_by_site.RData"))
