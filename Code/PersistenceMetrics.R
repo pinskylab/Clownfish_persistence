@@ -8,7 +8,9 @@ library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
 library(lubridate)
+library(stringr)
 library(ggplot2)
+library(geosphere)
 library(here)
 
 # Load some data files while deciding how various scripts should interact/communicate
@@ -37,6 +39,67 @@ k_2014 = 0.1
 theta_2014 = 2
 k_2015 = 0.4
 theta_2015 = 1
+
+# anems at N and S ends of sites (visually from QGIS, in particular mid anems totally eyeballed)
+Cabatoan_N <- 198 # 3195, 951 other options, 2502
+Cabatoan_mid <- 2241
+Cabatoan_S <- 904 #2250, 185 other options
+CaridadCemetery_N <- 695
+CaridadCemetery_mid <- 2683 #2256
+CaridadCemetery_S <- 292
+CaridadCemetery_mid <- 289
+CaridadProper_N <- 291
+CaridadProper_S <- 290
+ElementarySchool_N <- 2303
+ElementarySchool_mid <- 1306
+ElementarySchool_S <- 702
+Gabas_N <- 2667 #2271
+Gabas_mid <- 1288
+Gabas_S <- 1340
+Haina_E <- 2138
+Haina_mid <- 441 #2144, 2934
+Haina_W <- 3080
+HicgopSouth_N <- 300
+HicgopSouth_mid <- 2128
+HicgopSouth_S <- 697 #2296
+Magbangon_N <- 2079
+Magbangon_mid <- 680
+Magbangon_S <- 213
+Magbangon_N_N <- 2079
+Magbangon_N_mid <- #2257 is mid of northern-most chunk; 475 or 2952 N of mid-chunk
+Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
+Magbagon_S_N <- 1113 #209 is another option
+Magbangon_S_mid <- 2437
+Magbangon_S_S <- 213 #214, 215 other options 
+Palanas_N <- 2001 #1030 also quite close
+Palanas_mid <- 2632 #totally eyeballed...
+Palanas_S <- 876 #426 also a good end point
+PorocRose_N <- 24 #2650
+PorocRose_mid <- 2310
+PorocRose_S <- 724
+PorocSanFlower_N <- 902 #2315 another option
+PorocSanFlower_mid <- 2646
+PorocSanFlower_S <- 377 #2319
+SanAgustin_N <- 2662
+SanAgustin_mid <- 2660 #711 is mid of hull
+SanAgustin_S <- 705 #outside of hull, 2129 is at bottom of hull 
+SitioBaybayon_N <- 1302
+SitioBaybaon_mid <- 538
+SitioBaybayon_S <- 2747 #outside hull (maybe KC sites?), #805, 2148 w/in hull
+SitioLonas_N <- 48
+SitioLonas_S <- 48
+SitioTugas_N <- 54
+SitioTugas_S <- 59
+TamakinDacot_N <- 2554
+TamakinDacot_mid <- 2861
+TamakinDacot_S <- 2270 #2147
+Visca_N <- 4
+Visca_mid <- 8 #776
+Visca_S <- 2314
+Wangag_N <- 2985
+Wangag_mid <- 2734
+Wangag_S <- 2063 #1034 also a good end point
+
 
 #################### Functions: ####################
 # Functions and constants from my GitHub function/constant collection
@@ -74,6 +137,37 @@ findSP <- function(LEP, home_recruits, egg_prod) { #LEP: lifetime egg production
 dispKernel <- function(k, theta, d) {
   disp <- k*exp(-(k*d)^theta)
   return(disp)
+}
+
+# Find lat lon for an anem (very similar function to anemid_latlong in AnemLocations.R - should probably combine the two and put in my common constants and code script...)
+anemid_latlong_2 <- function(anem.table.id, anemdf, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
+  
+  anem <- anemdf %>% filter(anem_table_id == anem.table.id) #get the relevant dive, time, site, etc. info for this anem_table_id
+  
+  # find the lat long for this anem observation
+  latloninfo <- latlondata %>%
+    filter(date %in% anem$date & unit == anem$gps) %>% #filter out just the GPS unit associated with this anem observation (added since previous time)
+    filter(hour == anem$hour & min == anem$min) %>%
+    mutate(lat = as.numeric(lat)) %>%
+    mutate(lon = as.numeric(lon))
+  
+  #pull duplicates (so if sat in one place for enough time that multiple readings recorded there)
+  #(there are more digits in the lats and lons than show up on the screen so sometimes things look like duplicates but aren't)
+  dups_lat <- which(duplicated(latloninfo$lat)) #vector of positions of duplicate values 
+  dups_lon <- which(duplicated(latloninfo$lon))
+  
+  #either take the mean of the lat/lon readings or the duplicated values, depending if there are duplicate points
+  if(length(dups_lat) == 0) { #if all latitude points are different
+    anem$lat <- round(mean(latloninfo$lat), digits = 5) #take the mean of the latitude values (digits = 5 b/c that is what Michelle had)
+    anem$lon <- round(mean(latloninfo$lon), digits = 5) #take the mean of the longitude values
+  }else{
+    anem$lat <- latloninfo$lat[dups_lat[1]] #if are duplicates, take the value of the first duplicated point
+    anem$lon <- latloninfo$lon[dups_lon[1]]
+    print(paste("Dups in lat lons at anem_table_id", anem$anem_table_id, "on", anem$date, "with lat", anem$lat, sep = " ")) #just have this while trouble-shooting repeat entries in the database
+  }
+  
+  return(anem)
+  
 }
 
 #################### Running things: ####################
@@ -142,47 +236,111 @@ tag_years_site <- left_join(tag_years, (taggedfish %>% select(tag_id, site)) %>%
 # tag_years_site %>% filter(tag_id == "985153000401241")
 # tag_years_site %>% filter(tag_id == "986112100172501")
 
-# trying this with cap_id, since right now the max number of years recaught is the max possible for the # of years we've been tagging
-cap_years <- allfish %>% 
-  filter(!is.na(cap_id)) %>%
-  group_by(cap_id) %>%
-  summarize(firstyear = min(year), lastyear = max(year), nyears = max(year) - min(year), tag = tag_id[1])
-
-maxyears_cap = max(cap_years$nyears)
-
-# Do any fish in 2017 or 2018 have cap_ids?
-# not when I try to find them like this...
-test_caps <- allfish %>% 
-  filter(!is.na(cap_id)) %>%
-  filter(year %in% c(2017,2018))
-
-# or like this
-table((allfish %>% filter(year %in% c(2017,2018)))$cap_id)
-
-# or like this
-tags_in_cap_years <- cap_years %>% filter(!is.na(tag)) %>% select(cap_id, tag)
-test_caps2 <- allfish %>%
-  filter(cap_id %in% tags_in_cap_years$cap_id) 
-table(test_caps2$year)
-
-# maybe cap_ids haven't been populated yet for 2017 and 2018 (genetics not done for those years yet but could be fish sequenced and tagged pre-2016 and known to be recaptured via tag)?
-# try to find that one old Visca fish to see - haven't quite gotten this working yet...
-test_Visca <- allfish %>%
-  filter(site == "Visca") %>%
-  filter(!is.na(tag_id)) %>%
-  filter(year == 2016)
-
-test_Visca2 <- allfish %>%
-  filter(anem_spp)
-
-anems_Visca <- leyte %>%
-  tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp) %>%
-  collect() %>%
-  filter(anem_table_id %in% (allfish %>% filter(site == "Visca"))$anem_table_id) 
+# At some point, go back and figure this out - check to see if can find that fish at Visca and if it even is the same fish we catch each time on that STME
+# # trying this with cap_id, since right now the max number of years recaught is the max possible for the # of years we've been tagging
+# cap_years <- allfish %>% 
+#   filter(!is.na(cap_id)) %>%
+#   group_by(cap_id) %>%
+#   summarize(firstyear = min(year), lastyear = max(year), nyears = max(year) - min(year), tag = tag_id[1])
+# 
+# maxyears_cap = max(cap_years$nyears)
+# 
+# # Do any fish in 2017 or 2018 have cap_ids?
+# # not when I try to find them like this...
+# test_caps <- allfish %>% 
+#   filter(!is.na(cap_id)) %>%
+#   filter(year %in% c(2017,2018))
+# 
+# # or like this
+# table((allfish %>% filter(year %in% c(2017,2018)))$cap_id)
+# 
+# # or like this
+# tags_in_cap_years <- cap_years %>% filter(!is.na(tag)) %>% select(cap_id, tag)
+# test_caps2 <- allfish %>%
+#   filter(cap_id %in% tags_in_cap_years$cap_id) 
+# table(test_caps2$year)
+# 
+# # maybe cap_ids haven't been populated yet for 2017 and 2018 (genetics not done for those years yet but could be fish sequenced and tagged pre-2016 and known to be recaptured via tag)?
+# # try to find that one old Visca fish to see - haven't quite gotten this working yet...
+# test_Visca <- allfish %>%
+#   filter(site == "Visca") %>%
+#   filter(!is.na(tag_id)) %>%
+#   filter(year == 2016)
+# 
+# test_Visca2 <- allfish %>%
+#   filter(anem_spp)
+# 
+# anems_Visca <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp) %>%
+#   collect() %>%
+#   filter(anem_table_id %in% (allfish %>% filter(site == "Visca"))$anem_table_id) 
 
 
 ##### Find widths of sites (for SP calculation, used to calculate estimate home recruits from dispersal kernel)
+# make a data frame of sites, boundary anems, lat lons, widths
+site_width_info <- data.frame(site = site_vec) #initialize dataframe
+
+# anem_id of northern-most anem at site (or eastern-most in case of Haina, which runs E-W)
+site_width_info$N_anem <- c(Cabatoan_N, CaridadCemetery_N, CaridadProper_N, ElementarySchool_N, Gabas_N, Haina_E, HicgopSouth_N,
+                            Magbangon_N, Palanas_N, PorocRose_N, PorocSanFlower_N, SanAgustin_N, SitioBaybayon_N, SitioLonas_N,
+                            SitioTugas_N, TamakinDacot_N, Visca_N, Wangag_N)
+
+# anem_id of southern-most anem at site (or western-most in case of Haina, which runs E-W)
+site_width_info$S_anem <- c(Cabatoan_S, CaridadCemetery_S, CaridadProper_S, ElementarySchool_S, Gabas_S, Haina_W, HicgopSouth_S,
+                            Magbangon_S, Palanas_S, PorocRose_S, PorocSanFlower_S, SanAgustin_S, SitioBaybayon_S, SitioLonas_S,
+                            SitioTugas_S, TamakinDacot_S, Visca_S, Wangag_S)
+
+# pull out anem_table_ids for those anems so can use anemid_latlong2 function to find lat lon for boundary anems
+site_width_anems <- leyte %>%
+  tbl("anemones") %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, obs_time) %>%
+  collect() %>%
+  filter(anem_id %in% c(site_width_info$N_anem, site_width_info$S_anem)) 
+
+# pull out the dive info associated with those anems
+site_width_dives <- leyte %>%
+  tbl("diveinfo") %>%
+  select(dive_table_id, date, site, gps) %>%
+  collect() %>%
+  filter(dive_table_id %in% site_width_anems$dive_table_id)
+
+# join into one data frame to put into MS function (anem_latlong), get the anem obs_time in the same time zone (UTC) as the GPX data, create placeholder lat and lon columns
+site_width_anemdives <- left_join(site_width_anems, site_width_dives, by="dive_table_id") %>%
+  mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
+  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+  mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+         day = day(obs_time), 
+         hour = hour(obs_time), 
+         min = minute(obs_time), 
+         sec = second(obs_time), 
+         year = year(obs_time)) %>%
+  mutate(lat = as.numeric(NA), lon = as.numeric(NA)) #put in a placeholder column for lat and lon
+
+# find lat lon for the boundary anems
+for(i in 1:length(site_width_anemdives$anem_table_id)) {
+  out_anemLL <- anemid_latlong_2(site_width_anemdives$anem_table_id[i], site_width_anemdives, gps.Info)
+  site_width_anemdives$lat[i] = out_anemLL$lat
+  site_width_anemdives$lon[i] = out_anemLL$lon
+}
+
+# just pull out one row for each anem_id 
+site_width_anemdives_short <- site_width_anemdives %>%
+  distinct(anem_id, .keep_all = TRUE)
+
+# put lat and lons into info table (requires some column renaming so needs to be run in order)
+# lat/lon for N_anem
+site_width_info <- left_join(site_width_info %>% rename(anem_id = N_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the N anem
+site_width_info <- site_width_info %>% rename(N_anem = anem_id, N_lat = lat, N_lon = lon) #rename the anem_id, lat, lon columns to be N-specific
+# lat/lon for S_anem
+site_width_info <- left_join(site_width_info %>% rename(anem_id = S_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the S anem
+site_width_info <- site_width_info %>% rename(S_anem = anem_id, S_lat = lat, S_lon = lon) #rename the anem_id, lat, lon columns to be S-specific 
+
+#and calculate the distance!
+for(i in 1:length(site_width_info$site)) {
+  site_width_info$width_m[i] = distHaversine(c(site_width_info$N_lon[i], site_width_info$N_lat[i]), c(site_width_info$S_lon[i], site_width_info$S_lat[i]))
+  site_width_info$width_km[i] = site_width_info$width_m[i]/1000 
+}
 
 ########## Looking at eggs and recruits relationships
 
