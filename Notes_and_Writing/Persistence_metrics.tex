@@ -34,7 +34,7 @@
 \maketitle{}
 \section{Self-persistence calculation}
 \subsection*{Metric}
-A patch is self-persistent (Burgess et al. 2014) if
+A patch is self-persistent (\cite{burgess2014beyond}) if
 \begin{equation}
 LEP \times LR \geq 1,
 \end{equation}
@@ -43,7 +43,7 @@ where LEP (lifetime egg production)is the reproductive output from recruitment t
 
 \begin{equation}
 LEP = \Sigma_{a = 1}^{A} l(a)f(a),
-\end{equation}
+\end{equation}{}
 
 where $a$ is age, starting at age of recruitment, $A$ is age of death, $f(a)$ is fecundity at age $a$, and $l(a)$ is survival from recruitment to age $a$. Fecundity could be considered in terms of eggs or could include some mortality and be defined in terms of larvae, juveniles, recruits, etc. LEP could have site-specific survivals and fecundities.\\ %Is this right for l(a)??? 
 
@@ -69,37 +69,57 @@ SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recuits arriving home to
 
 \subsection*{Data}
 \begin{itemize}
-\item $A$: assuming fish are 1 when they hit 3.5cm, can use the max number of years a fish has been recaught (checking with a histogram that this a minority of fish and likely that we have caught the tail, not the majority) or a number from the literature
-\item $f(a)$: can start with an average number of eggs per female multiplied by average number of reproductive events per year from Adam's work, then can nuance with size of female (and age from Michelle's growth work or a von-Bertalanffy to estimate age from size), if necessary. Then need to to multiply by probability of surviving from egg to recruit (either here or outside the sum). %Need to check: can you estimate age from size using a vB? Probably, think Lewis did it in that rockfish paper...
+\item $A$: assuming fish are 1 when they hit 3.5cm, can use the max number of years a fish has been recaught (checking with a histogram that this a minority of fish and likely that we have caught the tail, not the majority) or a number from the literature or annual average survival multipled until proportion surviving is $<$ some threshold (1\%?)
+\item $f(a)$: can start with an average number of eggs per female multiplied by average number of reproductive events per year from Adam's work, then can nuance with size of female (and age from Michelle's growth work or a von-Bertalanffy to estimate age from size), if necessary. Then need to to multiply by probability of surviving from egg to recruit (either here or outside the sum). Or use IPM like Will White did to get at size effects on survival and egg production. %Need to check: can you estimate age from size using a vB? Probably, think Lewis did it in that rockfish paper...
 \item $l(a)$: Use survival-at-size relationship to estimate annual survival at each size (or just use an annual survival) and multiply together to get survival to each age. This is survival from first age of reproduction to the other stages or survival from some other stage to the various ages - need to make sure that is really clearly defined. Could be lifetime egg production of a breeding female, of a 3.5cm recruit, or a larvae, etc.
+\item $\# \text{eggs produced by patch i}$: fecundity (either average or size-specific) multiplied by the estimated number of breeding females at a site (either total or by size)
+\item $\# \text{recruits arriving home to patch i}$: KC's dispersal kernel  (which is prob of dispersing a certain distance, given that you are a settled recruit) multiplied by the number of recruits arriving at that site? \\
+\[
+\text{recruits arriving home} = \text{\# recruits from the site} \times p_{\text{dispersing w/in site}}
+\],
+where $p_{\text{dispersing w/in site}}$ is the dispersal kernel integrated over the site width and represents the probability of settling within site boundaries, given that you settled somewhere, and $\text{\# recruits from the site}$ is the number of recruits that settled somewhere produced from site $i$. This can be calculated as 
 \item Can estimate egg-recruit survival ($\frac{\text{recruits}}{\text{egg}}$) by getting the number of 3.5cm-sized fish (or recruit defined at a different stage - reproductive fish, reproductive female) at each patch compared to the number of eggs produced by the patch the year before. This assumes eggs only recruit to their patch, though, which is what we're trying to test here, so would want to consider these ratios at different spatial scales, like the whole population together. Need to think about this a bit more. Given the number of females out there in each patch and overall population, how many recruits do we see the next year?
+\item $\# \text{recruits arriving home to patch i}$ (alternate): could just use raw \# of parentage matches found returning home and scale that by the estimated proportion of the site sampled (only works if we actually get some self-recruits for some of the sites, though - and would be a pretty rough estimate)
 \end{itemize}
 
 \section*{Network persistence: shortfall of SP}
 \subsection*{Metric}
 A patch is persistent through network persistence if it is persistent but not through self-persistence.
 
-Assess persistence by:
 \begin{equation}
-\frac{\text{recruits}}{\text{female}}*\text{survival to breeding} >= \text{annual mortality}*N_{\text{females}}
+P_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recuits arriving to patch i}}{\# \text{eggs produced by patch i}} \geq 1. %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
 \end{equation}
 
+Assess persistence by:
+\begin{equation}
+\frac{\text{recruits}}{\text{female}}*\text{survival to breeding} \geq \text{annual mortality}*N_{\text{females}}
+\end{equation}
+
+Or, could assess persistence in the same way as self-persistence but use all recruits coming to the site as the numerator. If it is persistent but not self-persistent, must be through network persistence (so if $P_i \geq 1$ but $SP_i < 1$).
+
 \subsection*{Data}
+\begin{itemize}
+	\item $\frac{\text{recruits}}{\text{female}}$: LEP from stage of breeding female (rather than 3.5cm as above) multiplied by survival of eggs to recruits (either estimated from relationship or from literature)
+	\item survival to breeding: use annual survival to estimate survival from recruitment (3.5 or whatever) to breeding female
+	\item annual mortality for breeding females: same as used in LEP above, have from mark-recap
+	\item $N_{\text{females}}$: estimated at a site by scaling up $N_{\text{captured}}$ by prob of catching a female (could redo Lincoln-Peterson for just breeding females) and proportion of site sampled
+	\end{itemize}
 
 \section*{Network persistence: demographic connectivity matrix}
-A group of patches are network persistent if the largest eigenvalue of the demographic connectivity matrix (C) is > 1 (Burgess et al. 2017, Garavelli et al. 2018)
-
+A group of patches are network persistent if the largest eigenvalue of the demographic connectivity matrix (C) is $ > 1$ (\cite{burgess2014beyond,lyselpopulation})
 \begin{equation}
 C_{ij} = LEP_i * p_{ij},
 \end{equation}
 
 where $LEP_i$ is the lifetime egg production at patch i and $p_{ij}$ is the probability of a recruit dispersing from patch i to patch j.
 
-reproductive output (in terms of "recruits") X dispersal prob (for "recruits") X probability of survival to maturity (females here) = realized connectivity matrix
+\begin{equation}
+\text{realized connectivity matrix} = \text{reproductive output (in terms of "recruits")} \times \text{dispersal prob (for "recruits")} \times \text{probability of survival to maturity for females}
+\end{equation}
 
 
 %\section*{Input-output balance}
-
+{}
 %\section*{Recuits/female}
 
 \bibliography{../../../BibTexReferences}
