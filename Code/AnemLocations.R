@@ -58,8 +58,10 @@ latlondata <- gps.Info
 anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
   #this is what causes the multiple entries - pulls multiple rows for a few anems (81) that have multiple entries for the same anem_table_id in the database
-  anem <- anem.df %>% filter(anem_table_id == anem.table.id) #get the relevant dive, time, site, etc. info for this anem_table_id
-  
+  anem <- anem.df %>% 
+    filter(anem_table_id == anem.table.id) %>% #get the relevant dive, time, site, etc. info for this anem_table_id
+    distinct(anem_table_id, .keep_all = TRUE) #added this in to get remove multiple entries that exist for some 2018 anem_table_ids
+    
   # find the lat long for this anem observation
   latloninfo <- latlondata %>%
     filter(date %in% anem$date & unit == anem$gps) %>% #filter out just the GPS unit associated with this anem observation (added since previous time)
