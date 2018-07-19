@@ -46,8 +46,18 @@ script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scrip
 eval(parse(text = script))
 
 #function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
+##seeing what is causing the length of some lat and lons pulled to be 2 or 3 (see sleuthing below)
+anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[1]] # a 2 case - for this one, looks like it pulls out two rows of duplicate info, is in the data base twice, w/two different collectors (AGD and JJO), but looks like it only pulls one GPS (6)
+anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[10]] # another 2 case, with dive_table_id same for the two rows but collector different
+anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[61]] # a 3 case 61, 62, 63 (3565, 3566, 3567)
+anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[62]] # another 3 case, where dive_table_id and collector are the same for all three entries
+
+anem.df <- anem.Processed
+latlondata <- gps.Info
+
 anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
+  #this is what causes the multiple entries - pulls multiple rows for a few anems (81) that have multiple entries for the same anem_table_id in the database
   anem <- anem.df %>% filter(anem_table_id == anem.table.id) #get the relevant dive, time, site, etc. info for this anem_table_id
   
   # find the lat long for this anem observation
@@ -208,12 +218,59 @@ if(length(anemsppNULL$anem_table_id != 0)) {
 
 ###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
 #go through anem_table_ids and find the lat/lon for each anem observation (this is the step that takes a long time to do, prints row (out of 4977) so can track progress)
+problem_i_lat <- rep(0,length(anem.Processed$anem_table_id)) #vector to store index of whether or not certain anems have issues below (right now, for checking replacement length warnings)
+problem_i_lon <- rep(0,length(anem.Processed$anem_table_id)) #vector to store index of whether or not certain anems have issues below (right now, for checking replacement length warnings)
+
 for (i in 1:length(anem.Processed$anem_table_id)) {
   outlatlon <- anemid_latlong(anem.Processed$anem_table_id[i], anem.Processed, gps.Info)
   anem.Processed$lat[i] <- outlatlon$lat
   anem.Processed$lon[i] <- outlatlon$lon
   print(i)
+  print(length(outlatlon$lat))
+  print(length(outlatlon$lon))
+  if(length(outlatlon$lat) != 1) {
+    print(paste(i,"problem with lat replacement length",sep=" "))
+    problem_i_lat[i] = 1
+    }
+  if(length(outlatlon$lon) != 1) {
+    print(paste(i,"problem with lon replacement length",sep=" "))
+    problem_i_lon[i] = 1 
+    }
 }
+
+#saw problem print signs pass by, investigating further here
+sum(problem_i_lat) #81
+sum(problem_i_lon) #81
+
+#figure out the indices of the 1s indicating replacement length issues...
+prob_vec <- which(problem_i_lat == 1)
+prob_vec_test <- data.frame(index = prob_vec)
+
+#making sure that all the anomalous ones have a length of two with the same lat or lon value in each (so the same number repeated twice)
+for(i in 1:length(prob_vec_test$index)){
+  outlatlon_test = anemid_latlong(anem.Processed$anem_table_id[prob_vec_test$index[i]], anem.Processed, gps.Info)
+  prob_vec_test$lat_length[i] = length(outlatlon_test$lat)
+  prob_vec_test$lon_length[i] = length(outlatlon_test$lon)
+  prob_vec_test$lat_1[i] = outlatlon_test$lat[1]
+  prob_vec_test$lat_2[i] = outlatlon_test$lat[2]
+  prob_vec_test$lon_1[i] = outlatlon_test$lon[1]
+  prob_vec_test$lon_2[i] = outlatlon_test$lon[2]
+}
+
+#index 3565, 3566, 3567 all have lengths of three! The others have lengths of 2
+#check that the values are the same (for those that have two)
+prob_vec_test$lat_diff = prob_vec_test$lat_1 - prob_vec_test$lat_2
+prob_vec_test$lon_diff = prob_vec_test$lon_1 - prob_vec_test$lon_2
+sum(prob_vec_test$lat_diff)
+sum(prob_vec_test$lon_diff)
+
+
+
+outlatlon_test = anemid_latlong(anem.Processed$anem_table_id[4062], anem.Processed, gps.Info)
+
+#investigating warnings about replacement lengths
+anem.Processed_test <- anem.Processed
+
 
 #save output, since takes several minutes to run the above for loop
 save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
