@@ -669,10 +669,14 @@ dev.off()
 
 ###### Comparing Phi and p across models
 
-#################### Saving files and outpu ####################
+#################### Saving files and output ####################
 save(encounters_all, file=here("Data", "encounters_all.RData"))
 save(encounters_means, file=here("Data", "encounters_means.RData"))
 save(encounters_0, file=here("Data", "encounters_0.RData"))
+save(allfish, file=here("Data", "allfish.RData"))
+
+####### Recap on what KC needs:
+
 
 #### TO DOS
 # Do runs with size for Phi, site for Phi?, dist for p
