@@ -29,6 +29,8 @@ library(here)
 mperlat <- 111.111*1000 #meters per degree of latitude
 distance_thresh <- 50 #distance threshold for zooming in on histogram of lat and lon standard devs plot
 tag1 <- 2938 #first anem tag in 2018 (based on scanning the entries in the google datasheets - confirm with Michelle or somehow?)
+anems_wo_years <- 0 #as database gets updated, sometimes there are anems without years associated with them (like the ones I saw while snorkeling) - I think they've all been fixed but putting this here in case that changes!
+
 #Can disable diagnostics (or try updating RStudio?) if get tired of the many warnings about unitialized or unknown columns: https://stackoverflow.com/questions/39041115/fixing-a-multiple-warning-unknown-column
 
 #################### Functions: ####################
@@ -46,15 +48,6 @@ script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scrip
 eval(parse(text = script))
 
 #function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function)
-##seeing what is causing the length of some lat and lons pulled to be 2 or 3 (see sleuthing below)
-anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[1]] # a 2 case - for this one, looks like it pulls out two rows of duplicate info, is in the data base twice, w/two different collectors (AGD and JJO), but looks like it only pulls one GPS (6)
-anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[10]] # another 2 case, with dive_table_id same for the two rows but collector different
-anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[61]] # a 3 case 61, 62, 63 (3565, 3566, 3567)
-anem.table.id = anem.Processed$anem_table_id[prob_vec_test$index[62]] # another 3 case, where dive_table_id and collector are the same for all three entries
-
-anem.df <- anem.Processed
-latlondata <- gps.Info
-
 anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
   #this is what causes the multiple entries - pulls multiple rows for a few anems (81) that have multiple entries for the same anem_table_id in the database
@@ -142,10 +135,12 @@ attach2018anems <- function(anemdf) {
   }
   out <- rbind(anems2018, anems2018_2, otheranems)
   
-  if(length(out$anem_table_id) == (length(anemdf$anem_table_id)-3)) { #3 anems get lost in the filtering b/c not have a year associated with them (NA) (those three I sighted)
+  if(length(out$anem_table_id) == (length(anemdf$anem_table_id)-anems_wo_years)) { #1 anem (anem_table_id 10473, anem_id 2535 has no year listed - investigate further later - might be one of the 3 I resighted while snorkeling) 
     print("All anems accounted for.")
   } else {
     print("Some anems missing or double-counted.")
+    print(length(out$anem_table_id))
+    print(length(anemdf$anem_table_id))
   }
   return(out)
 }
@@ -204,8 +199,9 @@ anem.Processed <- anem.AllInfo %>%
          day = day(obs_time), 
          hour = hour(obs_time), 
          min = minute(obs_time), 
-         sec = second(obs_time), 
-         year = year(obs_time)) %>%
+         sec = second(obs_time)) %>%
+         #year = year(obs_time)) %>% #two anems (anem_table_id 9857 and 9845) don't have obs_times (prob b/c ones I saw while snorkeling) so this doesn't pull out year for them
+  mutate(year = as.integer(substring(date, 1, 4))) %>% 
   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
 
 #sometimes filtering issues so check to make sure various things gotten taken out
@@ -234,17 +230,11 @@ for (i in 1:length(anem.Processed$anem_table_id)) {
     problem_i_lon[i] = 1 
     }
 }
-
-#save output, since takes several minutes to run the above for loop
-save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
-
 ###### NOW BACK TO CODE THAT TAKES NO TIME TO RUN
+
 #compare 2018 anems visits to previous anem_ids and old_anem_ids to match them up (b/c right now, 2018 anems don't have anem_obs)
 #okay that 2747 doesn't have a pre-2018 visit - it was one of Katrina's pilot study anems and not supposed to be re-visited
-anem.Processed2 <- attach2018anems(anem.Processed)
-
-save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData'))
-
+anem.Processed2 <- attach2018anems(anem.Processed) #hmmm, why are some anems missing or double-counted?
 
 #pull out list of anem_id_unqs and their sites with only one row per each
 anem.IDUnqSites <- distinct(anem.Processed2[c("anem_id_unq2", "site")]) 
@@ -272,6 +262,7 @@ anem.LatLon$sdlon_m <- anem.LatLon$sdlon*mperlat*cos(anem.LatLon$meanlat*2*pi/36
 #save data frame for ease in accessing in the future
 save(anem.LatLon, file=here("Data", "AnemLatLonObsbyAnem.RData"))
 
+##### CHECKING TO SEE IF THE SDs MAKE SENSE
 ##### NOW BACK TO CODE THAT IS NOT LOADED AT THE TOP
 #filter out just the sds less than a threshold value to zoom in on histogram for plotting
 anem.LatLon.Abbr <- anem.LatLon %>% filter(sdlat_m < distance_thresh & sdlon_m < distance_thresh)
@@ -449,3 +440,10 @@ dev.off()
 pdf(file=here("Plots/AnemLocations","AnemVisits_Hist.pdf"))
 hist(anem.LatLon$ngps, breaks=7, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
 dev.off()
+
+#################### Saving files for easier access ####################
+#save output, since takes several minutes to run the for loop that assigns lat lon to each anem_table_id
+save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
+
+save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData')) #save output that has 2018 anems reconciled with previous anems (since anem_obs has not been generated for them)
+
