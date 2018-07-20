@@ -81,11 +81,6 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   
 }
 
-# #function to see if rows with the same anem_obs also have the same site 
-# compareObsandSite <- function(df) {
-#   
-# }
-
 # function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to them)
 attach2018anems <- function(anemdf) {
   
@@ -185,12 +180,13 @@ anem.Info <- leyte %>%
 anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id")
 
 #process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
+#says "Warning message: 2 failed to parse" when I run this - I'm assuming that's in reference to the two anems that don't have obs_times (anem_table_id 9857 and 9845), should confirm that at some point
 anem.Processed <- anem.AllInfo %>%
   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>% #filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
   filter(is.null(anem_spp) == FALSE) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
   filter(is.na(anem_spp) == FALSE) %>% #or anem_spp that is NA
   mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
-  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id to anem.AllInfo
+  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id (obs + anem_obs if there is one, otherwise id + anem_id)
   mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
   mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
   mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
@@ -201,7 +197,7 @@ anem.Processed <- anem.AllInfo %>%
          min = minute(obs_time), 
          sec = second(obs_time)) %>%
          #year = year(obs_time)) %>% #two anems (anem_table_id 9857 and 9845) don't have obs_times (prob b/c ones I saw while snorkeling) so this doesn't pull out year for them
-  mutate(year = as.integer(substring(date, 1, 4))) %>% 
+  mutate(year = as.integer(substring(date, 1, 4))) %>% #so pull out year this way instead
   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
 
 #sometimes filtering issues so check to make sure various things gotten taken out
@@ -234,7 +230,7 @@ for (i in 1:length(anem.Processed$anem_table_id)) {
 
 #compare 2018 anems visits to previous anem_ids and old_anem_ids to match them up (b/c right now, 2018 anems don't have anem_obs)
 #okay that 2747 doesn't have a pre-2018 visit - it was one of Katrina's pilot study anems and not supposed to be re-visited
-anem.Processed2 <- attach2018anems(anem.Processed) #hmmm, why are some anems missing or double-counted?
+anem.Processed2 <- attach2018anems(anem.Processed)
 
 #pull out list of anem_id_unqs and their sites with only one row per each
 anem.IDUnqSites <- distinct(anem.Processed2[c("anem_id_unq2", "site")]) 
@@ -259,16 +255,11 @@ anem.LatLon <- left_join(anem.LatLon, anem.IDUnqSites, by = 'anem_id_unq2')
 anem.LatLon$sdlat_m <- anem.LatLon$sdlat*mperlat #convert latitudes
 anem.LatLon$sdlon_m <- anem.LatLon$sdlon*mperlat*cos(anem.LatLon$meanlat*2*pi/360) #convert longitudes (distance of a degree depends on latitude)
 
-#save data frame for ease in accessing in the future
-save(anem.LatLon, file=here("Data", "AnemLatLonObsbyAnem.RData"))
-
-##### CHECKING TO SEE IF THE SDs MAKE SENSE
-##### NOW BACK TO CODE THAT IS NOT LOADED AT THE TOP
-#filter out just the sds less than a threshold value to zoom in on histogram for plotting
+##### Checking to see if the SDs make sense
+# Filter out just the sds less than a threshold value to zoom in on histogram for plotting
 anem.LatLon.Abbr <- anem.LatLon %>% filter(sdlat_m < distance_thresh & sdlon_m < distance_thresh)
 
-#### THIS CODE PULLS OUT DATA FROM THE DATABASE FOR THE ANEMS WITH HIGH SDs (>100m), SAVED IN DATAFRAMES THAT CAN BE LOADED AT THE TOP
-##### What are the anems that have large sdlat_m and sdlon_m? 
+# Which are the anems that have large sdlat_m and sdlon_m? 
 largeSDanems_200 <- anem.LatLon %>% filter(sdlat_m > 200) #filter out anems with sds > 200m (2 now)
 largeSDanems_100 <- anem.LatLon %>% filter(sdlat_m > 100 & sdlat_m < 200) #filter out anems with sds between 100m and 200m (7 of these, was 20 before...)
 
@@ -436,14 +427,17 @@ pdf(file=here("Plots/AnemLocations", "AnemGPS_Estimates_Hist_All.pdf"))
 hist(anem.LatLon$sdlat_m, breaks=500, xlab='Standard deviation of lat (m)', main=paste('Histogram of sd of lat (m) values'))
 dev.off()
 
-#histogram of all ngps (number of times an anem visited) #THIS ISN'T UPDATED TO INCLUDE THE 2018 ANEMS ONCE MATCHED!
+#histogram of all ngps (number of times an anem visited) #THIS ISN'T UPDATED TO INCLUDE THE 2018 ANEMS ONCE MATCHED! (maybe it is now?)
 pdf(file=here("Plots/AnemLocations","AnemVisits_Hist.pdf"))
-hist(anem.LatLon$ngps, breaks=7, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
+hist(anem.LatLon$ngps, breaks=9, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
 dev.off()
 
 #################### Saving files for easier access ####################
-#save output, since takes several minutes to run the for loop that assigns lat lon to each anem_table_id
+#save output where lat lons are assigned to each anem, since takes several minutes to run the for loop that assigns lat lon to each anem_table_id
 save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
 
-save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData')) #save output that has 2018 anems reconciled with previous anems (since anem_obs has not been generated for them)
+#save output that has 2018 anems reconciled with previous anems (since anem_obs has not been generated for them)
+save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData')) 
 
+#save output where the summary lat lon statisics are calculated for anems known to be the same
+save(anem.LatLon, file=here("Data", "AnemLatLonObsbyAnem.RData"))
