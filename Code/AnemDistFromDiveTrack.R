@@ -8,11 +8,12 @@ library(RCurl) #allows running R scripts from GitHub
 library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
-library(RMark)
+#library(RMark)
 library(lubridate)
 library(geosphere)
 #library(dbplyr)
 library(ggplot2)
+library(cowplot)
 library(here)
 
 # Load some data files while deciding how various scripts should interact/communicate
@@ -25,6 +26,7 @@ load(file=here("Data", "encounters_all.RData"))
 
 # Set a few things
 sample_years = c(2015,2016,2017,2018)
+large_dist = 500 #threshold large distance for checking into anemsß
 
 #################### Functions: ####################
 # Functions and constants from my GitHub function/constant collection
@@ -77,7 +79,7 @@ findDist <- function(sitevec, latvec, lonvec, gpxdf, divedf, sampleyear){
         filter(site == testsite, year == sampleyear)
       
       #filter out gps points from those dives
-      relevantgps <- gpsdf %>%
+      relevantgps <- gpxdf %>%
         filter(date %in% relevantdives$date, year == sampleyear)
       
       distvec <- rep(NA, length(relevantgps$lat)) #set a place to store distances
@@ -236,25 +238,99 @@ dist2016 <- findDist(fish.Tagged$site, fish.Tagged$lat2016, fish.Tagged$lon2016,
 dist2017 <- findDist(fish.Tagged$site, fish.Tagged$lat2017, fish.Tagged$lon2017, gps.Info, dive.Info, 2017)
 dist2018 <- findDist(fish.Tagged$site, fish.Tagged$lat2018, fish.Tagged$lon2018, gps.Info, dive.Info, 2018)
 
-save(dist2015, file=here("Data", "dist2015.RData"))
-save(dist2016, file=here("Data", "dist2016.RData"))
-save(dist2017, file=here("Data", "dist2017.RData"))
-save(dist2018, file=here("Data", "dist2018.RData"))
-
 # Add distance columns to fish.Tagged
 fish.Tagged <- fish.Tagged %>%
   mutate(dist_2015 = dist2015, dist_2016 = dist2016, dist_2017 = dist2017, dist_2018 = dist2018)
 
+##### Check distances that seem quite large
+# Find the ones that are big outliers to check into a bit more
+far_2015 <- fish.Tagged %>% filter(dist_2015 >= large_dist) #should't be any of these (and there aren't!)
+far_2016 <- fish.Tagged %>% filter(dist_2016 >= large_dist) #none of these either
+far_2017 <- fish.Tagged %>% filter(dist_2017 >= large_dist) #none of these either
+far_2018 <- fish.Tagged %>% filter(dist_2018 >= large_dist) #one of these - this is the fish that moved from Wangag to Hicgop South!
+
+# Filter out just that fish, in case want to do some runs without it
+fish.Tagged_nomovement <- fish.Tagged %>% filter(tag_id != 982000411818588)
+
+
+#################### Plots: ####################
+# Histogram of distances from tracks to anems with tagged fish
+d_2015 <- ggplot(data = fish.Tagged, aes(dist2015)) +
+  geom_histogram(aes(dist2015), bins=30) +
+  xlab("distance (m) in 2015") + ggtitle("2015 track distance to anems") +
+  theme_bw()
+d_2016 <- ggplot(data = fish.Tagged, aes(dist2016)) +
+  geom_histogram(aes(dist2016), bins=30) +
+  xlab("distance (m) in 2016") + ggtitle("2016 track distance to anems") +
+  theme_bw()
+d_2017 <- ggplot(data = fish.Tagged, aes(dist2017)) +
+  geom_histogram(aes(dist2017), bins=100) +
+  xlab("distance (m) in 2017") + ggtitle("2017 track distance to anems") +
+  theme_bw()
+d_2018 <- ggplot(data = fish.Tagged, aes(dist2018)) +
+  geom_histogram(aes(dist2018), bins=200) +
+  xlab("distance (m) in 2018") + ggtitle("2018 track distance to anems") +
+  theme_bw()
+
+pdf(file = here("Plots/DistFromTrackToAnems", "Distance_to_tagged_fish_anems_allyears.pdf"))
+plot_grid(d_2015, d_2016, d_2017, d_2018, labels = "AUTO")
+dev.off()
+
+# # Can't quite get this to run but seems like it might be close...
+# ggplot(data = fish.Tagged, aes(dist_2015,dist_2016,dist_2017,dist_2018)) +
+#   geom_histogram(aes(dist_2015), bins = 15) +
+#   geom_histogram(aes(dist_2016), bins = 30) +
+#   geom_histogram(aes(dist_2017), bins = 50) +
+#   geom_histogram(aes(dist_2017), bins = 200) +
+#   facet_grid(.~variable) +
+#   ggtitle("Distance (m) from anem where fish was previously caught") +
+#   theme_bw()
+
+# Histograms of distances from tracks to anems with tagged fish, each year separately
+hist(fish.Tagged$dist_2015, xlab="distance (m) from track to fish anem", main="2015 distances")
+hist(fish.Tagged$dist_2016, xlab="distance (m) from track to fish anem", main="2016 distances")
+hist(fish.Tagged$dist_2017, breaks=100, xlab="distance (m) from track to fish anem", main="2017 distances")
+hist(fish.Tagged$dist_2018, xlab="distance (m) from track to fish anem", main="2018 distances")
+
+# Histogram of distances from tracks to anems with tagged fish, without the fish that moved from Wangag (2017) to Hicgop South (2018)
+d_2015_2 <- ggplot(data = fish.Tagged_nomovement, aes(dist_2015)) +
+  geom_histogram(aes(dist_2015), bins=50) +
+  xlab("distance (m) in 2015") + ggtitle("2015 track distance to anems") +
+  theme_bw()
+d_2016_2 <- ggplot(data = fish.Tagged_nomovement, aes(dist_2016)) +
+  geom_histogram(bins=50) +
+  xlab("distance (m) in 2016") + ggtitle("2016 track distance to anems") +
+  theme_bw()
+d_2017_2 <- ggplot(data = fish.Tagged_nomovement, aes(dist_2017)) +
+  geom_histogram(aes(dist_2017), bins=50) +
+  xlab("distance (m) in 2017") + ggtitle("2017 track distance to anems \nno Wangag-HS fish") +
+  theme_bw()
+d_2018_2 <- ggplot(data = fish.Tagged_nomovement, aes(dist_2018)) +
+  geom_histogram(aes(dist_2018), bins=50) +
+  xlab("distance (m) in 2018") + ggtitle("2018 track distance to anems \nno Wangag-HS fish") +
+  theme_bw()
+
+pdf(file = here("Plots/DistFromTrackToAnems", "Distance_to_tagged_fish_anems_allyears_withoutmovingfish.pdf"))
+plot_grid(d_2015_2, d_2016_2, d_2017_2, d_2018_2, labels = "AUTO")
+dev.off()
+
+
+#################### Saving output: ####################
+save(dist2015, file=here("Data", "dist2015.RData"))
+save(dist2016, file=here("Data", "dist2016.RData"))
+save(dist2017, file=here("Data", "dist2017.RData"))
+save(dist2018, file=here("Data", "dist2018.RData"))
 save(fish.Tagged, file=here("Data", "fish_Tagged.RData"))
+save(fish.Tagged_nomovement, file=here("Data", "fish_tagged_nomovement.RData"))
+
+
+##############################################################################
+############# Feeder code below this point ###################################
 # Go through table, if fish was caught in a year, find coordinates of anem from that year, then find distance from dives for that year (will be 0 usually, right?)
 # If year was before a fish was tagged, put in NA
 # If fish not caught in a year, find average coordinates of anem, then find distance from that to the tracks from sample year
 # Not sure if this would work best as a function (where put in year? or maybe site?) or as series of dplyr commands...
 
-
-
-##############################################################################
-############# Feeder code below this point ###################################
 # tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
 #   filter(year == 2015) %>%
 #   group_by(tag_id) %>%
@@ -338,32 +414,25 @@ save(fish.Tagged, file=here("Data", "fish_Tagged.RData"))
 
 # Seems like output for here should be data frame with tag ID, years as columns and tag numbers and distance in each year as input (NA for seasons before a fish was tagged)
 
-#################### Plots: ####################
-# Histogram of distances from tracks to anems with tagged fish
-hist(fish.Tagged$dist_2015, xlab="distance (m) from track to fish anem", main="2015 distances")
-hist(fish.Tagged$dist_2016, xlab="distance (m) from track to fish anem", main="2016 distances")
-hist(fish.Tagged$dist_2017, breaks=100, xlab="distance (m) from track to fish anem", main="2017 distances")
-hist(fish.Tagged$dist_2018, xlab="distance (m) from track to fish anem", main="2018 distances")
-
-
-
-pdf(file=here("Plots/AnemLocations","AnemVisits_Hist.pdf"))
-hist(anem.LatLon$ngps, breaks=7, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
-dev.off()
-
-# Comparing C and A dives (plotted by year), adding in D,E,M for 2012
-pdf(file = here("Plots", "DistanceFromFishAnen_allsites_byyear.pdf"))
-ggplot(data = fish.Tagged, aes(lat2015)) +
-  geom_histogram(data = fish.Tagged, alpha=0.5, binwidth=1) +
-  facet_grid(.~year)
-
-ggplot(data = (fishInfo %>% filter(dive_type %in% c("A","C","D","E","M"))), aes(size_num, fill = dive_type)) +
-  geom_histogram(data = (fishInfo %>% filter(dive_type == "C")), alpha = 0.5, binwidth = 1) +
-  geom_histogram(data = (fishInfo %>% filter(dive_type == "A")), alpha = 0.5, binwidth = 1) +
-  geom_histogram(data = (fishInfo %>% filter(dive_type == "D")), alpha = 0.5, binwidth = 1) +
-  geom_histogram(data = (fishInfo %>% filter(dive_type == "E")), alpha = 0.5, binwidth = 1) +
-  geom_histogram(data = (fishInfo %>% filter(dive_type == "M")), alpha = 0.5, binwidth = 1) +
-  facet_grid(.~ year) +
-  xlab("size (cm)") + ylab("# fish") + ggtitle("Size histograms for fish from A,C,D,E,M dives (all sites combined)") +
-  theme_bw()
-dev.off()
+# pdf(file=here("Plots/AnemLocations","AnemVisits_Hist.pdf"))
+# hist(anem.LatLon$ngps, breaks=7, xlab='# visits with gps', main=paste('Histogram of times anems visited'))
+# dev.off()
+# 
+# # Comparing C and A dives (plotted by year), adding in D,E,M for 2012
+# pdf(file = here("Plots", "DistanceFromFishAnen_allsites_byyear.pdf"))
+# ggplot(data = fish.Tagged, aes(lat2015)) +
+#   geom_histogram(data = fish.Tagged, alpha=0.5, binwidth=1) +
+#   facet_grid(.~year)
+# 
+# ggplot(data = (fishInfo %>% filter(dive_type %in% c("A","C","D","E","M"))), aes(size_num, fill = dive_type)) +
+#   geom_histogram(data = (fishInfo %>% filter(dive_type == "C")), alpha = 0.5, binwidth = 1) +
+#   geom_histogram(data = (fishInfo %>% filter(dive_type == "A")), alpha = 0.5, binwidth = 1) +
+#   geom_histogram(data = (fishInfo %>% filter(dive_type == "D")), alpha = 0.5, binwidth = 1) +
+#   geom_histogram(data = (fishInfo %>% filter(dive_type == "E")), alpha = 0.5, binwidth = 1) +
+#   geom_histogram(data = (fishInfo %>% filter(dive_type == "M")), alpha = 0.5, binwidth = 1) +
+#   facet_grid(.~ year) +
+#   xlab("size (cm)") + ylab("# fish") + ggtitle("Size histograms for fish from A,C,D,E,M dives (all sites combined)") +
+#   theme_bw()
+# dev.off()
+# 
+# 
