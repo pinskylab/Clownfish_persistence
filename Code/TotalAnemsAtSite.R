@@ -5,10 +5,13 @@
 library(RCurl)
 library(dplyr)
 library(lubridate)
+#library(varhandle)
 library(ggplot2)
+library(cowplot)
 library(here)
 
 tag1 <- 2938 #first new anem tag in 2018 
+month_list <- c(3,4,5,6,7,8) #months when clownfish were caught (so can filter out winter 2015 trip)
 
 #################### Functions: ####################
 # Load helpful functions from other scripts
@@ -88,6 +91,68 @@ attach2018anems <- function(anemdf) {
   return(out)
 }
 
+# Find the number of tagged anemones visited by each site, each year 
+pull_tagged_anems_by_year <- function(anemsdf, year_i) {
+  
+  # pull all APCL seen
+  allfish_fish <- leyte %>% 
+    tbl("clownfish") %>%
+    select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
+    collect() %>%
+    filter(fish_spp == "APCL")
+  
+  # and anems associated with that
+  allfish_anems <- leyte %>%
+    tbl("anemones") %>%
+    select(anem_table_id, dive_table_id, anem_obs, obs_time, anem_id, anem_obs, old_anem_id) %>%
+    collect() %>%
+    filter(anem_table_id %in% allfish_fish$anem_table_id)
+  
+  allfish_dives <- leyte %>%
+    tbl("diveinfo") %>%
+    select(dive_table_id, dive_type, date, site, gps) %>%
+    collect() %>%
+    filter(dive_table_id %in% allfish_anems$dive_table_id)
+  
+  all_anems <- left_join(allfish_anems, allfish_dives, by="dive_table_id") 
+  all_anems <- all_anems %>% mutate(year = as.integer(substring(all_anems$date,1,4))) # this line not in the code KC sent me
+  
+  # for each site in the passed dataframe
+  for(i in 1:length(anemsdf$site)) {
+    
+    # pull out all the dives at that site in the selected year that were clownfish dives - none listed for 2012
+    # changed to pull out all dives except those that are R - should check and see how this might affect things...
+    dives <- alldives %>%
+      mutate(month = as.integer(substring(alldives$date,6,7))) %>%
+      filter(site == anemsdf$site[i]) %>%
+      filter(year == year_i) %>%
+      filter(month %in% month_list) %>% #filter out 2015 winter dives (just anem survey, no clownfish caught)
+      #filter(dive_type == "C")
+      filter(dive_type != "R") 
+    
+    # test different ways of calculating anems visited 
+    # pull out anems seem on those dives, using tagged anems (this doesn't find any from 2012 - even though there are some tagged at Visca - dive_table_id = 20)
+    anems_from_dives <- allanems_2018obsfixed %>%
+      filter(dive_table_id %in% dives$dive_table_id) %>% #just the anems on those dives
+      distinct(anem_id_unq2, .keep_all = TRUE) #only keep one row of each anem_id_unq2 (which is obs if had it, id if not, updated for 2018 anems) (could probably just use anem_id here too)
+    
+    anems_total <- sum(count(anems_from_dives, anem_id_unq2)$n)
+    
+    anemsdf$n_anems[i] = anems_total
+    
+    # now just try anems sampled without specifying that they are tagged (this is how KC was doing it, built off of her emailed code, in Testing_KC_anems_sampled.R)
+    n_anemones_sampled <- all_anems %>%
+      filter(site == anemsdf$site[i]) %>%
+      filter(year == year_i) %>%
+      summarise(n_anem_sampled = n())
+    
+    anemsdf$n_anems_2[i] = n_anemones_sampled$n_anem_sampled
+          #anems_total <- as.integer(anems_from_dives %>% summarise(n())) #count up the number, save it as a number rather than a dataframe
+  }
+  
+  return(anemsdf)
+}
+
 #################### Running things: ####################
 ##### Pull out info from database
 leyte <- read_db("Leyte")
@@ -103,11 +168,12 @@ allanems <- leyte %>%
 alldives <- leyte %>%
   tbl("diveinfo") %>%
   select(dive_table_id, dive_type, date, site, gps) %>%
-  collect() 
+  collect() %>%
+  mutate(year = as.integer(substring(date,1,4)))
 
 # join dives in with anems so can get years associated with each anem (for adding anem_obs to 2018 anems) (some of this code originated in AnemLocations.R)
 allanemswithdives <- left_join(allanems, alldives, by="dive_table_id") %>%
-  mutate(year = as.integer(substring(date,1,4))) %>%
+  #mutate(year = as.integer(substring(date,1,4))) %>%
   mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joings/merges easier
   mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id so can track anems easier (has obs or id in front of whichever number it is reporting: eg. obs192)
   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet
@@ -136,5 +202,71 @@ for(i in 1:length(site_vec)) { #go through the sites
   total_anems_by_site$total_anems[i] = anems_total 
 }
 
-# save the output
+##### Find the number of tagged anems visited each year in each site
+anems_visited_by_site_and_year <- data.frame(site = rep(site_vec, 7)) #initialize a data frame with list of sites for each year
+anems_visited_by_site_and_year$year <- c(rep(2012, length(site_vec)), rep(2013, length(site_vec)), rep(2014, length(site_vec)), rep(2015, length(site_vec)), rep(2016, length(site_vec)), rep(2017, length(site_vec)), rep(2018, length(site_vec)))
+
+# Trying by year instead...
+anems_visited_2012 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2012$year <- rep(2012, length(site_vec))
+anems_visited_2012$n_anems <- rep(NA, length(site_vec))
+anems_visited_2012$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2012 <- pull_tagged_anems_by_year(anems_visited_2012, 2012)
+
+anems_visited_2013 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2013$year <- rep(2013, length(site_vec))
+anems_visited_2013$n_anems <- rep(NA, length(site_vec))
+anems_visited_2013$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2013 <- pull_tagged_anems_by_year(anems_visited_2013, 2013)
+
+anems_visited_2014 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2014$year <- rep(2014, length(site_vec))
+anems_visited_2014$n_anems <- rep(NA, length(site_vec))
+anems_visited_2014$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2014 <- pull_tagged_anems_by_year(anems_visited_2014, 2014)
+
+anems_visited_2015 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2015$year <- rep(2015, length(site_vec))
+anems_visited_2015$n_anems <- rep(NA, length(site_vec))
+anems_visited_2015$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2015 <- pull_tagged_anems_by_year(anems_visited_2015, 2015)
+
+anems_visited_2016 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2016$year <- rep(2016, length(site_vec))
+anems_visited_2016$n_anems <- rep(NA, length(site_vec))
+anems_visited_2016$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2016 <- pull_tagged_anems_by_year(anems_visited_2016, 2016)
+
+anems_visited_2017 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2017$year <- rep(2017, length(site_vec))
+anems_visited_2017$n_anems <- rep(NA, length(site_vec))
+anems_visited_2017$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2017 <- pull_tagged_anems_by_year(anems_visited_2017, 2017)
+
+anems_visited_2018 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
+anems_visited_2018$year <- rep(2018, length(site_vec))
+anems_visited_2018$n_anems <- rep(NA, length(site_vec))
+anems_visited_2018$n_anems_2 <- rep(NA, length(site_vec))
+anems_visited_2018 <- pull_tagged_anems_by_year(anems_visited_2018, 2018)
+
+# and put all the years together
+anems_table <- rbind(anems_visited_2012, anems_visited_2013, anems_visited_2014, anems_visited_2015,
+                     anems_visited_2016, anems_visited_2017, anems_visited_2018)
+
+# add back in total anems per site
+anems_table <- left_join(anems_table, total_anems_by_site, by = "site")
+
+# and calculate proportion habitat sampled
+anems_table$prop_hab_sampled = anems_table$n_anems/anems_table$total_anems
+anems_table$prop_hab_sampled_2 = anems_table$n_anems_2/anems_table$total_anems
+
+# #################### Plots: ####################
+# ## AAAAAGGGGGHHHHH - Got very frustrated with ggplot and gave up on this but seems like it should be an easy plot to make
+# ## Ideally, would like a bar plot for each year, with the two ways of estimating prop hab sampled by site
+# ggplot(data = anems_table, aes(site, prop_hab_sampled, year)) +
+#   geom_bar(stat="identity") + 
+#   facet_wrap(.~year)
+
+#################### Save output: ####################
 save(total_anems_by_site, file=here("Data", "total_anems_by_site.RData"))
+save(anems_table, file=here("Data", "anem_sampling_table.RData"))
