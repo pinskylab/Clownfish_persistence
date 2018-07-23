@@ -9,8 +9,9 @@ library(dplyr)
 library(tidyr)
 library(lubridate)
 library(stringr)
-library(ggplot2)
 library(geosphere)
+library(varhandle)
+library(ggplot2)
 library(here)
 
 # Load some data files while deciding how various scripts should interact/communicate
@@ -39,6 +40,9 @@ k_2014 = 0.1
 theta_2014 = 2
 k_2015 = 0.4
 theta_2015 = 1
+
+# LEP
+LEP_Will <- 1780 #eggs/recruit
 
 # anems at N and S ends of sites (visually from QGIS, in particular mid anems totally eyeballed)
 Cabatoan_N <- 198 # 3195, 951 other options, 2502
@@ -351,15 +355,20 @@ for(i in 1:length(site_width_info$site)) {
 
 
 ########## Assessing metrics
+
 ##### Self-persistence
 
+## Finding the inputs 
 ## FAKE DATA FOR NOW, JUST TO SEE
-# Average number of recruits per site
+# Average number of recruits per site (ALL FAKE DATA!!!!!)
+recruits_to_site <- data.frame(site = site_vec)
+recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
+recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
 
-# Average egg output a year per site
+# Average egg output a year per site (ALL FAKE DATA!!!!!!)
 egg_output <- data.frame(site = site_vec)
 egg_output$breedingF <- c(30,10,10,5,10,40,30,100,200,5,5,5,300,0,0,50,15,200)
-egg_output$eggs_per_year <- egg_output
+egg_output$eggs_per_year <- egg_output$breedingF*eggs_per_clutch*clutch_per_year
 
 ## Finding number of recruits returning home for each site (numerator of LR fraction) 
 # Find prob of dispersing within the width of the site
@@ -367,8 +376,27 @@ for(i in 1:length(site_width_info$site)){ #this doesn't work
   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
 }
+site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
 
 save(site_width_info, file=here("Data", "site_width_info.RData"))
+
+## Calculating the metric!
+SP_site <- data.frame(site = site_vec)
+SP_site <- left_join(SP_site, egg_output, by="site")
+SP_site <- left_join(SP_site, recruits_to_site, by="site")
+SP_site <- left_join(SP_site, site_width_info %>% select(site, prob_disperse, prob_disperse_abserror), by="site")
+SP_site$home_recruits <- SP_site$avg_recruits_from_site*SP_site$prob_disperse
+SP_site$home_recuits_high <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse + SP_site$prob_disperse_abserror)
+SP_site$home_recuits_low <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse - SP_site$prob_disperse_abserror)
+SP_site$SP_avg <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recruits, SP_site$eggs_per_year)
+SP_site$SP_avgU <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_high, SP_site$eggs_per_year)
+SP_site$SP_avgL <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_low, SP_site$eggs_per_year)
+SP_site$site <- unfactor(SP_site$site)
+SP_site$SP_avg[14:15] <- c(0,0) #make sites w/0 or NaN SP have 0
+
+##### Calculating an example dispersal kernel to plot
+distance_dp <- data.frame(distance = seq(0,50,0.5))
+distance_dp$prob <- dispKernel(k_2014, theta_2014, distance_dp$distance)
 
 
 #################### Plots: ####################
@@ -390,4 +418,24 @@ ggplot(data = tag_years_site, aes(nyears)) +
   theme_bw()
 dev.off()
 
+##### SP metric (FAKE DATA RIGHT NOW)
+pdf(file = here("Plots/PersistenceMetrics", "SP_by_site.pdf"))
+ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
+  geom_bar(stat="identity") +
+  geom_hline(yintercept = 1) +
+  xlab("site") + ylab("self-persistence") + ggtitle("FAKE DATA SP by site plot") +
+  theme_bw() +
+  theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### Example dispersal kernel (for MPE poster)
+pdf(file = here("Plots/PersistenceMetrics", "Ex_disp_kernel.pdf"))
+ggplot(data = distance_dp, aes(x=distance, y=prob)) +
+  geom_line(size = 5) +
+  xlab("distance") + ylab("probability of recruiting") +
+  theme_bw() +
+  theme(text = element_text(size=40)) +
+  theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30))
+dev.off()
 
