@@ -50,7 +50,11 @@ where $a$ is age, starting at age of recruitment, $A$ is age of death, $f(a)$ is
 LR (local retention) is the fraction of larvae (or other stage) that are produced by a patch that return to settle,
 
 \begin{equation}
-LR = \frac{\text{\# arrivals returning home}}{\text{output from patch}}
+\begin{split}
+LR & = \frac{\text{\# arrivals returning home}}{\text{output from patch}} \\
+& = \frac{\text{\# recruits arriving home}}{\text{ \# recruits produced by patch}} \\
+& = \frac{p_{\text{dispersing home}} \times \text{\# recruits from site}}{\frac{\text{recruits}}{\text{eggs}} \times \text{\# eggs produced by site}}
+\end{split}
 \end{equation}
 
 For this to work, the life stage considered as offspring in LEP and the life stage in LR should be the same. Basically, this is seeing whether a reproductive individual will be able to replace itself, considering its total lifetime output (and the survival of that output to a recruitment stage) and the probability of that output returning to its natal patch. Breeding females or 3.5cm 
@@ -66,6 +70,15 @@ which simplifies to be
 SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recuits arriving home to patch i}}{\# \text{eggs produced by patch i}} \geq 1. %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
 \end{equation}
 
+Or, could be
+\begin{multline}
+SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recruits}}{\text{egg}} \times \\ \frac{p_{\text{dispersing home}} \times \text{\# recruits from site}}{\frac{\text{recruits}}{\text{egg}} \times \# \text{eggs produced by patch i}} \geq 1, 
+\end{multline}
+
+which simplifies to
+\begin{equation}
+SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recuits}}{\text{eggs}} \times p_{\text{dispersing home}} \geq 1. %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+\end{equation}
 
 \subsection*{Data}
 \begin{itemize}
@@ -108,7 +121,7 @@ Or, could assess persistence in the same way as self-persistence but use all rec
 \section*{Network persistence: demographic connectivity matrix}
 A group of patches are network persistent if the largest eigenvalue of the demographic connectivity matrix (C) is $ > 1$ (\cite{burgess2014beyond,lyselpopulation})
 \begin{equation}
-C_{ij} = LEP_i * p_{ij},
+C_{ij} = LEP_i \times p_{ij},
 \end{equation}
 
 where $LEP_i$ is the lifetime egg production at patch i and $p_{ij}$ is the probability of a recruit dispersing from patch i to patch j.
@@ -117,9 +130,33 @@ where $LEP_i$ is the lifetime egg production at patch i and $p_{ij}$ is the prob
 \text{realized connectivity matrix} = \text{reproductive output (in terms of "recruits")} \times \text{dispersal prob (for "recruits")} \times \text{probability of survival to maturity for females}
 \end{equation}
 
+\section*{Equations for presentation}
+\begin{equation}
+SP = LEP \times LR \geq 1
+\end{equation}
+
+\begin{equation}
+LEP = \Sigma_a^A l(a)f(a)
+\end{equation}
+
+\begin{equation}
+LR = \frac{\text{\# arrivals returning home}}{\text{output from patch}}
+\end{equation}
+
+\begin{equation}
+SP_i = LEP_{i} \times \frac{\text{recuits arriving home to patch i}}{\# \text{eggs produced by patch i}} \geq 1 %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+\end{equation}
+
+\begin{equation}
+NP_i = LEP_{i} \times \frac{\text{recuits arriving to patch i}}{\# \text{eggs produced by patch i}} \geq 1 %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+\end{equation}
+
+\begin{equation}
+C_{ij} = LEP_i \times p_{ij}
+\end{equation}
 
 %\section*{Input-output balance}
-{}
+
 %\section*{Recuits/female}
 
 \bibliography{../../../BibTexReferences}
