@@ -168,6 +168,7 @@ females_recruits_summary <- breedingF_info %>% select(site, year, NbreedingF_com
 females_recruits_summary <- left_join((breedingF_info %>% select(site, year, NbreedingF_combo, totalF_est, est_eggs, rawF_egg_est, prop_hab_sampled_combo)), 
                                       (recruits_info %>% select(site, egg_year, Nrecruits, Nrecruits_clipped, totalR_est)), 
                                       by = c("site" = "site", "year" = "egg_year"))
+females_recruits_summary <- females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)) #since don't have recruits for 2018 female output...
 
 # And one more data frame where each year all females, eggs, and recruits are summed up across sites
 metapop_level <- females_recruits_summary %>%
@@ -194,14 +195,14 @@ dev.off()
 
 # Number of eggs produced by site with number of recruits there a year later, at site level, same as above but for MPE poster
 pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_MPEposter.pdf"))
-ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=est_eggs, y=totalR_est, color=year, shape=site)) +
+ggplot(data = females_recruits_summary, aes(x=est_eggs, y=totalR_est, color=year)) +
   geom_point(size=4) +
-  scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
-  xlab("estimated egg output") + ylab("estimated recruits following year") +
-  ggtitle("Egg-recruit relationship") +
+  xlab("egg output") + ylab("recruits") +
+  #ggtitle("Egg-recruits") +
+  theme_bw() +
   theme(text = element_text(size=40)) +
-  theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30)) +
-  theme_bw()
+  theme(axis.text.x = element_text(size=30, angle=90, vjust=0.5)) + theme(axis.text.y = element_text(size=30)) +
+  theme(legend.text=element_text(size=20)) + theme(legend.title=element_text(size=25))
 dev.off()
 
 # Number of eggs produced by site with number of recruits there a year later, years broken out individually
