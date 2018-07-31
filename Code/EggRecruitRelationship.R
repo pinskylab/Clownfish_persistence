@@ -179,18 +179,30 @@ metapop_level <- females_recruits_summary %>%
             metapop_rawR = sum(Nrecruits, na.rm = TRUE),
             metapop_estR = sum(totalR_est, na.rm = TRUE))
 
+########## Find linear relationships
+### Estimated eggs and recruits each site individually
+egg_recruits_est_mod1 <- lm(totalR_est ~ est_eggs, data=females_recruits_summary) #estimate linear relationship
+egg_recruits_est_mod1_predicted <- data.frame(recruits_pred = predict(egg_recruits_est_mod1, females_recruits_summary), est_eggs = females_recruits_summary$est_eggs) #predict values
+females_recruits_summary_mod1 <- left_join(females_recruits_summary, egg_recruits_est_mod1_predicted, by = "est_eggs") #add predictions to data frame to plot
+
+### Estimated eggs and recruits summed up to metapop level
+meta_eggs_recruits_est_mod1 <- lm(metapop_estR ~ metapop_est_eggs, data=metapop_level) #estimate linear relationship
+meta_egg_recruits_est_mod1_predicted <- data.frame(recruits_pred = predict(meta_eggs_recruits_est_mod1, metapop_level), metapop_est_eggs = metapop_level$metapop_est_eggs) #predict values
+metapop_level_mod1 <- left_join(metapop_level, meta_egg_recruits_est_mod1_predicted, by = "metapop_est_eggs") #add predictions to data frame to plot
+
 
 #################### Plots: ####################
 # Number of eggs produced by site with number of recruits there a year later, at site level
 pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site.pdf"))
-ggplot(data = females_recruits_summary, aes(x=est_eggs, y=totalR_est, color=year, shape=site)) +
+ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs, y=totalR_est, color=year, shape=site)) +
   geom_point(size=3) +
   scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
+  geom_line(color = "black", data=females_recruits_summary_mod1, aes(x=est_eggs, y=recruits_pred)) +
   xlab("estimated egg output") + ylab("estimated number of recruits following year") +
   ggtitle("Egg-recruit scatter plot for each site and year individually") +
   theme(text = element_text(size=25)) +
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
-  theme_bw()
+  theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
 dev.off()
 
 # Number of eggs produced by site with number of recruits there a year later, at site level, same as above but for MPE poster
@@ -271,6 +283,18 @@ ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017
   theme_bw()
 dev.off()
 
+# Now sum it up by year across all sites, plot est eggs and recruits at metapop level
+pdf(file = here("Plots/EggRecruitRelationship", "Metapop_eggs_recruits_estimated.pdf"))
+ggplot(data = metapop_level_mod1 %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=metapop_est_eggs, y=metapop_estR, color=year)) +
+  geom_point(size=3) +
+  geom_line(color = "black", data=metapop_level_mod1, aes(x=metapop_est_eggs, y=recruits_pred)) +
+  xlab("estimated # eggs") + ylab("estimated # R following year") +
+  ggtitle("Estimated eggs and R summed across all sites sampled in each year") +
+  theme(text = element_text(size=25)) +
+  theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
+  theme_bw()
+dev.off()
+
 # Now sum it up by year across all sites, plot raw females and recruits at metapop level
 pdf(file = here("Plots/EggRecruitRelationship", "Metapop_females_recruits_raw.pdf"))
 ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=metapop_rawF, y=metapop_rawR, color=year)) +
@@ -282,39 +306,18 @@ ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017
   theme_bw()
 dev.off()
 
-########## Pull info from database
+
+#################### Saving output: ####################
+save(recruits_info, file=here("Data", "recruits_info.RData"))
+save(females_recruits_summary, file=here("Data", "females_recruits_summary.RData"))
+save(metapop_level, file=here("Data", "metapop_level.RData"))
+save(meta_eggs_recruits_est_mod1, file=here("Data","metapop_lm.RData"))
+save(egg_recruits_est_mod1, file=here("Data","egg_recruit_lm.RData"))
 
 #Thinking through the plan
 #For each year, try to estimate the number of eggs released (either at a site level or at a whole-population level)
 #To do that, count up number of breeding females, scale by proportion habitat sampled, scale by eggs/year (by size if want to)
 #For recruits, assess number of fish between 3.5-6.0 (or whatever number it was that Michelle estimated they get to in one year), scale by hab sampled, catchability
 #Then plot, eggs for previous year against recruits for this year
-
-#################### Plots: ####################
-# raw number of 
-pdf(file = here("Plots/PersistenceMetrics", "NYearsRecaught_bysite.pdf"), width=11,height=5)
-ggplot(data = tag_years_site, aes(nyears)) +
-  geom_histogram(binwidth=1) +
-  facet_grid(.~ site, labeller = label_wrap_gen(8)) + 
-  xlab("number of years recaught") + ggtitle("# years tagged fish recaught by site") +
-  theme_bw()
-dev.off()
-
-
-#################### Old/example code: ####################
-
-#pull GPS info
-gps.Info <- leyte %>%
-  tbl("GPX") %>%
-  select(lat, lon, time, unit) %>%
-  collect(n = Inf) %>%
-  mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
-  mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
-         day = day(obs_time), 
-         hour = hour(obs_time), 
-         min = minute(obs_time), 
-         sec = second(obs_time), 
-         year = year(obs_time)) %>%
-  separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
 
 
