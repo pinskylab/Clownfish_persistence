@@ -22,6 +22,30 @@ library(here)
 # Load encounter history data frame from ClownfishMarkRecap.R
 #load(file=here("Data", "encounters_all.RData"))
 
+# Load mig_est data
+load(file=here("Data", "MigEstPooled_out_justimmigration.txt"))
+
+migEst_conn <- read.table(file=here("Data", "MigEstPooled_out_justimmigration.txt"), 
+           header = TRUE, sep = "")
+
+migEst_sites <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas",
+                  "Haina", "Hicgop South", "Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower",
+                  "San Agustin", "Sitio Baybayon", "Sitio Lonas", "Sitio Tugas", "Tamakin Dacot",
+                  "Visca", "Wangag")
+migEst_site <- data.frame(site = migEst_sites, pop = seq(from=1,to=18,by=1), stringsAsFactors = FALSE)
+
+# Load recruit estimates
+load(file=here("Data", "recruits_info.RData"))
+load(file=here("Data", "females_recruits_summary.RData"))
+load(file=here("Data", "metapop_level.RData"))
+
+# Load egg-recruit linear model estimates
+load(file=here("Data", "metapop_lm.RData")) #estimate at metapop level, pretty low R2 and not significant
+load(file=here("Data", "egg_recruit_lm.RData")) #estimate using each site and year as a point, R2 of about 0.53, significant
+
+# Load LEP estimates
+load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
+
 # Set a few things
 sample_years = c(2015,2016,2017,2018)
 
@@ -43,6 +67,8 @@ theta_2015 = 1
 
 # LEP
 LEP_Will <- 1780 #eggs/recruit
+LEP_Will_eggs_per_clutch <- LEP_out$LEP_W #my size-survival relationship, Will's eggs per clutch
+LEP <- LEP_out$LEP #AY's prelim egg data, my size-survival relationship
 
 # anems at N and S ends of sites (visually from QGIS, in particular mid anems totally eyeballed)
 Cabatoan_N <- 198 # 3195, 951 other options, 2502
@@ -131,9 +157,15 @@ findLEP <- function(l_vec, f_vec) { #l_vec: vector of survivals-to-age, f_vec: v
 
 # Calculate LEP via an IPM (like Will did in LEP_calc_WillWhite.R)
 
-# Calculate self-persistence
-findSP <- function(LEP, home_recruits, egg_prod) { #LEP: lifetime egg production (see above), home_recruits: number o
+# Calculate self-persistence - one version
+findSP_v1 <- function(LEP, home_recruits, egg_prod) { #LEP: lifetime egg production (see above), home_recruits: number o
   SP <- LEP * (home_recruits/egg_prod)
+  return(SP)
+}
+
+# Another version of calculating self-persistence
+findSP_v2 <- function(LEP, R_E_slope, prob_disp_home) { #LEP: lifetime egg production (see above), R_E_slope: slope converting eggs to recruits next year, prob_disp_home: probability of a recruit dispersing home
+  SP <- LEP * R_E_slope * prob_disp_home
   return(SP)
 }
 
@@ -357,20 +389,17 @@ for(i in 1:length(site_width_info$site)) {
 ########## Assessing metrics
 
 ##### Self-persistence
+# for findSP_v2 - inputs are LEP, R_E_slope, prob_disp_home
+findRfromE <- function(m,eggs,b) {
+  recruits = m*eggs + b
+  return(recruits)
+}
 
-## Finding the inputs 
-## FAKE DATA FOR NOW, JUST TO SEE
-# Average number of recruits per site (ALL FAKE DATA!!!!!)
-recruits_to_site <- data.frame(site = site_vec)
-recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
-recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
+# Egg-recruit slope with LEP
+intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1
+slope_mod1 <- 5.430e-05 #need to figure out how to extract this from egg_recruits_est_mod1
+recruits_per_LEP <- findRfromE(slope_mod1, LEP, intercept_mod1) #18! Means persistence is possible!
 
-# Average egg output a year per site (ALL FAKE DATA!!!!!!)
-egg_output <- data.frame(site = site_vec)
-egg_output$breedingF <- c(30,10,10,5,10,40,30,100,200,5,5,5,300,0,0,50,15,200)
-egg_output$eggs_per_year <- egg_output$breedingF*eggs_per_clutch*clutch_per_year
-
-## Finding number of recruits returning home for each site (numerator of LR fraction) 
 # Find prob of dispersing within the width of the site
 for(i in 1:length(site_width_info$site)){ #this doesn't work
   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
@@ -378,25 +407,79 @@ for(i in 1:length(site_width_info$site)){ #this doesn't work
 }
 site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
 
-save(site_width_info, file=here("Data", "site_width_info.RData"))
+#save(site_width_info, file=here("Data", "site_width_info.RData"))
 
 ## Calculating the metric!
-SP_site <- data.frame(site = site_vec)
-SP_site <- left_join(SP_site, egg_output, by="site")
-SP_site <- left_join(SP_site, recruits_to_site, by="site")
-SP_site <- left_join(SP_site, site_width_info %>% select(site, prob_disperse, prob_disperse_abserror), by="site")
-SP_site$home_recruits <- SP_site$avg_recruits_from_site*SP_site$prob_disperse
-SP_site$home_recuits_high <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse + SP_site$prob_disperse_abserror)
-SP_site$home_recuits_low <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse - SP_site$prob_disperse_abserror)
-SP_site$SP_avg <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recruits, SP_site$eggs_per_year)
-SP_site$SP_avgU <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_high, SP_site$eggs_per_year)
-SP_site$SP_avgL <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_low, SP_site$eggs_per_year)
-SP_site$site <- unfactor(SP_site$site)
-SP_site$SP_avg[14:15] <- c(0,0) #make sites w/0 or NaN SP have 0
+SP_site <- site_width_info %>% select(site, width_km, prob_disperse, prob_disperse_abserror) %>%
+  mutate(SP_avg = prob_disperse*recruits_per_LEP)
+
+## Try network persistence!
+realizedC <- migEst_conn[,2:19]*recruits_per_LEP #multiply connectivity matrix by recruits_from_LEP
+realizedCmat <- as.matrix(realizedC)
+realizedC_mat_eig <- eigen(realizedC)
+
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_pooled_migEst.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=realizedC, aes(x=Spread,y=Magnitude)) +
+  geom_tile(aes(fill=Abundance)) +
+  #scale_fill_gradient(high='lightgray',low="steelblue") +
+  scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='Spread (patch lengths) ',y=expression(paste('Magnitude (',nu,')'))) +
+  #labs(title='25% habitat',x='Spread (patch lengths) ',y=expression(paste('Magnitude (',nu,')'))) +
+  theme_bw() +
+  theme(text = element_text(size=20)) 
+dev.off()
+
+plot(realizedCmat)
+myImagePlot(realizedCmat, xlabels, ylabels, zlim, title=c("my title")) 
+
+# ## FAKE DATA FOR NOW, JUST TO SEE
+# # Average number of recruits per site (ALL FAKE DATA!!!!!)
+# recruits_to_site <- data.frame(site = site_vec)
+# recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
+# recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
+# 
+# # Average number of recruits per site (trying out real data)
+# recruits_info_input <- recruits_info %>% 
+#   group_by(site) %>%
+#   summarise(avg_annual_recruits_est = mean(totalR_est), avg_annual_recruits_raw = mean(Nrecruits))
+#   
+# recruits_to_site <- data.frame(site = site_vec)
+# recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
+# recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
+# 
+# # Average egg output a year per site (ALL FAKE DATA!!!!!!)
+# egg_output <- data.frame(site = site_vec)
+# egg_output$breedingF <- c(30,10,10,5,10,40,30,100,200,5,5,5,300,0,0,50,15,200)
+# egg_output$eggs_per_year <- egg_output$breedingF*eggs_per_clutch*clutch_per_year
+# 
+# ## Finding number of recruits returning home for each site (numerator of LR fraction) 
+# # Find prob of dispersing within the width of the site
+# for(i in 1:length(site_width_info$site)){ #this doesn't work
+#   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+#   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
+# }
+# site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
+# 
+# save(site_width_info, file=here("Data", "site_width_info.RData"))
+# 
+# ## Calculating the metric!
+# SP_site <- data.frame(site = site_vec)
+# SP_site <- left_join(SP_site, egg_output, by="site")
+# SP_site <- left_join(SP_site, recruits_to_site, by="site")
+# SP_site <- left_join(SP_site, site_width_info %>% select(site, prob_disperse, prob_disperse_abserror), by="site")
+# SP_site$home_recruits <- SP_site$avg_recruits_from_site*SP_site$prob_disperse
+# SP_site$home_recuits_high <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse + SP_site$prob_disperse_abserror)
+# SP_site$home_recuits_low <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse - SP_site$prob_disperse_abserror)
+# SP_site$SP_avg <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recruits, SP_site$eggs_per_year)
+# SP_site$SP_avgU <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_high, SP_site$eggs_per_year)
+# SP_site$SP_avgL <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_low, SP_site$eggs_per_year)
+# SP_site$site <- unfactor(SP_site$site)
+# SP_site$SP_avg[14:15] <- c(0,0) #make sites w/0 or NaN SP have 0
 
 ##### Calculating an example dispersal kernel to plot
 distance_dp <- data.frame(distance = seq(0,50,0.5))
 distance_dp$prob <- dispKernel(k_2014, theta_2014, distance_dp$distance)
+
 
 
 #################### Plots: ####################
@@ -429,6 +512,27 @@ ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
+##### SP metric (prelim data for ESA!)
+pdf(file = here("Plots/PersistenceMetrics", "SP_by_site_ESAdraft.pdf"))
+ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
+  geom_bar(stat="identity") +
+  geom_hline(yintercept = 1) +
+  xlab("site") + ylab("self-persistence") +
+  theme_bw() +
+  theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### Prob of self-dispersing (from dispersal kernel) (prelim data for ESA!)
+pdf(file = here("Plots/PersistenceMetrics", "Disp_home_by_site_ESAdraft.pdf"))
+ggplot(data = SP_site, aes(x=site, y=prob_disperse)) +
+  geom_bar(stat="identity") +
+  xlab("site") + ylab("prob of dispersing home") +
+  theme_bw() +
+  theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
 ##### Example dispersal kernel (for MPE poster)
 pdf(file = here("Plots/PersistenceMetrics", "Ex_disp_kernel.pdf"))
 ggplot(data = distance_dp, aes(x=distance, y=prob)) +
@@ -439,3 +543,71 @@ ggplot(data = distance_dp, aes(x=distance, y=prob)) +
   theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30))
 dev.off()
 
+
+# ----- Define a function for plotting a matrix ----- #
+myImagePlot <- function(x, ...){
+  min <- min(x)
+  max <- max(x)
+  yLabels <- rownames(x)
+  xLabels <- colnames(x)
+  title <-c()
+  # check for additional function arguments
+  if( length(list(...)) ){
+    Lst <- list(...)
+    if( !is.null(Lst$zlim) ){
+      min <- Lst$zlim[1]
+      max <- Lst$zlim[2]
+    }
+    if( !is.null(Lst$yLabels) ){
+      yLabels <- c(Lst$yLabels)
+    }
+    if( !is.null(Lst$xLabels) ){
+      xLabels <- c(Lst$xLabels)
+    }
+    if( !is.null(Lst$title) ){
+      title <- Lst$title
+    }
+  }
+  # check for null values
+  if( is.null(xLabels) ){
+    xLabels <- c(1:ncol(x))
+  }
+  if( is.null(yLabels) ){
+    yLabels <- c(1:nrow(x))
+  }
+  
+  layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(4,1), heights=c(1,1))
+  
+  # Red and green range from 0 to 1 while Blue ranges from 1 to 0
+  ColorRamp <- rgb( seq(0,1,length=256),  # Red
+                    seq(0,1,length=256),  # Green
+                    seq(1,0,length=256))  # Blue
+  ColorLevels <- seq(min, max, length=length(ColorRamp))
+  
+  # Reverse Y axis
+  reverse <- nrow(x) : 1
+  yLabels <- yLabels[reverse]
+  x <- x[reverse,]
+  
+  # Data Map
+  par(mar = c(3,5,2.5,2))
+  image(1:length(xLabels), 1:length(yLabels), t(x), col=ColorRamp, xlab="",
+        ylab="", axes=FALSE, zlim=c(min,max))
+  if( !is.null(title) ){
+    title(main=title)
+  }
+  axis(BELOW<-1, at=1:length(xLabels), labels=xLabels, cex.axis=0.7)
+  axis(LEFT <-2, at=1:length(yLabels), labels=yLabels, las= HORIZONTAL<-1,
+       cex.axis=0.7)
+  
+  # Color Scale
+  par(mar = c(3,2.5,2.5,2))
+  image(1, ColorLevels,
+        matrix(data=ColorLevels, ncol=length(ColorLevels),nrow=1),
+        col=ColorRamp,
+        xlab="",ylab="",
+        xaxt="n")
+  
+  layout(1)
+}
+# ----- END plot function ----- #

@@ -205,6 +205,24 @@ ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs, y=totalR_est, color
   theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
 dev.off()
 
+# Number of eggs produced by site with number of recruits there a year later, at site level, ESA presentation
+pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_ESA.pdf"))
+ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs, y=totalR_est, color=year)) +
+  geom_point(size=4) +
+  #scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
+  geom_line(color = "black", data=females_recruits_summary_mod1, aes(x=est_eggs, y=recruits_pred)) +
+  xlab("estimated egg output") + ylab("estimated recruits") +
+  #ggtitle("Egg-recruit scatter plot for each site and year individually") +
+  theme_bw() +
+  theme(text = element_text(size=40)) +
+  theme(axis.text.x = element_text(size=30, angle=90, vjust=0.5)) + theme(axis.text.y = element_text(size=30)) +
+  theme(legend.text=element_text(size=20)) + theme(legend.title=element_text(size=25))
+  #theme_bw(base_size = 20)
+  #theme(text = element_text(size=25)) +
+  #theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
+  #theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
+dev.off()
+
 # Number of eggs produced by site with number of recruits there a year later, at site level, same as above but for MPE poster
 pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_MPEposter.pdf"))
 ggplot(data = females_recruits_summary, aes(x=est_eggs, y=totalR_est, color=year)) +
