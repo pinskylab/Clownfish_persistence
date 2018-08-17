@@ -1,5 +1,5 @@
  \newcommand{\noop}[1]{}
-\begin{thebibliography}{2}
+\begin{thebibliography}{5}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -16,6 +16,19 @@ Scott~C Burgess, Kerry~J Nickols, Chris~D Griesemer, Lewis~AK Barnett,
 \newblock \emph{Ecological Applications}, 24\penalty0 (2):\penalty0 257--270,
   2014.
 
+\bibitem[Carson et~al.(2010)Carson, López-Duarte, Rasmussen, Wang, and
+  Levin]{carson_reproductive_2010}
+Henry~S. Carson, Paola~C. López-Duarte, Linda Rasmussen, Dexiang Wang, and
+  Lisa~A. Levin.
+\newblock Reproductive {Timing} {Alters} {Population} {Connectivity} in
+  {Marine} {Metapopulations}.
+\newblock \emph{Current Biology}, 20\penalty0 (21):\penalty0 1926--1931,
+  November 2010.
+\newblock ISSN 09609822.
+\newblock \doi{10.1016/j.cub.2010.09.057}.
+\newblock URL
+  \url{http://linkinghub.elsevier.com/retrieve/pii/S0960982210012145}.
+
 \bibitem[Garavelli et~al.(2018)Garavelli, White, Chollett, and
   Ch{\'e}rubin]{lyselpopulation}
 Lysel Garavelli, J.~Wilson White, Iliana Chollett, and Laurent~Marcel
@@ -23,5 +36,21 @@ Lysel Garavelli, J.~Wilson White, Iliana Chollett, and Laurent~Marcel
 \newblock Population models reveal unexpected patterns of local persistence
   despite widespread larval dispersal in a highly exploited species.
 \newblock \emph{Conservation Letters}, page e12567, 2018.
+
+\bibitem[Johnson et~al.(2018)Johnson, Christie, Pusack, Stallings, and
+  Hixon]{johnson2018integrating}
+Darren~W Johnson, Mark~R Christie, Timothy~J Pusack, Christopher~D Stallings,
+  and Mark~A Hixon.
+\newblock Integrating larval connectivity with local demography reveals
+  regional dynamics of a marine metapopulation.
+\newblock \emph{Ecology}, 99\penalty0 (6):\penalty0 1419--1429, 2018.
+
+\bibitem[Salles et~al.(2016)Salles, Saenz-Agudelo, Almany, Berumen, Thorrold,
+  Jones, and Planes]{salles2016genetic}
+Oc{\'e}ane~C Salles, Pablo Saenz-Agudelo, Glenn~R Almany, Michael~L Berumen,
+  Simon~R Thorrold, Geoffrey~P Jones, and Serge Planes.
+\newblock Genetic tools link long-term demographic and life-history traits of
+  anemonefish to their anemone hosts.
+\newblock \emph{Coral Reefs}, 35\penalty0 (4):\penalty0 1127--1138, 2016.
 
 \end{thebibliography}

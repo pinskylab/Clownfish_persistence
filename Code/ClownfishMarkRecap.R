@@ -278,7 +278,7 @@ allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) 
 # Pull out all the tags and their encounter history from 2015-2018
 encounters_all <- CreateEncounterSummary(2015, 2018, allfish) #simpler way of getting encounter history like above using function
 
-# Remove the NA tag id at the end
+# Remove the NA tag id at the end (for 1111 fish)
 encounters_all <- encounters_all[1:(length(encounters_all$tag_id)-1),] 
 
 # Find site and add it in
@@ -306,64 +306,66 @@ tail_color <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
 
 encounters_all <- left_join(encounters_all, tail_color, by="tag_id")
 
+# Re-adding the tail color by year and size by year data for KC to use at Michigan workshop
+encounters_all_fulldata <- encounters_all
 ## Code that adds in tail color by year, problem with that is that we only have it for fish that are caught, which isn't allowed for time-varying individual covariates (have to have a value for each fish at each time)
 ##might be able to get around that by just doing the color at the last time it was caught but not sure that's worth it so for now, commenting out...
 # Add in tail color (could probably do these all together in one command... look into that later..)
-# tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2015) %>%
-#   group_by(tag_id) %>%
-#   summarize(tail_color_2015 = color[1])
-# 
-# tail_color_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2016) %>%
-#   group_by(tag_id) %>%
-#   summarize(tail_color_2016 = color[1])
-# 
-# tail_color_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2017) %>%
-#   group_by(tag_id) %>%
-#   summarize(tail_color_2017 = color[1])
-# 
-# tail_color_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2018) %>%
-#   group_by(tag_id) %>%
-#   summarize(tail_color_2018 = color[1])
-# 
-# #encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in 
-# 
-# encounters_all <- left_join(encounters_all, tail_color_2015, by="tag_id")
-# encounters_all <- left_join(encounters_all, tail_color_2016, by="tag_id")
-# encounters_all <- left_join(encounters_all, tail_color_2017, by="tag_id")
-# encounters_all <- left_join(encounters_all, tail_color_2018, by="tag_id")
-#
+tail_color_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2015) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2015 = color[1])
 
-## Same issue with size in each year as with color above - don't have a value for the fish that weren't recaptured
-#Might be able to add some in based on growth curves using the relationships Michelle has, could get into that at some point but for now ignoring
-# Add in size in each of the years
-# size_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2015) %>%
-#   group_by(tag_id) %>% 
-#   summarize(size_2015 = mean(size, rm.na = TRUE))
+tail_color_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2016) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2016 = color[1])
+
+tail_color_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2017) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2017 = color[1])
+
+tail_color_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2018) %>%
+  group_by(tag_id) %>%
+  summarize(tail_color_2018 = color[1])
+
+#encounters[[i]] <- tagged.fish %>% group_by(tag_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of tag ids and a vector of encountered (1) or didn't (0) in
+
+encounters_all_fulldata <- left_join(encounters_all_fulldata, tail_color_2015, by="tag_id")
+encounters_all_fulldata <- left_join(encounters_all_fulldata, tail_color_2016, by="tag_id")
+encounters_all_fulldata <- left_join(encounters_all_fulldata, tail_color_2017, by="tag_id")
+encounters_all_fulldata <- left_join(encounters_all_fulldata, tail_color_2018, by="tag_id")
+
 # 
-# size_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2016) %>%
-#   group_by(tag_id) %>% 
-#   summarize(size_2016 = mean(size, rm.na = TRUE))
-# 
-# size_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2017) %>%
-#   group_by(tag_id) %>% 
-#   summarize(size_2017 = mean(size, rm.na = TRUE))
-# 
-# size_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
-#   filter(year == 2018) %>%
-#   group_by(tag_id) %>% 
-#   summarize(size_2018 = mean(size, rm.na = TRUE))
-# 
-# encounters_all <- left_join(encounters_all, size_2015, by="tag_id")
-# encounters_all <- left_join(encounters_all, size_2016, by="tag_id")
-# encounters_all <- left_join(encounters_all, size_2017, by="tag_id")
-# encounters_all <- left_join(encounters_all, size_2018, by="tag_id")
+# ## Same issue with size in each year as with color above - don't have a value for the fish that weren't recaptured
+# #Might be able to add some in based on growth curves using the relationships Michelle has, could get into that at some point but for now ignoring
+# # Add in size in each of the years
+size_2015 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2015) %>%
+  group_by(tag_id) %>%
+  summarize(size_2015 = mean(size, rm.na = TRUE))
+
+size_2016 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2016) %>%
+  group_by(tag_id) %>%
+  summarize(size_2016 = mean(size, rm.na = TRUE))
+
+size_2017 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2017) %>%
+  group_by(tag_id) %>%
+  summarize(size_2017 = mean(size, rm.na = TRUE))
+
+size_2018 <- allfish %>% filter(tag_id %in% encounters_all$tag_id) %>%
+  filter(year == 2018) %>%
+  group_by(tag_id) %>%
+  summarize(size_2018 = mean(size, rm.na = TRUE))
+
+encounters_all_fulldata <- left_join(encounters_all_fulldata, size_2015, by="tag_id")
+encounters_all_fulldata <- left_join(encounters_all_fulldata, size_2016, by="tag_id")
+encounters_all_fulldata <- left_join(encounters_all_fulldata, size_2017, by="tag_id")
+encounters_all_fulldata <- left_join(encounters_all_fulldata, size_2018, by="tag_id")
 
 # Add in distances to anem (from fish.Tagged, loaded above)
 encounters_all <- left_join(encounters_all, (fish.Tagged %>% select(tag_id, year_tagged, dist_2016, dist_2017, dist_2018)), by="tag_id") 
@@ -446,7 +448,7 @@ eall.constant = as.data.frame(eall.Phi.dot.p.dot$results$beta) %>%
 
 ###### Survival constant, p varies by distance (eall.Phi.dot.p.dist)
 mindist = min(eall$dist2016,eall$dist2017,eall$dist2018) #this is 0, obv...
-maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high and probably due to an error
+maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high - not an error, though, it's the fish that moved from Wangag to Hicgop South!
 maxdist2 = 200 #encompasses highest values in 2016, 2018 
 #tail(sort(eall$dist2016),10)
 #tail(sort(eall$dist2017),10) #really 2017 that has the high distances...
@@ -496,7 +498,7 @@ eall.color = as.data.frame(eall.Phi.color.p.dot$results$real) %>%
 minsize = min(eall$tag_size) #right now, this is 2.6 (prob still a typo? Michelle fixed the 1.6 one but are there more that are too small?)
 maxsize = max(eall$tag_size)
 size.values = minsize+(0:30)*(maxsize-minsize)/30
-Phibysize = covariate.predictions(eall.Phi.size.p.dist,data=data.frame(tag_size=size.values),indices=c(1)) #should do this the way I did distance too, make sure get the same thing...
+Phibysize_Phisizepdist = covariate.predictions(eall.Phi.size.p.dist,data=data.frame(tag_size=size.values),indices=c(1)) #should do this the way I did distance too, make sure get the same thing...
 
 mindist = min(eall$dist2016,eall$dist2017,eall$dist2018) #this is 0, obv...
 maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high and probably due to an error
@@ -600,6 +602,19 @@ ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
   theme_bw()
 dev.off()
 
+# same as above but formatted for MPE poster
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisize_MPEposter.pdf"))
+ggplot(data = Phibysize$estimates, aes(covdata, estimate)) +
+  geom_ribbon(aes(ymin=lcl,ymax=ucl),color="light blue",fill="light blue") +
+  geom_line(color="black", size=3) +
+  xlab("size at tagging (cm)") + ylab("survival estimate") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw() +
+  theme(text = element_text(size=40)) +
+  theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30)) 
+dev.off()
+
+
 ###### Survival varies by tail color, p constant (eall.Phi.color.p.dot)
 pdf(file = here("Plots/PhiandpEstimates", "eall_Phicolor.pdf"))
 ggplot(data = eall.color, aes(row, estimate, color=color, shape=param)) +
@@ -640,6 +655,18 @@ ggplot(data = pbydistPhisize_size, aes(tag_size, Phi)) +
   theme_bw()
 dev.off()
 
+# Phi by tag_size, version for MPE poster
+pdf(file = here("Plots/PhiandpEstimates", "eall_Phisize_pdist_Phi_MPEposter.pdf"))
+ggplot(data = pbydistPhisize_size, aes(tag_size, Phi)) +
+  geom_ribbon(aes(ymin=Phi_lcl,ymax=Phi_ucl),color="light blue",fill="light blue") +
+  geom_line(color="black", size = 3) +
+  xlab("size at tagging (cm)") + ylab("estimated survival") + ggtitle("Size effect on survival") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme(text = element_text(size=40)) +
+  theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30)) +
+  theme_bw()
+dev.off()
+
 ###### Survival varies by site, p constant (eall.Phi.site.p.dot)
 pdf(file = here("Plots/PhiandpEstimates", "eall_Phisite.pdf"))
 ggplot(data = eall.Phisite, aes(row, estimate, color=site, shape=param)) +
@@ -675,6 +702,10 @@ save(encounters_means, file=here("Data", "encounters_means.RData"))
 save(encounters_0, file=here("Data", "encounters_0.RData"))
 save(allfish, file=here("Data", "allfish.RData"))
 
+
+save(eall.Phi.size.p.dist.results, file=here("Data","eall_Phi_size_p_dist_results.RData"))
+
+save(encounters_all_fulldata, file=here("Data", "encounters_all_fulldata.RData")) #for KC Michigan workshop
 ####### Recap on what KC needs:
 
 

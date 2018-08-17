@@ -12,6 +12,7 @@ library(stringr)
 library(geosphere)
 library(varhandle)
 library(ggplot2)
+library(reshape)
 library(here)
 
 # Load some data files while deciding how various scripts should interact/communicate
@@ -114,7 +115,7 @@ SanAgustin_N <- 2662
 SanAgustin_mid <- 2660 #711 is mid of hull
 SanAgustin_S <- 705 #outside of hull, 2129 is at bottom of hull 
 SitioBaybayon_N <- 1302
-SitioBaybaon_mid <- 538
+SitioBaybayon_mid <- 538
 SitioBaybayon_S <- 2747 #outside hull (maybe KC sites?), #805, 2148 w/in hull
 SitioLonas_N <- 48
 SitioLonas_S <- 48
@@ -175,9 +176,27 @@ dispKernel <- function(k, theta, d) {
   return(disp)
 }
 
+# Dispersal kernel 2013
+dispKernel2013 <- function(d) {
+  k_2013*exp(-(k_2013*d)^theta_2013)
+}
+
 # Dispersal kernel 2014
 dispKernel2014 <- function(d) {
   k_2014*exp(-(k_2014*d)^theta_2014)
+}
+
+# Dispersal kernel 2015
+dispKernel2015 <- function(d) {
+  k_2015*exp(-(k_2015*d)^theta_2015)
+}
+
+# Integrate dispersal kernel  (for theta = 1)
+integrateDK_theta1 <- function(d1,d2,k) {
+  int_d2 <- -exp(-k*d2)
+  int_d1 <- -exp(-k*d1)
+  int_out <- int_d2-int_d1
+  return(int_out)
 }
 
 # Find lat lon for an anem (very similar function to anemid_latlong in AnemLocations.R - should probably combine the two and put in my common constants and code script...)
@@ -332,12 +351,17 @@ site_width_info$S_anem <- c(Cabatoan_S, CaridadCemetery_S, CaridadProper_S, Elem
                             Magbangon_S, Palanas_S, PorocRose_S, PorocSanFlower_S, SanAgustin_S, SitioBaybayon_S, SitioLonas_S,
                             SitioTugas_S, TamakinDacot_S, Visca_S, Wangag_S)
 
+# anem_id of mid anem at site (or western-most in case of Haina, which runs E-W) #except CardiadProper, Sitio Lonas, Sitio Tugas, used N
+site_width_info$M_anem <- c(Cabatoan_mid, CaridadCemetery_mid, CaridadProper_N, ElementarySchool_mid, Gabas_mid, Haina_mid, HicgopSouth_mid,
+                            Magbangon_mid, Palanas_mid, PorocRose_mid, PorocSanFlower_mid, SanAgustin_mid, SitioBaybayon_mid, SitioLonas_N,
+                            SitioTugas_N, TamakinDacot_mid, Visca_mid, Wangag_mid)
+
 # pull out anem_table_ids for those anems so can use anemid_latlong2 function to find lat lon for boundary anems
 site_width_anems <- leyte %>%
   tbl("anemones") %>%
   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, obs_time) %>%
   collect() %>%
-  filter(anem_id %in% c(site_width_info$N_anem, site_width_info$S_anem)) 
+  filter(anem_id %in% c(site_width_info$N_anem, site_width_info$S_anem, site_width_info$M_anem)) 
 
 # pull out the dive info associated with those anems
 site_width_dives <- leyte %>%
@@ -358,7 +382,7 @@ site_width_anemdives <- left_join(site_width_anems, site_width_dives, by="dive_t
          year = year(obs_time)) %>%
   mutate(lat = as.numeric(NA), lon = as.numeric(NA)) #put in a placeholder column for lat and lon
 
-# find lat lon for the boundary anems
+# find lat lon for the boundary anems -- THIS DOESN'T WORK FOR THE MID ANEMS
 for(i in 1:length(site_width_anemdives$anem_table_id)) {
   out_anemLL <- anemid_latlong_2(site_width_anemdives$anem_table_id[i], site_width_anemdives, gps.Info)
   site_width_anemdives$lat[i] = out_anemLL$lat
@@ -376,11 +400,84 @@ site_width_info <- site_width_info %>% rename(N_anem = anem_id, N_lat = lat, N_l
 # lat/lon for S_anem
 site_width_info <- left_join(site_width_info %>% rename(anem_id = S_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the S anem
 site_width_info <- site_width_info %>% rename(S_anem = anem_id, S_lat = lat, S_lon = lon) #rename the anem_id, lat, lon columns to be S-specific 
+# lat/lon for M_anem
+site_width_info <- left_join(site_width_info %>% rename(anem_id = M_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the mid anem
+site_width_info <- site_width_info %>% rename(M_anem = anem_id, M_lat = lat, M_lon = lon) #rename the anem_id, lat, lon columns to be M-specific 
 
 #and calculate the distance!
 for(i in 1:length(site_width_info$site)) {
   site_width_info$width_m[i] = distHaversine(c(site_width_info$N_lon[i], site_width_info$N_lat[i]), c(site_width_info$S_lon[i], site_width_info$S_lat[i]))
   site_width_info$width_km[i] = site_width_info$width_m[i]/1000 
+}
+
+# Find distances among sites
+# Set up data frame
+site_dist_info <- data.frame(org_site = c(rep(site_vec[1],length(site_vec)), rep(site_vec[2],length(site_vec)),
+                                          rep(site_vec[3],length(site_vec)), rep(site_vec[4],length(site_vec)),
+                                          rep(site_vec[5],length(site_vec)), rep(site_vec[6],length(site_vec)),
+                                          rep(site_vec[7],length(site_vec)), rep(site_vec[8],length(site_vec)),
+                                          rep(site_vec[9],length(site_vec)), rep(site_vec[10],length(site_vec)),
+                                          rep(site_vec[11],length(site_vec)), rep(site_vec[12],length(site_vec)),
+                                          rep(site_vec[13],length(site_vec)), rep(site_vec[14],length(site_vec)),
+                                          rep(site_vec[15],length(site_vec)), rep(site_vec[16],length(site_vec)),
+                                          rep(site_vec[17],length(site_vec)), rep(site_vec[18],length(site_vec))), stringsAsFactors = FALSE)
+site_dist_info$dest_site <- rep(site_vec, length(site_vec))
+site_dist_info$dist_N_to_S_m <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$dist_N_to_S_km <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$dist_S_to_N_m <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$dist_S_to_N_km <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$dist_avg <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$dest_width <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$d1_km <- rep(NA, length(site_dist_info$org_site))
+site_dist_info$d2_km <- rep(NA, length(site_dist_info$org_site))
+
+# and find site distances! (for now, doing N to N, should do mid to mid...)
+for(i in 1:length(site_dist_info$org_site)) {
+  site_org = site_dist_info$org_site[i]
+  N_lat_org = (site_width_info %>% filter(site == site_org))$N_lat 
+  N_lon_org = (site_width_info %>% filter(site == site_org))$N_lon
+  S_lat_org = (site_width_info %>% filter(site == site_org))$S_lat 
+  S_lon_org = (site_width_info %>% filter(site == site_org))$S_lon
+  site_dest = site_dist_info$dest_site[i]
+  N_lat_dest = (site_width_info %>% filter(site == site_dest))$N_lat
+  N_lon_dest = (site_width_info %>% filter(site == site_dest))$N_lon
+  S_lat_dest = (site_width_info %>% filter(site == site_dest))$S_lat
+  S_lon_dest = (site_width_info %>% filter(site == site_dest))$S_lon
+  site_dist_info$dist_N_to_S_m[i] = distHaversine(c(N_lon_org, N_lat_org), c(S_lon_dest, S_lat_dest))
+  site_dist_info$dist_N_to_S_km[i] = site_dist_info$dist_N_to_S_m[i]/1000 
+  site_dist_info$dist_S_to_N_m[i] = distHaversine(c(N_lon_dest, N_lat_dest), c(S_lon_org, S_lat_org))
+  site_dist_info$dist_S_to_N_km[i] = site_dist_info$dist_S_to_N_m[i]/1000 
+  
+  site_dist_info$dist_avg[i] = (site_dist_info$dist_N_to_S_km[i] + site_dist_info$dist_S_to_N_km[i])/2
+  site_dist_info$dest_width[i] <- (site_width_info %>% filter(site == site_dest))$width_km
+  
+  site_dist_info$d1_km[i] <- site_dist_info$dist_avg[i] - site_dist_info$dest_width[i]/2
+  site_dist_info$d2_km[i] <- site_dist_info$dist_avg[i] + site_dist_info$dest_width[i]/2
+  # if(site_dist_info$dist_N_to_S_km[i] >= site_dist_info$dist_S_to_N_km[i]){
+  #   site_dist_info$d1_km[i] <- site_dist_info$dist_S_to_N_km[i]
+  #   site_dist_info$d2_km[i] <- site_dist_info$dist_N_to_S_km[i]
+  # } else {
+  #   site_dist_info$d1_km[i] <- site_dist_info$dist_N_to_S_km[i]
+  #   site_dist_info$d2_km[i] <- site_dist_info$dist_S_to_N_km[i]
+  # }
+}
+
+# For sites going to self, put N-S width in
+for (i in 1:length(site_dist_info$org_site)) {
+  site_org = site_dist_info$org_site[i]
+  site_dest = site_dist_info$dest_site[i]
+  if (site_org == site_dest) {
+    N_lat_org = (site_width_info %>% filter(site == site_org))$N_lat 
+    N_lon_org = (site_width_info %>% filter(site == site_org))$N_lon
+    S_lat_org = (site_width_info %>% filter(site == site_org))$S_lat 
+    S_lon_org = (site_width_info %>% filter(site == site_org))$S_lon
+    site_dist_info$dist_N_to_S_m[i] = distHaversine(c(N_lon_org, N_lat_org), c(S_lon_org, S_lat_org))
+    site_dist_info$dist_N_to_S_km[i] = site_dist_info$dist_N_to_S_m[i]/1000 
+    site_dist_info$dist_S_to_N_m[i] = distHaversine(c(N_lon_org, N_lat_org), c(S_lon_org, S_lat_org))
+    site_dist_info$dist_S_to_N_km[i] = site_dist_info$dist_S_to_N_m[i]/1000 
+    site_dist_info$d1_km[i] = 0
+    site_dist_info$d2_km[i] = site_dist_info$dist_N_to_S_km[i]
+  }
 }
 
 ########## Looking at eggs and recruits relationships
@@ -398,14 +495,77 @@ findRfromE <- function(m,eggs,b) {
 # Egg-recruit slope with LEP
 intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1
 slope_mod1 <- 5.430e-05 #need to figure out how to extract this from egg_recruits_est_mod1
+
+intercept_meta_mod1 <- -2.657e+02
+slope_meta_mod1 <- 6.624e-05
+
 recruits_per_LEP <- findRfromE(slope_mod1, LEP, intercept_mod1) #18! Means persistence is possible!
+#recruits_per_LEP_meta <- findRfromE(slope_meta_mod1, LEP, intercept_meta_mod1)
 
 # Find prob of dispersing within the width of the site
 for(i in 1:length(site_width_info$site)){ #this doesn't work
-  site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-  site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
+  site_width_info$prob_disperse_2013[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2013) #2013 kernel using theta=1
+  site_width_info$prob_disperse_2015[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2015) #2015 kernel
+  site_width_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+  site_width_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value
 }
-site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
+
+# Find prob of dispersing among sites
+for(i in 1:length(site_dist_info$org_site)){ 
+  site_dist_info$prob_disperse_2013[i] = integrateDK_theta1(site_dist_info$d1_km[i], site_dist_info$d2_km[i], k_2013) #2013 kernel using theta=1
+  site_dist_info$prob_disperse_2015[i] = integrateDK_theta1(site_dist_info$d1_km[i], site_dist_info$d2_km[i], k_2015) #2015 kernel
+  site_dist_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+  site_dist_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value
+}
+
+# Add in index values
+site_dist_info$origin <- c(rep(4, length(site_vec)), rep(5, length(site_vec)), rep(6, length(site_vec)), #Cabatoan, Caridad Cemetery, Caridad Proper
+                           rep(9, length(site_vec)), rep(15, length(site_vec)), rep(17, length(site_vec)), #Elementary School, Gabas, Haina
+                           rep(7, length(site_vec)), rep(3, length(site_vec)), rep(1, length(site_vec)), #Hicgop South, Magbangon, Palanas
+                           rep(13, length(site_vec)), rep(12, length(site_vec)), rep(11, length(site_vec)), #Poroc Rose, Poroc San Flower, San Agustin
+                           rep(18, length(site_vec)), rep(10, length(site_vec)), rep(8, length(site_vec)), #Sitio Baybayon, Sitio Lonas, Sitio Tugas
+                           rep(16, length(site_vec)), rep(14, length(site_vec)), rep(2, length(site_vec))) #Tamakin Dacot, Visca, Wangag
+
+site_dist_info$destination <- rep(c(4,5,6,9,15,17,7,3,1,13,12,11,18,10,8,16,14,2), length(site_vec))
+# list of sites N-S: 
+# 1) Palanas, 2) Wangag, 3) Magbangon, 4) Cabatoan, 5) Caridad Cemetery, 6) Caridad Proper
+# 7) Hicgop South, 8) Sitio Tugas, 9) Elementary School 10) Sitio Lonas
+# 11) San Agustin, 12) Poroc San Flower, 13) Poroc Rose, 14) Visca, 15) Gabas  1288, 2273 2271 anems
+# 16) Tamakin Dacot, 17) Haina, 18) Sitio Baybayon
+
+# Turn site_dist_info into a matrix
+disp_mat_2014 <- matrix(NA, 18, 18)
+realized_C_2014 <- matrix(NA, 18, 18)
+realized_C_2013 <- matrix(NA, 18, 18)
+realized_C_2015 <- matrix(NA, 18, 18)
+for(i in 1:length(site_dist_info$org_site)) {
+  column = site_dist_info$origin[i]
+  row = site_dist_info$destination[i]
+  disp_mat_2014[row, column] = site_dist_info$prob_disperse_2014_oldway[i]
+  realized_C_2014[row, column] = site_dist_info$realizedC_2014[i]
+  realized_C_2015[row, column] = site_dist_info$realizedC_2015[i]
+  realized_C_2013[row, column] = site_dist_info$realizedC_2013[i]
+}
+
+# Find eigenvalues
+eig_2013 <- eigen(realized_C_2013)
+eig_2014 <- eigen(realized_C_2014)
+eig_2015 <- eigen(realized_C_2015)
+
+
+
+# Try to melt this into a matrix
+#disp_mat_2014 <- melt(site_dist_info %>% select(org_site, dest_site, prob_disperse_2014_oldway), id.vars = c("org_site", "dest_site"))
+
+#SHOULD TRY ASSIGNING EACH A ROW AND COLUMN VALUE (CAN BE N-S), THEN MAKE THOSE THE INDICES
+
+
+# # Old way (for practice presentation)
+# for(i in 1:length(site_width_info$site)){ #this doesn't work
+#   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+#   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
+# }
+# site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
 
 #save(site_width_info, file=here("Data", "site_width_info.RData"))
 
@@ -413,21 +573,19 @@ site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes pr
 SP_site <- site_width_info %>% select(site, width_km, prob_disperse, prob_disperse_abserror) %>%
   mutate(SP_avg = prob_disperse*recruits_per_LEP)
 
-## Try network persistence!
-realizedC <- migEst_conn[,2:19]*recruits_per_LEP #multiply connectivity matrix by recruits_from_LEP
-realizedCmat <- as.matrix(realizedC)
-realizedC_mat_eig <- eigen(realizedC)
+# ## Try network persistence! - uh-oh, migEst gives self-recruitment...
+# realizedC <- migEst_conn[,2:19]*recruits_per_LEP #multiply connectivity matrix by recruits_from_LEP
+# realizedCmat <- as.matrix(realizedC)
+# realizedC_mat_eig <- eigen(realizedC)
 
-pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_pooled_migEst.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
-ggplot(data=realizedC, aes(x=Spread,y=Magnitude)) +
-  geom_tile(aes(fill=Abundance)) +
-  #scale_fill_gradient(high='lightgray',low="steelblue") +
-  scale_fill_gradient(high='lightgray',low='black') +
-  labs(x='Spread (patch lengths) ',y=expression(paste('Magnitude (',nu,')'))) +
-  #labs(title='25% habitat',x='Spread (patch lengths) ',y=expression(paste('Magnitude (',nu,')'))) +
-  theme_bw() +
-  theme(text = element_text(size=20)) 
-dev.off()
+## Calculate realized connectivity matrix in plotting way (dataframe)
+site_dist_info <- site_dist_info %>%
+  mutate(realizedC_2014 = prob_disperse_2014_oldway*recruits_per_LEP) %>%
+  mutate(realizedC_2013 = prob_disperse_2013*recruits_per_LEP) %>%
+  mutate(realizedC_2015 = prob_disperse_2015*recruits_per_LEP) %>%
+  mutate(realizedC_2013_oldway = prob_disperse_2013_oldway*recruits_per_LEP) 
+  
+
 
 plot(realizedCmat)
 myImagePlot(realizedCmat, xlabels, ylabels, zlim, title=c("my title")) 
@@ -478,8 +636,9 @@ myImagePlot(realizedCmat, xlabels, ylabels, zlim, title=c("my title"))
 
 ##### Calculating an example dispersal kernel to plot
 distance_dp <- data.frame(distance = seq(0,50,0.5))
-distance_dp$prob <- dispKernel(k_2014, theta_2014, distance_dp$distance)
-
+distance_dp$prob_2014 <- dispKernel(k_2014, theta_2014, distance_dp$distance)
+distance_dp$prob_2013 <- dispKernel(k_2013, 1, distance_dp$distance)
+distance_dp$prob_2015 <- dispKernel(k_2015, theta_2015, distance_dp$distance)
 
 
 #################### Plots: ####################
@@ -543,6 +702,138 @@ ggplot(data = distance_dp, aes(x=distance, y=prob)) +
   theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30))
 dev.off()
 
+##### Example dispersal kernel (for ESA talk) 
+pdf(file = here("Plots/PersistenceMetrics", "Ex_disp_kernel_ESA_1.pdf"))
+ggplot(data = distance_dp, aes(x=distance, y=prob_2013)) +
+  geom_line(size = 5, color = "black") +
+  xlab("distance") + ylab("probability of recruiting") +
+  theme_bw() +
+  theme(text = element_text(size=40)) +
+  theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30))
+dev.off()
+
+##### Example dispersal kernel (for ESA talk) - multiple kernels
+pdf(file = here("Plots/PersistenceMetrics", "Ex_disp_kernel_ESA_3.pdf"))
+ggplot(data = distance_dp, aes(x=distance)) +
+  geom_line(aes(x=distance, y=prob_2013), size = 3, color = "black") +
+  geom_line(aes(x=distance, y=prob_2014), size = 3, color = "blue") +
+  geom_line(aes(x=distance, y=prob_2015), size = 3, color = "red") +
+  xlab("distance") + ylab("probability of recruiting") +
+  theme_bw() +
+  theme(text = element_text(size=40)) +
+  theme(axis.text.x = element_text(size=30)) + theme(axis.text.y = element_text(size=30))
+dev.off()
+
+# Realized connectivity matrix
+site_dist_info_plot <- site_dist_info %>%
+  dplyr::rename(p2013 = prob_disperse_2013, p2014 = prob_disperse_2014_oldway, p2015 = prob_disperse_2015)
+
+# 2013 kernel, analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_2013kernel.pdf"),useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info_plot, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=realizedC_2013)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+# Realized connectivity matrix
+# 2013 kernel, non-analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_2013kernel_nonan.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=realizedC_2013_oldway)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+# 2014 kernel, non-analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_2014kernel_nonan.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=realizedC_2014)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=15)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(legend.title=element_text(size=0))
+dev.off()
+
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_2014kernel_nonan_orderedsites.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=origin,y=destination)) +
+  geom_tile(aes(fill=realizedC_2014)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=15)) +
+  #theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(legend.title=element_text(size=0))
+dev.off()
+
+# 2015 kernel, analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_2015kernel.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=realizedC_2015)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+# Just prob dispersing
+# 2014 kernel, non-analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Connectivity_2014kernel_nonan.pdf"),useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info_plot, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=p2014)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=15)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+# 2013 kernel, analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Connectivity_2013kernel_2.pdf"),useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info_plot, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=p2013)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=15)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+# 2015 kernel, analytical integration
+pdf(file=here("Plots/PersistenceMetrics", "Connectivity_2015kernel_2.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=org_site,y=dest_site)) +
+  geom_tile(aes(fill=prob_disperse_2015)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  theme(text = element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+#################### Saving things: ####################
+save(allfish, file=here("Data", "allfish.RData"))
+save(allfish_fish, file=here("Data", "allfish_fish.RData"))
+save(allfish_anems, file=here("Data", "allfish_anems.RData"))
+save(allfish_dives, file=here("Data", "allfish_dives.RData"))
+save(gps.Info, file=here("Data", "gps.Info.RData"))
+save(site_dist_info, file=here("Data", "site_dist_info.RData"))
 
 # ----- Define a function for plotting a matrix ----- #
 myImagePlot <- function(x, ...){

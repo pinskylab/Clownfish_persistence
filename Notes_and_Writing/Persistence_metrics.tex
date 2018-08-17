@@ -39,11 +39,14 @@ A patch is self-persistent (\cite{burgess2014beyond}) if
 LEP \times LR \geq 1,
 \end{equation}
 
-where LEP (lifetime egg production)is the reproductive output from recruitment to death, where both recruit and the stage of offspring outputted need to be defined. LEP is calculated by:
+where here LEP (lifetime egg production) is the reproductive output in terms of recruits from recruitment to death. Here, will define recruit for both the starting point of the LEP calculation and the stage of offpsring assessed as fish in the 3.5-6.0cm size range, which preliminary growth analyses suggest are fish that are about one year old and settled the previous year. Here, we will assess the starting age for LEP and  both the recruit stage and the offspring produced to be fish that are one year old, so spawned and settled the previous year, which we are assuming are fish in the 3.5-6.0cm size range based on preliminary growth analyses (though need to confirm with updated growth curve). To assess whether replacement is achieved, we will asu
+
+
+LEP is calculated by:
 
 \begin{equation}
 LEP = \Sigma_{a = 1}^{A} l(a)f(a),
-\end{equation}{}
+\end{equation}{}'
 
 where $a$ is age, starting at age of recruitment, $A$ is age of death, $f(a)$ is fecundity at age $a$, and $l(a)$ is survival from recruitment to age $a$. Fecundity could be considered in terms of eggs or could include some mortality and be defined in terms of larvae, juveniles, recruits, etc. LEP could have site-specific survivals and fecundities.\\ %Is this right for l(a)??? 
 
@@ -92,6 +95,7 @@ SP_i = LEP_{i, \text{$a_0$ = 3.5cm}} \times \frac{\text{recuits}}{\text{eggs}} \
 \],
 where $p_{\text{dispersing w/in site}}$ is the dispersal kernel integrated over the site width and represents the probability of settling within site boundaries, given that you settled somewhere, and $\text{\# recruits from the site}$ is the number of recruits that settled somewhere produced from site $i$. This can be calculated as 
 \item Can estimate egg-recruit survival ($\frac{\text{recruits}}{\text{egg}}$) by getting the number of 3.5cm-sized fish (or recruit defined at a different stage - reproductive fish, reproductive female) at each patch compared to the number of eggs produced by the patch the year before. This assumes eggs only recruit to their patch, though, which is what we're trying to test here, so would want to consider these ratios at different spatial scales, like the whole population together. Need to think about this a bit more. Given the number of females out there in each patch and overall population, how many recruits do we see the next year?
+\item 
 \item $\# \text{recruits arriving home to patch i}$ (alternate): could just use raw \# of parentage matches found returning home and scale that by the estimated proportion of the site sampled (only works if we actually get some self-recruits for some of the sites, though - and would be a pretty rough estimate)
 \end{itemize}
 
@@ -130,34 +134,51 @@ where $LEP_i$ is the lifetime egg production at patch i and $p_{ij}$ is the prob
 \text{realized connectivity matrix} = \text{reproductive output (in terms of "recruits")} \times \text{dispersal prob (for "recruits")} \times \text{probability of survival to maturity for females}
 \end{equation}
 
-\section*{Equations for presentation}
+% \section*{Equations for presentation}
+% Just means they are clean and don't have extraneous punctuation or unexplained indexing and such...
+% \begin{equation}
+% SP = LEP \times LR \geq 1
+% \end{equation}
+
 \begin{equation}
 SP = LEP \times LR \geq 1
 \end{equation}
 
-\begin{equation}
-LEP = \Sigma_a^A l(a)f(a)
-\end{equation}
 
-\begin{equation}
-LR = \frac{\text{\# arrivals returning home}}{\text{output from patch}}
-\end{equation}
+% \begin{equation}
+% LEP = \Sigma_a^A l(a)f(a)
+% \end{equation}
 
-\begin{equation}
-SP_i = LEP_{i} \times \frac{\text{recuits arriving home to patch i}}{\# \text{eggs produced by patch i}} \geq 1 %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
-\end{equation}
+% \begin{equation}
+% LR = \frac{\text{\# arrivals returning home}}{\text{output from patch}}
+% \end{equation}
 
-\begin{equation}
-NP_i = LEP_{i} \times \frac{\text{recuits arriving to patch i}}{\# \text{eggs produced by patch i}} \geq 1 %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
-\end{equation}
+% \begin{equation}
+% SP_i = LEP_{i} \times \frac{\text{recuits arriving home to patch i}}{\# \text{eggs produced by patch i}} \geq 1 %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+% \end{equation}
 
-\begin{equation}
-C_{ij} = LEP_i \times p_{ij}
-\end{equation}
+% \begin{equation}
+% NP_i = LEP_{i} \times \frac{\text{recuits arriving to patch i}}{\# \text{eggs produced by patch i}} \geq 1 %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+% \end{equation}
+
+% \begin{equation}
+% C_{ij} = LEP_i \times p_{ij}
+% \end{equation}
 
 %\section*{Input-output balance}
 
 %\section*{Recuits/female}
+
+\section*{Looking at the literature}
+What have other papers done? How/where have they accounted for larval mortality (or pre-recruitment mortality)? What is their dispersal kernel conditional on? What does it sum to?
+\subsection*{Papers to look at}
+\begin{itemize}
+	\item \cite{johnson2018integrating}
+	\item \cite{carson_reproductive_2010}
+	\item \cite{salles2016genetic}
+\end{itemize}
+\subsection*{Summaries of what others have done}
+
 
 \bibliography{../../../BibTexReferences}
 \bibliographystyle{plainnat}
