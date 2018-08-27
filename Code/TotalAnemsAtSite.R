@@ -10,13 +10,14 @@ library(ggplot2)
 library(cowplot)
 library(here)
 
-tag1 <- 2938 #first new anem tag in 2018 
 month_list <- c(3,4,5,6,7,8) #months when clownfish were caught (so can filter out winter 2015 trip)
 
 #################### Functions: ####################
 # Load helpful functions from other scripts
-script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQJT5uCEwjgDGYOneY0W6Zdjol5axks5alHmBwA%3D%3D", ssl.verifypeer = FALSE)
+script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
+# script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQJT5uCEwjgDGYOneY0W6Zdjol5axks5alHmBwA%3D%3D", ssl.verifypeer = FALSE)
+# eval(parse(text = script))
 
 # Functions from Michelle's GitHub helpers script
 #helper functions - do various tasks w/database (like assigning dates and site to fish and such)
@@ -29,13 +30,13 @@ attach2018anems <- function(anemdf) {
   #filter out anems that might be repeat visits (2018, tag_id less than the new tags for 2018 or new tag and old tag present) and don't already have an anem_obs
   anems2018 <- anemdf %>% #646
     filter(year == 2018) %>%
-    filter(anem_id < tag1 | (anem_id >= tag1 & !is.na(old_anem_id))) %>% #filter out the ones that could could have other anem_ids (sighting of existing anem_id tag or new tag with old_anem_id filled in), checked this (below) and think it is filtering out correctly...
+    filter(anem_id < tag1_2018 | (anem_id >= tag1_2018 & !is.na(old_anem_id))) %>% #filter out the ones that could could have other anem_ids (sighting of existing anem_id tag or new tag with old_anem_id filled in), checked this (below) and think it is filtering out correctly...
     filter(is.na(anem_obs)) #some anem_obs already filled in so take those out...
   
   #other 2018 anems that aren't candidates for repeat obs (so can add back in later)
   anems2018_2 <- anemdf %>% #270
     filter(year == 2018) %>%
-    filter(anem_id >= tag1 & is.na(old_anem_id))
+    filter(anem_id >= tag1_2018 & is.na(old_anem_id))
   
   #other 2018 anems that already have an anem_obs (so can add back in later) - checked (once...) that anems2018, anems2018_2, and anems2018_3 covers all 2018 anems
   anems2018_3 <- anemdf %>%
