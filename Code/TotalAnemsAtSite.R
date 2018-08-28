@@ -182,9 +182,13 @@ allanemswithdives <- left_join(allanems, alldives, by="dive_table_id") %>%
 # match up anems from 2018 with those seen in previous years - anem_id_unq2 now the column that should identify anems, with same anems having the same string
 allanems_2018obsfixed <- attach2018anems(allanemswithdives) #this will give warning messages and print out a couple of errors - just means one anem is off but not a big deal for now
 
-##### Strategy 1: Pull all anems from all dives for each site, then weed out duplicates
+##### Decide the "total" number of anemones at a site (even though, in reality it changes some across years)
 total_anems_by_site <- data.frame(site = site_vec) #initialize a data frame with list of sites
-total_anems_by_site$total_anems <- rep(NA, length(total_anems_by_site$site)) #add column for total anems
+total_anems_by_site$total_anems <- rep(NA, length(total_anems_by_site$site)) #add column for total anems (Strategy 1)
+total_anems_by_site$total_anems_metal_tags <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 2: just metal tags)
+total_anems_by_site$total_anems_2015 <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 3: just 2015 anem survey tags)
+
+### Strategy 1: Pull all tagged anems from all dives for each site, then weed out duplicates
 
 for(i in 1:length(site_vec)) { #go through the sites
   
@@ -202,6 +206,21 @@ for(i in 1:length(site_vec)) { #go through the sites
   total_anems_by_site$site[i] = site_vec[i]
   total_anems_by_site$total_anems[i] = anems_total 
 }
+
+### Strategy 2: Pull all metal tags from all dives for each site
+# Find first metal anem tag (placed in May 2015, according to Malin notes in data doc)
+metal_tags_2015 <- allanems_2018obsfixed %>%
+  mutate(month = as.integer(substring(date,6,7))) %>%
+  filter(year == 2015) %>% 
+  filter(month == 5) %>%
+  arrange(anem_id) # based on looking through these, think the first metal tag is 2001 (but there are a lot of other tags noted before and after that one that aren't in the 2000s and don't have old_anem_ids - emailed Michelle/Malin to clarify what tagging that season looked like)
+
+#first_metal_tag <- min(metal_tags_2015$anem_id) #this didn't work b/c there are still pre-2000s tags scene (or placed?) in May 2015
+  
+
+
+### Strategy 3: 
+
 
 ##### Find the number of tagged anems visited each year in each site
 anems_visited_by_site_and_year <- data.frame(site = rep(site_vec, 7)) #initialize a data frame with list of sites for each year
