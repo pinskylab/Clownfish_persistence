@@ -180,13 +180,18 @@ allanemswithdives <- left_join(allanems, alldives, by="dive_table_id") %>%
   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet
 
 # match up anems from 2018 with those seen in previous years - anem_id_unq2 now the column that should identify anems, with same anems having the same string
-allanems_2018obsfixed <- attach2018anems(allanemswithdives) #this will give warning messages and print out a couple of errors - just means one anem is off but not a big deal for now
+allanems_2018obsfixed <- attach2018anems(allanemswithdives) %>% #this will give warning messages and print out a couple of errors - just means one anem is off but not a big deal for now
+  mutate(month = as.integer(substring(date,6,7))) 
 
 ##### Decide the "total" number of anemones at a site (even though, in reality it changes some across years)
 total_anems_by_site <- data.frame(site = site_vec) #initialize a data frame with list of sites
 total_anems_by_site$total_anems <- rep(NA, length(total_anems_by_site$site)) #add column for total anems (Strategy 1)
 total_anems_by_site$total_anems_metal_tags <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 2: just metal tags)
-total_anems_by_site$total_anems_2015 <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 3: just 2015 anem survey tags)
+total_anems_by_site$total_anems_seen2x <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 3: just metal tags but only with those seen at least twice)
+total_anems_by_site$total_anems_2015W <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 4: just 2015 anem survey tags)
+total_anems_by_site$low_est <- rep(NA, length(total_anems_by_site$site)) 
+total_anems_by_site$high_est <- rep(NA, length(total_anems_by_site$site))
+total_anems_by_site$mean_est <- rep(NA, length(total_anems_by_site$site))
 
 ### Strategy 1: Pull all tagged anems from all dives for each site, then weed out duplicates
 
@@ -208,19 +213,60 @@ for(i in 1:length(site_vec)) { #go through the sites
 }
 
 ### Strategy 2: Pull all metal tags from all dives for each site
-# Find first metal anem tag (placed in May 2015, according to Malin notes in data doc)
-metal_tags_2015 <- allanems_2018obsfixed %>%
-  mutate(month = as.integer(substring(date,6,7))) %>%
-  filter(year == 2015) %>% 
-  filter(month == 5) %>%
-  arrange(anem_id) # based on looking through these, think the first metal tag is 2001 (but there are a lot of other tags noted before and after that one that aren't in the 2000s and don't have old_anem_ids - emailed Michelle/Malin to clarify what tagging that season looked like)
+# # Find first metal anem tag (placed in May 2015, according to Malin notes in data doc)
+# metal_tags_2015 <- allanems_2018obsfixed %>%
+#   mutate(month = as.integer(substring(date,6,7))) %>%
+#   filter(year == 2015) %>% 
+#   filter(month == 5) %>%
+#   arrange(anem_id) # based on looking through these, think the first metal tag is 2001 (but there are a lot of other tags noted before and after that one that aren't in the 2000s and don't have old_anem_ids - emailed Michelle/Malin to clarify what tagging that season looked like)
+# 
+# #first_metal_tag <- min(metal_tags_2015$anem_id) #this didn't work b/c there are still pre-2000s tags scene (or placed?) in May 2015
 
-#first_metal_tag <- min(metal_tags_2015$anem_id) #this didn't work b/c there are still pre-2000s tags scene (or placed?) in May 2015
+for(i in 1:length(site_vec)) { #go through the sites
+  metal_anems_at_site <- allanems_2018obsfixed %>%
+    filter(site == site_vec[i]) %>% #filter out just dives from that site
+    filter(anem_id >= first_metal_tag) %>% #filter out just anems with metal tags at that site 
+    distinct(anem_id_unq2, .keep_all = TRUE) #only keep one row of each (if seen multiple times across years)
+
+  anems_total <- as.integer(metal_anems_at_site %>% summarize(n())) #count up how many there are)
   
+  total_anems_by_site$total_anems_metal_tags[i] = anems_total
+    
+} #also tried this in a similar for loop way to Strategy 1, where you pull out the relevant dives, then pull out the anems associated with those dives and got the same answer
 
+### Strategy 3: Looking at anems with any type of tags that have been seen for at least two years
 
-### Strategy 3: 
+for(i in 1:length(site_vec)) { #go through sites
+  tagged_anems_at_site <- allanems_2018obsfixed %>%
+    filter(site == site_vec[i]) %>% #filter out just anems from that site
+    distinct(anem_id_unq2, year, .keep_all = TRUE) %>% #pull out just one obs of each anem in a particular year
+    group_by(anem_id_unq2) %>% #group by anem
+    summarize(n_years = n())
+  
+  anems_total <- as.integer(length((tagged_anems_at_site %>% filter(n_years >= 2))$n_years))
+  
+  total_anems_by_site$total_anems_seen2x[i] = anems_total
+}
 
+### Strategy 4: Anems tagged in the anem survey in winter 2015 - but should supplement for a few sites with other years, like Haina and Sitio Baybayon, right?
+
+for(i in 1:length(site_vec)) {
+  anems_2015W <- allanems_2018obsfixed %>%
+    filter(site == site_vec[i]) %>% 
+    filter(year == 2015, month %in% c(1,2,3)) %>%
+    distinct(anem_id_unq2, .keep_all = TRUE) 
+    
+  anems_total <- as.integer(anems_2015W %>% summarize(n())) 
+  
+  total_anems_by_site$total_anems_2015W[i] <- anems_total
+}
+
+### Compare estimates
+for(i in 1:length(total_anems_by_site$site)) {
+  total_anems_by_site$low_est[i] = min(c(total_anems_by_site$total_anems[i], total_anems_by_site$total_anems_metal_tags[i], total_anems_by_site$total_anems_seen2x[i], total_anems_by_site$total_anems_2015W[i]))
+  total_anems_by_site$high_est[i] = max(c(total_anems_by_site$total_anems[i], total_anems_by_site$total_anems_metal_tags[i], total_anems_by_site$total_anems_seen2x[i], total_anems_by_site$total_anems_2015W[i]))
+  total_anems_by_site$mean_est[i] = round(mean(c(total_anems_by_site$total_anems[i], total_anems_by_site$total_anems_metal_tags[i], total_anems_by_site$total_anems_seen2x[i], total_anems_by_site$total_anems_2015W[i]), na.rm = TRUE))
+}
 
 ##### Find the number of tagged anems visited each year in each site
 anems_visited_by_site_and_year <- data.frame(site = rep(site_vec, 7)) #initialize a data frame with list of sites for each year
