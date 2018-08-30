@@ -1,4 +1,4 @@
-# Calculate total number of anemones at each site
+# Calculate total number of anemones at each site and proportion of habitat sampled each year based on anemone numbers
 
 #################### Set-up: ####################
 # Load relevant libraries
@@ -139,7 +139,7 @@ pull_tagged_anems_by_year <- function(anemsdf, year_i) {
     
     anems_total <- sum(count(anems_from_dives, anem_id_unq2)$n)
     
-    anemsdf$n_anems[i] = anems_total
+    anemsdf$n_tagged_anems[i] = anems_total
     
     # now just try anems sampled without specifying that they are tagged (this is how KC was doing it, built off of her emailed code, in Testing_KC_anems_sampled.R)
     n_anemones_sampled <- all_anems %>%
@@ -147,10 +147,17 @@ pull_tagged_anems_by_year <- function(anemsdf, year_i) {
       filter(year == year_i) %>%
       summarise(n_anem_sampled = n())
     
-    anemsdf$n_anems_2[i] = n_anemones_sampled$n_anem_sampled
+    anemsdf$n_sampled_anems[i] = n_anemones_sampled$n_anem_sampled
           #anems_total <- as.integer(anems_from_dives %>% summarise(n())) #count up the number, save it as a number rather than a dataframe
+    
+    # Put together "best estimate" of anemones visited at a site in year - tagged anemones seen (n_anems_tagged) for all years except 2012, where use other method (n_anems_seen) because anems were only tagged at Visca in 2012
+    if(year_i == 2012) {
+      anemsdf$n_anems[i] = anemsdf$n_sampled_anems[i]
+    }
+    else {
+      anemsdf$n_anems[i] = anemsdf$n_tagged_anems[i]
+    }
   }
-  
   return(anemsdf)
 }
 
@@ -183,7 +190,7 @@ allanemswithdives <- left_join(allanems, alldives, by="dive_table_id") %>%
 allanems_2018obsfixed <- attach2018anems(allanemswithdives) %>% #this will give warning messages and print out a couple of errors - just means one anem is off but not a big deal for now
   mutate(month = as.integer(substring(date,6,7))) 
 
-##### Decide the "total" number of anemones at a site (even though, in reality it changes some across years)
+##### Decide the "total" number of anemones at a site (even though, in reality it changes some across years), using a few methods
 total_anems_by_site <- data.frame(site = site_vec) #initialize a data frame with list of sites
 total_anems_by_site$total_anems <- rep(NA, length(total_anems_by_site$site)) #add column for total anems (Strategy 1)
 total_anems_by_site$total_anems_metal_tags <- rep(NA, length(total_anems_by_site$site)) #column for total anems (Strategy 2: just metal tags)
@@ -269,50 +276,57 @@ for(i in 1:length(total_anems_by_site$site)) {
 }
 
 ##### Find the number of tagged anems visited each year in each site
-anems_visited_by_site_and_year <- data.frame(site = rep(site_vec, 7)) #initialize a data frame with list of sites for each year
-anems_visited_by_site_and_year$year <- c(rep(2012, length(site_vec)), rep(2013, length(site_vec)), rep(2014, length(site_vec)), rep(2015, length(site_vec)), rep(2016, length(site_vec)), rep(2017, length(site_vec)), rep(2018, length(site_vec)))
+#anems_visited_by_site_and_year <- data.frame(site = rep(site_vec, 7)) #initialize a data frame with list of sites for each year
+#anems_visited_by_site_and_year$year <- c(rep(2012, length(site_vec)), rep(2013, length(site_vec)), rep(2014, length(site_vec)), rep(2015, length(site_vec)), rep(2016, length(site_vec)), rep(2017, length(site_vec)), rep(2018, length(site_vec)))
 
 # Trying by year instead...
 anems_visited_2012 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2012$year <- rep(2012, length(site_vec))
+anems_visited_2012$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2012$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2012$n_anems <- rep(NA, length(site_vec))
-anems_visited_2012$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2012 <- pull_tagged_anems_by_year(anems_visited_2012, 2012)
 
 anems_visited_2013 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2013$year <- rep(2013, length(site_vec))
+anems_visited_2013$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2013$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2013$n_anems <- rep(NA, length(site_vec))
-anems_visited_2013$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2013 <- pull_tagged_anems_by_year(anems_visited_2013, 2013)
 
 anems_visited_2014 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2014$year <- rep(2014, length(site_vec))
+anems_visited_2014$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2014$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2014$n_anems <- rep(NA, length(site_vec))
-anems_visited_2014$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2014 <- pull_tagged_anems_by_year(anems_visited_2014, 2014)
 
 anems_visited_2015 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2015$year <- rep(2015, length(site_vec))
+anems_visited_2015$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2015$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2015$n_anems <- rep(NA, length(site_vec))
-anems_visited_2015$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2015 <- pull_tagged_anems_by_year(anems_visited_2015, 2015)
 
 anems_visited_2016 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2016$year <- rep(2016, length(site_vec))
+anems_visited_2016$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2016$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2016$n_anems <- rep(NA, length(site_vec))
-anems_visited_2016$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2016 <- pull_tagged_anems_by_year(anems_visited_2016, 2016)
 
 anems_visited_2017 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2017$year <- rep(2017, length(site_vec))
+anems_visited_2017$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2017$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2017$n_anems <- rep(NA, length(site_vec))
-anems_visited_2017$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2017 <- pull_tagged_anems_by_year(anems_visited_2017, 2017)
 
 anems_visited_2018 <- data.frame(site = site_vec, stringsAsFactors = FALSE)
 anems_visited_2018$year <- rep(2018, length(site_vec))
+anems_visited_2018$n_tagged_anems <- rep(NA, length(site_vec))
+anems_visited_2018$n_sampled_anems <- rep(NA, length(site_vec))
 anems_visited_2018$n_anems <- rep(NA, length(site_vec))
-anems_visited_2018$n_anems_2 <- rep(NA, length(site_vec))
 anems_visited_2018 <- pull_tagged_anems_by_year(anems_visited_2018, 2018)
 
 # and put all the years together
@@ -323,16 +337,211 @@ anems_table <- rbind(anems_visited_2012, anems_visited_2013, anems_visited_2014,
 anems_table <- left_join(anems_table, total_anems_by_site, by = "site")
 
 # and calculate proportion habitat sampled
-anems_table$prop_hab_sampled = anems_table$n_anems/anems_table$total_anems
-anems_table$prop_hab_sampled_2 = anems_table$n_anems_2/anems_table$total_anems
+anems_table$prop_hab_sampled = anems_table$n_anems/anems_table$total_anems  #this is what it was before (but num might have changed in a couple cases)
+anems_table$prop_hab_sampled_high_TA = anems_table$n_anems/anems_table$high_est
+anems_table$prop_hab_sampled_low_TA = anems_table$n_anems/anems_table$low_est
+anems_table$prop_hab_sampled_mid_TA = anems_table$n_anems/anems_table$mean_est
+anems_table$prop_hab_sampled_metal_TA = anems_table$n_anems/anems_table$total_anems_metal_tags
+
+### Re-format data frame for total anem estimates estimates to make plotting easier
+total_anem_methods <- c("all tags", "metal tags", "seen 2x", "2015 W") # list of methods used to estimate total anems at a site
+total_anems_for_plotting <- data_frame(site = rep(site_vec, length(total_anem_methods)))
+total_anems_for_plotting$total_anems <- rep(NA, length(total_anems_for_plotting$site))
+total_anems_for_plotting$method <- rep(NA, length(total_anems_for_plotting$site))
+
+for(i in 1:length(total_anem_methods)) {
+  start_index = (i-1)*length(site_vec)+1
+  end_index = i*length(site_vec)
+  total_anems_for_plotting$method[start_index:end_index] <- rep(total_anem_methods[i], length(site_vec)) #fill in the method
+  
+  if(i == 1) {
+    total_anems_for_plotting$total_anems[start_index:end_index] = anems_table$total_anems[1:length(site_vec)]
+  } else if (i == 2) {
+    total_anems_for_plotting$total_anems[start_index:end_index] = anems_table$total_anems_metal_tags[1:length(site_vec)]
+  } else if (i == 3) {
+    total_anems_for_plotting$total_anems[start_index:end_index] = anems_table$total_anems_seen2x[1:length(site_vec)]
+  } else if (i == 4) {
+    total_anems_for_plotting$total_anems[start_index:end_index] = anems_table$total_anems_2015W[1:length(site_vec)]
+  }
+}
+
+### Re-format data frame for proportion habitat sampled estimates estimates to make plotting easier
+# Pull out and reorganize anems_table by year and prop_hab_sampled method
+prop_hab_for_plotting <- data.frame()
+for(i in 1:length(years_sampled)) {
+  # high TA
+  anems_table_highTA <- anems_table %>% 
+    filter(year == years_sampled[i]) %>% #pull out the right year
+    select(site, year, prop_hab_sampled_high_TA) %>% #and the relevant prop hab sampled method
+    rename(prop_hab_sampled = prop_hab_sampled_high_TA) %>% #rename
+    mutate(method = "high TA") #add method column
+  
+  # low TA
+  anems_table_lowTA <- anems_table %>% 
+    filter(year == years_sampled[i]) %>% #pull out the right year
+    select(site, year, prop_hab_sampled_low_TA) %>% #and the relevant prop hab sampled method
+    rename(prop_hab_sampled = prop_hab_sampled_low_TA) %>% #rename
+    mutate(method = "low TA") #add method column
+  
+  # mid TA
+  anems_table_meanTA <- anems_table %>% 
+    filter(year == years_sampled[i]) %>% #pull out the right year
+    select(site, year, prop_hab_sampled_mid_TA) %>% #and the relevant prop hab sampled method
+    rename(prop_hab_sampled = prop_hab_sampled_mid_TA) %>% #rename
+    mutate(method = "mean TA") #add method column
+  
+  # metal TA
+  anems_table_metalTA <- anems_table %>% 
+    filter(year == years_sampled[i]) %>% #pull out the right year
+    select(site, year, prop_hab_sampled_metal_TA) %>% #and the relevant prop hab sampled method
+    rename(prop_hab_sampled = prop_hab_sampled_metal_TA) %>% #rename
+    mutate(method = "metal TA") #add method column
+  
+  prop_hab_for_plotting <- rbind(prop_hab_for_plotting, anems_table_highTA, anems_table_lowTA, anems_table_meanTA, anems_table_metalTA)
+}
+
+# Get rid of Inf for sites that have no total anems the way we are counting and make NA (but some years should make 1 - figure out which sites and years that applies to)
+is.na(prop_hab_for_plotting$prop_hab_sampled) <- sapply(prop_hab_for_plotting$prop_hab_sampled, is.infinite)
+
+########## KC - if you nuance how to handle Inf (since sometimes should be 0, other times 1), add it here too! #################
 
 # #################### Plots: ####################
-# ## AAAAAGGGGGHHHHH - Got very frustrated with ggplot and gave up on this but seems like it should be an easy plot to make
-# ## Ideally, would like a bar plot for each year, with the two ways of estimating prop hab sampled by site
-# ggplot(data = anems_table, aes(site, prop_hab_sampled, year)) +
-#   geom_bar(stat="identity") + 
-#   facet_wrap(.~year)
+# Compare different ways of estimating total anems at site
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Total_anems_at_site_methods_comp.pdf"))
+ggplot(data = total_anems_for_plotting, aes(site, total_anems)) +
+  geom_bar(aes(fill = method), position = "dodge", stat = "identity") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  #theme(legend.position = "bottom") +
+  ggtitle("Estimates of total anemones at site")
+dev.off()
+
+# Compare different estimates of proportion habitat sampled
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_across_sites_and_years.pdf"))
+ggplot(data = prop_hab_for_plotting, aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  facet_wrap(~year) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled")
+dev.off()
+
+# Compare different estimates of proportion habitat sampled, but zooming in a bit
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_across_sites_and_years_zoomed.pdf"))
+ggplot(data = prop_hab_for_plotting, aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  scale_y_continuous(limits = c(0, 1.5)) +
+  facet_wrap(~year) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - zoomed")
+dev.off()
+
+# And looking at each year individually
+# 2012
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2012.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2012), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2012")
+dev.off()
+
+# 2013
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2013.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2013), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2013")
+dev.off()
+
+# 2014
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2014.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2014), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2014")
+dev.off()
+
+# 2015
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2015.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2015), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2015")
+dev.off()
+
+# 2016
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2016.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2016), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2016")
+dev.off()
+
+# 2017
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2017.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2017), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2017")
+dev.off()
+
+# 2018
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2018.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2018), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2018")
+dev.off()
 
 #################### Save output: ####################
 save(total_anems_by_site, file=here("Data", "total_anems_by_site.RData"))
 save(anems_table, file=here("Data", "anem_sampling_table.RData"))
+
+#################### Old code: ####################
+# # and reformat proportion hab sampled estimates for easier plotting
+# # this is an annoying method that I'm not going to use but was an indexing victory so I'm leaving it here because I don't want to delete it...
+# prop_hab_methods <- c("high TA", "low TA", "mean TA", "metal tags TA") # list of methods (really total anem denomintators) used to estimate prop hab sampled
+# prop_hab_for_plotting <- data_frame(site = rep(site_vec, length(prop_hab_methods)*length(years_sampled))) #set up data frame
+# prop_hab_for_plotting$year <- rep(NA, length(prop_hab_for_plotting$site))
+# prop_hab_for_plotting$prop_hab_sampled <- rep(NA, length(prop_hab_for_plotting$site))
+# prop_hab_for_plotting$method <- rep(NA, length(prop_hab_for_plotting$site))
+# 
+# # fill in the year and method sampled
+# for(i in 1:length(years_sampled)) {
+#   start_index = (i-1)*length(site_vec)*length(prop_hab_methods)+1
+#   end_index = i*length(site_vec)*length(prop_hab_methods)
+#   prop_hab_for_plotting$year[start_index:end_index] <- rep(years_sampled[i], length(site_vec)*length(prop_hab_methods)) #fill in the year
+#   
+#   for(j in 1:length(prop_hab_methods)) {
+#     start_index_method <- start_index + (j-1)*length(site_vec)  
+#     end_index_method <- start_index_method + length(site_vec)-1
+#     prop_hab_for_plotting$method[start_index_method:end_index_method] = rep(prop_hab_methods[j], length(site_vec))
+#   }
+# }
