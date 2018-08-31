@@ -1,7 +1,7 @@
 # Look at egg-recruit relationship (in attempts to estimate survival from eggs to recruits)
 
 #################### Set-up: ####################
-# Load relevant libraries
+##### Load relevant libraries
 library(RCurl) #allows running R scripts from GitHub
 library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
@@ -12,7 +12,7 @@ library(ggplot2)
 library(RColorBrewer)
 library(here)
 
-# Set constants
+##### Set constants (consider moving some of these to common constants and function script?)
 min_size_breedingF <- 6.0 # minimum size for filtering out breeding females
 min_size_breedingM <- 5.0 # minumum size for filtering out breeding males (totally made up right now)
 eggs_per_clutch = 1763 #from LEP_calc_WillWhite.R
@@ -24,9 +24,23 @@ max_size_recruit <- 6.0 #maximum size to be considered a recruit from an egg pro
 sample_months <- c(3,4,5,6,7,8) #set months to avoid winter 2015 anem surveys
 dive_list <- c("0","C","D","E")
 
-# Load other files
+##### Load other files
 # load file with proportion habitat sampled estimates (from TotalAnemsAtSite.R)
 load(file=here("Data",'anem_sampling_table.RData')) #file with anems, after 2018 anems matched
+
+# KC estimates of site area - she calculated these in QGIS, using the hulls, m2 is what was calculated directly (right now the conversion to km2 is off by 1000)
+site_areas = read.csv(file=here("Data", "site_area.csv"), header = TRUE) 
+site_areas <- site_areas %>%
+  mutate(kmsq_area = area_msq/1000000)
+
+# Edit the area estimates for Cabatoan and Magbangon, which are together right now - put Cabatoan as 1/3 and Magbangon as 2/3
+site_areas_edited <- site_areas
+site_areas_edited$site <- as.character(site_areas_edited$site)
+site_areas_edited[4,1] <- "Elementary School" #fix spelling of Elementary School so can join with other data frames by site
+site_areas_edited[1,2] <- site_areas[1,2]*1/3 #Cabatoan m2
+site_areas_edited[1,4] <- site_areas[1,4]*1/3 #Cabatoan km2
+site_areas_edited[8,2] <- site_areas[8,2]*2/3 #Magbangon m2
+site_areas_edited[8,4] <- site_areas[8,4]*2/3 #Magbangon km2
 
 # prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
@@ -107,18 +121,18 @@ breedingF_info <- left_join(breedingF, breedingF_tagged, by = c("site" = "site",
 prob_r_avg <- mean(prob_r)
 
 # Join proportion hab sampled with breeding F info
-breedingF_info <- left_join(breedingF_info, (anems_table %>% select(site, year, prop_hab_sampled, prop_hab_sampled_2)), by = c("site", "year"))
+breedingF_info <- left_join(breedingF_info, (anems_table %>% select(site, year, prop_hab_sampled_high_TA, prop_hab_sampled_low_TA, prop_hab_sampled_metal_TA, prop_hab_sampled_mid_TA)), by = c("site", "year"))
 
-# Add one more column that is prop_hab_sampled_combo - prop_hab_sampled_2 for 2012, prop_hab_sampled (using anem_ids) for 2013-2018
-breedingF_info$prop_hab_sampled_combo <- rep(NA, length(breedingF_info$site))
-
-for(i in 1:length(breedingF_info$site)) {
-  if(breedingF_info$year[i] == 2012) {
-    breedingF_info$prop_hab_sampled_combo[i] = breedingF_info$prop_hab_sampled_2[i] #use the non-anem_id method for 2012
-  } else {
-    breedingF_info$prop_hab_sampled_combo[i] = breedingF_info$prop_hab_sampled[i] #and the anem_id method for the other years
-  } 
-}
+# # Add one more column that is prop_hab_sampled_combo - prop_hab_sampled_2 for 2012, prop_hab_sampled (using anem_ids) for 2013-2018
+# breedingF_info$prop_hab_sampled_combo <- rep(NA, length(breedingF_info$site)) # don't think I need this now, b/c did the combo part in the numerator (n_anems) in the anems_table before calculating proportion habitat sampled
+# 
+# for(i in 1:length(breedingF_info$site)) {
+#   if(breedingF_info$year[i] == 2012) {
+#     breedingF_info$prop_hab_sampled_combo[i] = breedingF_info$prop_hab_sampled_2[i] #use the non-anem_id method for 2012
+#   } else {
+#     breedingF_info$prop_hab_sampled_combo[i] = breedingF_info$prop_hab_sampled[i] #and the anem_id method for the other years
+#   } 
+# }
 
 # Add a breedingF combo that uses the tagged fish for 2015-2018 and recorded fish of the right size/color before that
 breedingF_info$NbreedingF_combo <- rep(NA, length(breedingF_info$site))
@@ -132,11 +146,42 @@ for(i in 1:length(breedingF_info$site)) {
 }
 
 # Estimate number of breeding females in each pop - scale up N captured or tagged by proportion of habitat sampled and prob of capture
-breedingF_info$totalF_est <- breedingF_info$NbreedingF_combo/(breedingF_info$prop_hab_sampled_combo*prob_r_avg)
+# First, for all prop hab sampled estimates, make any number > 1 turn to 1 (b/c we didn't sample more than all of the habitat there) - right now, this means the Infs are turning into 1s too - should think about whether that's right...
+breedingF_info <- breedingF_info %>%
+  mutate(prop_hab_sampled_high_TA = ifelse(prop_hab_sampled_high_TA > 1, 1, prop_hab_sampled_high_TA)) %>%
+  mutate(prop_hab_sampled_low_TA = ifelse(prop_hab_sampled_low_TA > 1, 1, prop_hab_sampled_low_TA)) %>%
+  mutate(prop_hab_sampled_metal_TA = ifelse(prop_hab_sampled_metal_TA > 1, 1, prop_hab_sampled_metal_TA)) %>%
+  mutate(prop_hab_sampled_mid_TA = ifelse(prop_hab_sampled_mid_TA > 1, 1, prop_hab_sampled_mid_TA))
+
+# Now, do the scaling up F estimates
+breedingF_info <- breedingF_info %>%
+  mutate(totalF_est_highTA = NbreedingF_combo/(prop_hab_sampled_high_TA*prob_r_avg)) %>% #high TA estimate in proportion hab sampled
+  mutate(totalF_est_lowTA = NbreedingF_combo/(prop_hab_sampled_low_TA*prob_r_avg)) %>% #low TA estimate in proportion hab sampled
+  mutate(totalF_est_midTA = NbreedingF_combo/(prop_hab_sampled_mid_TA*prob_r_avg)) %>% #mean TA estimate in proportion hab sampled
+  mutate(totalF_est_metalTA = NbreedingF_combo/(prop_hab_sampled_metal_TA*prob_r_avg))
 
 # Estimate total number of eggs produced
-breedingF_info$est_eggs <- breedingF_info$totalF_est*eggs_per_clutch*clutch_per_year #using scaled-up estimates of females
-breedingF_info$rawF_egg_est <- breedingF_info$NbreedingF_combo*eggs_per_clutch*clutch_per_year #using raw numbers of captured/tagged breeding females
+breedingF_info <- breedingF_info %>%
+  mutate(est_eggs_highTA = totalF_est_highTA*eggs_per_clutch*clutch_per_year) %>% #using scaled-up estimates of females with high TA
+  mutate(est_eggs_lowTA = totalF_est_lowTA*eggs_per_clutch*clutch_per_year) %>% #using scaled-up estimates of females with low TA
+  mutate(est_eggs_midTA = totalF_est_midTA*eggs_per_clutch*clutch_per_year) %>% #using scaled-up estimates of females with mean TA
+  mutate(est_eggs_metalTA = totalF_est_metalTA*eggs_per_clutch*clutch_per_year) %>% #using scaled-up estimates of females with metal TA
+  mutate(rawF_egg_est = NbreedingF_combo*eggs_per_clutch*clutch_per_year) #using raw numbers of captured or tagged breeding females
+
+# Join site area data frame in
+breedingF_info <- left_join(breedingF_info, site_areas_edited %>% select(site, area_msq, kmsq_area), by = "site")
+
+# Scale estimate of number of females and eggs by site area
+breedingF_info <- breedingF_info %>%
+  mutate(totalF_est_highTA_m2 = totalF_est_highTA/area_msq) %>%
+  mutate(totalF_est_lowTA_m2 = totalF_est_lowTA/area_msq) %>%
+  mutate(totalF_est_midTA_m2 = totalF_est_midTA/area_msq) %>%
+  mutate(totalF_est_metalTA_m2 = totalF_est_metalTA/area_msq) %>%
+  mutate(est_eggs_highTA_m2 = est_eggs_highTA/area_msq) %>%
+  mutate(est_eggs_lowTA_m2 = est_eggs_lowTA/area_msq) %>%
+  mutate(est_eggs_midTA_m2 = est_eggs_midTA/area_msq) %>%
+  mutate(est_eggs_metalTA_m2 = est_eggs_metalTA/area_msq) %>%
+  mutate(rawF_egg_est_m2 = rawF_egg_est/area_msq)
 
 ##### Find number of recruits in a pop in each year
 # Find number of recruits (3.5cm - 6.0cm) seen or captured
@@ -154,30 +199,41 @@ recruits_clipped <- allfish %>%
   summarise(Nrecruits_clipped = n())
 
 # Combine - looks like really not very many clipped so going to go with the other column but should check with Michelle/Malin what it is!
-recruits_info <- left_join(recruits, recruits_clipped, by = c("site" = "site", "year" = "year")) 
+recruits_info <- left_join(recruits, recruits_clipped, by = c("site" = "site", "year" = "year")) #looks like two rows get lost here - recruits_clipped has two more -- check!!
 
 # And join with habitat info, using the combo column in breedingF_info
-recruits_info <- left_join(recruits_info, (breedingF_info %>% select(year, site, prop_hab_sampled_combo)), by = c("site" = "site", "year" = "year"))
+#recruits_info <- left_join(recruits_info, (breedingF_info %>% select(year, site, prop_hab_sampled_combo)), by = c("site" = "site", "year" = "year"))
+recruits_info <- left_join(recruits_info, (breedingF_info %>% select(year, site, prop_hab_sampled_high_TA, prop_hab_sampled_low_TA, prop_hab_sampled_metal_TA, prop_hab_sampled_mid_TA)),
+                           by = c("site" = "site", "year" = "year"))
 
 # Now scale up, like did with females - scale up N captured or tagged by proportion of habitat sampled and prob of capture
-recruits_info$totalR_est <- recruits_info$Nrecruits/(recruits_info$prop_hab_sampled_combo*prob_r_avg)
+#recruits_info$totalR_est <- recruits_info$Nrecruits/(recruits_info$prop_hab_sampled_combo*prob_r_avg)
+recruits_info <- recruits_info %>%
+  mutate(totalR_est_highTA = Nrecruits/(prop_hab_sampled_high_TA*prob_r_avg)) %>% #high TA estimate in proportion hab sampled
+  mutate(totalR_est_lowTA = Nrecruits/(prop_hab_sampled_low_TA*prob_r_avg)) %>% #low TA estimate in proportion hab sampled
+  mutate(totalR_est_midTA = Nrecruits/(prop_hab_sampled_mid_TA*prob_r_avg)) %>% #mean TA estimate in proportion hab sampled
+  mutate(totalR_est_metalTA = Nrecruits/(prop_hab_sampled_metal_TA*prob_r_avg)) #metal TA estimate in proportion hab sampled
+
+# Make an "egg year" column so can compare output with recruitment
 recruits_info$egg_year <- recruits_info$year - 1
 
 # Create a new data frame with both females/eggs and recruits a year later, for easier plotting
-females_recruits_summary <- breedingF_info %>% select(site, year, NbreedingF_combo, totalF_est, est_eggs, rawF_egg_est, prop_hab_sampled_combo)
-females_recruits_summary <- left_join((breedingF_info %>% select(site, year, NbreedingF_combo, totalF_est, est_eggs, rawF_egg_est, prop_hab_sampled_combo)), 
-                                      (recruits_info %>% select(site, egg_year, Nrecruits, Nrecruits_clipped, totalR_est)), 
-                                      by = c("site" = "site", "year" = "egg_year"))
-females_recruits_summary <- females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)) #since don't have recruits for 2018 female output...
+# females_recruits_summary <- breedingF_info %>% select(site, year, NbreedingF_combo, totalF_est, est_eggs, rawF_egg_est, prop_hab_sampled_combo)
+# females_recruits_summary <- left_join((breedingF_info %>% select(site, year, NbreedingF_combo, totalF_est, est_eggs, rawF_egg_est, prop_hab_sampled_combo)), 
+#                                       (recruits_info %>% select(site, egg_year, Nrecruits, Nrecruits_clipped, totalR_est)), 
+#                                       by = c("site" = "site", "year" = "egg_year"))
+# females_recruits_summary <- females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)) #since don't have recruits for 2018 female output...
+females_recruits_summary <- left_join((breedingF_info %>% select(-NbreedingF, -Ntagged_breedingF, -prop_hab_sampled_high_TA, -prop_hab_sampled_low_TA, -prop_hab_sampled_metal_TA, -prop_hab_sampled_mid_TA)), 
+                                       (recruits_info %>% select(-prop_hab_sampled_high_TA, -prop_hab_sampled_low_TA, -prop_hab_sampled_metal_TA, -prop_hab_sampled_mid_TA)), by = c("site" = "site", "year" = "egg_year"))
 
 # And one more data frame where each year all females, eggs, and recruits are summed up across sites
 metapop_level <- females_recruits_summary %>%
   group_by(year) %>% 
   summarize(metapop_rawF = sum(NbreedingF_combo, na.rm =TRUE), 
-            metapop_estF = sum(totalF_est, na.rm = TRUE),
-            metapop_est_eggs = sum(est_eggs, na.rm = TRUE),
+            metapop_estF_metalTA = sum(totalF_est_metalTA, na.rm = TRUE),
+            metapop_est_eggs_metalTA = sum(est_eggs_metalTA, na.rm = TRUE),
             metapop_rawR = sum(Nrecruits, na.rm = TRUE),
-            metapop_estR = sum(totalR_est, na.rm = TRUE))
+            metapop_estR_metalTA = sum(totalR_est_metalTA, na.rm = TRUE))
 
 ########## Find linear relationships
 ### Estimated eggs and recruits each site individually
