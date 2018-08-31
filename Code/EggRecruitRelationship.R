@@ -203,7 +203,7 @@ recruits_info <- left_join(recruits, recruits_clipped, by = c("site" = "site", "
 
 # And join with habitat info, using the combo column in breedingF_info
 #recruits_info <- left_join(recruits_info, (breedingF_info %>% select(year, site, prop_hab_sampled_combo)), by = c("site" = "site", "year" = "year"))
-recruits_info <- left_join(recruits_info, (breedingF_info %>% select(year, site, prop_hab_sampled_high_TA, prop_hab_sampled_low_TA, prop_hab_sampled_metal_TA, prop_hab_sampled_mid_TA)),
+recruits_info <- left_join(recruits_info, (breedingF_info %>% select(year, site, prop_hab_sampled_high_TA, prop_hab_sampled_low_TA, prop_hab_sampled_metal_TA, prop_hab_sampled_mid_TA, area_msq)),
                            by = c("site" = "site", "year" = "year"))
 
 # Now scale up, like did with females - scale up N captured or tagged by proportion of habitat sampled and prob of capture
@@ -213,6 +213,14 @@ recruits_info <- recruits_info %>%
   mutate(totalR_est_lowTA = Nrecruits/(prop_hab_sampled_low_TA*prob_r_avg)) %>% #low TA estimate in proportion hab sampled
   mutate(totalR_est_midTA = Nrecruits/(prop_hab_sampled_mid_TA*prob_r_avg)) %>% #mean TA estimate in proportion hab sampled
   mutate(totalR_est_metalTA = Nrecruits/(prop_hab_sampled_metal_TA*prob_r_avg)) #metal TA estimate in proportion hab sampled
+
+# And now, divide by site area
+recruits_info <- recruits_info %>%
+  mutate(totalR_est_highTA_SA = totalR_est_highTA/area_msq) %>%
+  mutate(totalR_est_lowTA_SA = totalR_est_lowTA/area_msq) %>%
+  mutate(totalR_est_midTA_SA = totalR_est_midTA/area_msq) %>%
+  mutate(totalR_est_metalTA_SA = totalR_est_metalTA/area_msq) %>%
+  mutate(Nrecruits_SA = Nrecruits/area_msq)
 
 # Make an "egg year" column so can compare output with recruitment
 recruits_info$egg_year <- recruits_info$year - 1
