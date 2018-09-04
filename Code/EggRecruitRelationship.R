@@ -216,11 +216,11 @@ recruits_info <- recruits_info %>%
 
 # And now, divide by site area
 recruits_info <- recruits_info %>%
-  mutate(totalR_est_highTA_SA = totalR_est_highTA/area_msq) %>%
-  mutate(totalR_est_lowTA_SA = totalR_est_lowTA/area_msq) %>%
-  mutate(totalR_est_midTA_SA = totalR_est_midTA/area_msq) %>%
-  mutate(totalR_est_metalTA_SA = totalR_est_metalTA/area_msq) %>%
-  mutate(Nrecruits_SA = Nrecruits/area_msq)
+  mutate(totalR_est_highTA_m2 = totalR_est_highTA/area_msq) %>%
+  mutate(totalR_est_lowTA_m2 = totalR_est_lowTA/area_msq) %>%
+  mutate(totalR_est_midTA_m2 = totalR_est_midTA/area_msq) %>%
+  mutate(totalR_est_metalTA_m2 = totalR_est_metalTA/area_msq) %>%
+  mutate(Nrecruits_m2 = Nrecruits/area_msq)
 
 # Make an "egg year" column so can compare output with recruitment
 recruits_info$egg_year <- recruits_info$year - 1
@@ -243,27 +243,73 @@ metapop_level <- females_recruits_summary %>%
             metapop_rawR = sum(Nrecruits, na.rm = TRUE),
             metapop_estR_metalTA = sum(totalR_est_metalTA, na.rm = TRUE))
 
-########## Find linear relationships
+########## Find linear relationships #NEED TO UPDATE THESE TO HAVE AREA-SCALED ESTIMATES IN THEM!
 ### Estimated eggs and recruits each site individually
-egg_recruits_est_mod1 <- lm(totalR_est ~ est_eggs, data=females_recruits_summary) #estimate linear relationship
-egg_recruits_est_mod1_predicted <- data.frame(recruits_pred = predict(egg_recruits_est_mod1, females_recruits_summary), est_eggs = females_recruits_summary$est_eggs) #predict values
-females_recruits_summary_mod1 <- left_join(females_recruits_summary, egg_recruits_est_mod1_predicted, by = "est_eggs") #add predictions to data frame to plot
+# egg_recruits_est_mod1 <- lm(totalR_est ~ est_eggs, data=females_recruits_summary) #estimate linear relationship
+# egg_recruits_est_mod1_predicted <- data.frame(recruits_pred = predict(egg_recruits_est_mod1, females_recruits_summary), est_eggs = females_recruits_summary$est_eggs) #predict values
+# females_recruits_summary_mod1 <- left_join(females_recruits_summary, egg_recruits_est_mod1_predicted, by = "est_eggs") #add predictions to data frame to plot
 
-### Estimated eggs and recruits summed up to metapop level
-meta_eggs_recruits_est_mod1 <- lm(metapop_estR ~ metapop_est_eggs, data=metapop_level) #estimate linear relationship
-meta_egg_recruits_est_mod1_predicted <- data.frame(recruits_pred = predict(meta_eggs_recruits_est_mod1, metapop_level), metapop_est_eggs = metapop_level$metapop_est_eggs) #predict values
-metapop_level_mod1 <- left_join(metapop_level, meta_egg_recruits_est_mod1_predicted, by = "metapop_est_eggs") #add predictions to data frame to plot
+### Estimated eggs and recruits each site individually, area-scaled estimates
+# metal tags for TA, eggs - low R2 (0.133, adjusted 0.1183) but significant (p=0.003857)
+egg_recruits_est_metalTA_m2_mod1 <- lm(totalR_est_metalTA_m2 ~ est_eggs_metalTA_m2, data=females_recruits_summary) #estimate linear relationship
+egg_recruits_est_metalTA_m2_predicted_mod1 <- data.frame(recruits_pred_mod1 = predict(egg_recruits_est_metalTA_m2_mod1, females_recruits_summary), est_eggs_metalTA_m2 = females_recruits_summary$est_eggs_metalTA_m2) #predict values
+females_recruits_summary_mod1 <- left_join(females_recruits_summary, egg_recruits_est_metalTA_m2_predicted_mod1, by = "est_eggs_metalTA_m2") #add predictions to data frame to plot
 
+# mean estimate of TA, eggs - low R2 (0.1663, adjusted 0.1522) but significant (p=0.001104)
+egg_recruits_est_midTA_m2_mod2 <- lm(totalR_est_midTA_m2 ~ est_eggs_midTA_m2, data=females_recruits_summary) #estimate linear relationship
+egg_recruits_est_midTA_m2_predicted_mod2 <- data.frame(recruits_pred_mod2 = predict(egg_recruits_est_midTA_m2_mod2, females_recruits_summary), est_eggs_midTA_m2 = females_recruits_summary$est_eggs_midTA_m2) #predict values
+females_recruits_summary_mod2 <- left_join(females_recruits_summary, egg_recruits_est_midTA_m2_predicted_mod2, by = "est_eggs_midTA_m2") #add predictions to data frame to plot
+
+# metal tags for TA, females (same R2 and significance as mod1 (which makes sense, b/c same data just scaled by egg output/female)
+females_recruits_est_metalTA_m2_mod3 <- lm(totalR_est_metalTA_m2 ~ totalF_est_metalTA_m2, data=females_recruits_summary) #estimate linear relationship
+females_recruits_est_metalTA_m2_predicted_mod3 <- data.frame(recruits_pred_mod3 = predict(females_recruits_est_metalTA_m2_mod3, females_recruits_summary), totalF_est_metalTA_m2 = females_recruits_summary$totalF_est_metalTA_m2) #predict values
+females_recruits_summary_mod3 <- left_join(females_recruits_summary, females_recruits_est_metalTA_m2_predicted_mod3, by = "totalF_est_metalTA_m2") #add predictions to data frame to plot
+
+# mean estimate of TA, females (same R2 and significance as mod3, which it is supposed to)
+females_recruits_est_midTA_m2_mod4 <- lm(totalR_est_midTA_m2 ~ totalF_est_midTA_m2, data=females_recruits_summary) #estimate linear relationship
+females_recruits_est_midTA_m2_predicted_mod4 <- data.frame(recruits_pred_mod4 = predict(females_recruits_est_midTA_m2_mod4, females_recruits_summary), totalF_est_midTA_m2 = females_recruits_summary$totalF_est_midTA_m2) #predict values
+females_recruits_summary_mod4 <- left_join(females_recruits_summary, females_recruits_est_midTA_m2_predicted_mod4, by = "totalF_est_midTA_m2") #add predictions to data frame to plot
+
+### Estimated eggs and recruits summed up to metapop level (but without taking into account different sites sampled in different years) (low (or negative?) R2 = 0.1089, adjusted = -0.06928, not significant: p=0.4697)
+meta_eggs_recruits_est_mod5 <- lm(metapop_estR_metalTA ~ metapop_est_eggs_metalTA, data=metapop_level) #estimate linear relationship
+meta_egg_recruits_est_predicted_mod5 <- data.frame(recruits_pred_mod5 = predict(meta_eggs_recruits_est_mod5, metapop_level), metapop_est_eggs_metalTA = metapop_level$metapop_est_eggs_metalTA) #predict values
+metapop_level_mod5 <- left_join(metapop_level, meta_egg_recruits_est_predicted_mod5, by = "metapop_est_eggs_metalTA") #add predictions to data frame to plot
 
 #################### Plots: ####################
-# Number of eggs produced by site with number of recruits there a year later, at site level
-pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site.pdf"))
-ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs, y=totalR_est, color=year, shape=site)) +
+# Number of eggs produced per m2 by site with number of recruits per m2 there a year later, metal tags used for total anem estimates
+pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_metalTA_m2.pdf"))
+ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs_metalTA_m2, y=totalR_est_metalTA_m2, color=year, shape=site)) +
   geom_point(size=3) +
   scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
-  geom_line(color = "black", data=females_recruits_summary_mod1, aes(x=est_eggs, y=recruits_pred)) +
+  geom_line(color = "black", data=females_recruits_summary_mod1, aes(x=est_eggs_metalTA_m2, y=recruits_pred_mod1)) +
+  xlab("estimated egg output per m2") + ylab("estimated number of recruits per m2 following year") +
+  ggtitle("Egg-recruit scatter plot for each site and year individually (metal tags TA)") +
+  theme(text = element_text(size=25)) +
+  theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
+  theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
+dev.off()
+
+# Number of eggs produced per m2 by site with number of recruits per m2 there a year later, mean total anems used for total anem estimates
+pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_midTA_m2.pdf"))
+ggplot(data = females_recruits_summary_mod2, aes(x=est_eggs_midTA_m2, y=totalR_est_midTA_m2, color=year, shape=site)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
+  geom_line(color = "black", data=females_recruits_summary_mod2, aes(x=est_eggs_midTA_m2, y=recruits_pred_mod2)) +
+  xlab("estimated egg output per m2") + ylab("estimated number of recruits per m2 following year") +
+  ggtitle("Egg-recruit scatter plot for each site and year individually (mid anems TA)") +
+  theme(text = element_text(size=25)) +
+  theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
+  theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
+dev.off()
+
+# Number of eggs produced by site with number of recruits there a year later, at site level - updated to be w/estimates using metal tags as TA
+pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site.pdf"))
+ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs_metalTA, y=totalR_est_metalTA, color=year, shape=site)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
+  #geom_line(color = "black", data=females_recruits_summary_mod1, aes(x=est_eggs_metalTA, y=recruits_pred_mod1)) +
   xlab("estimated egg output") + ylab("estimated number of recruits following year") +
-  ggtitle("Egg-recruit scatter plot for each site and year individually") +
+  ggtitle("Egg-recruit scatter plot for each site and year individually (metal tags TA)") +
   theme(text = element_text(size=25)) +
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
   theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
@@ -299,13 +345,13 @@ ggplot(data = females_recruits_summary, aes(x=est_eggs, y=totalR_est, color=year
   theme(legend.text=element_text(size=20)) + theme(legend.title=element_text(size=25))
 dev.off()
 
-# Number of eggs produced by site with number of recruits there a year later, years broken out individually
+# Number of eggs produced by site with number of recruits there a year later, years broken out individually - updated to use estimates from metal tags as TA
 pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_years_as_subplots.pdf"))
-ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=est_eggs, y=totalR_est, shape=site)) +
+ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=est_eggs_metalTA, y=totalR_est_metalTA, shape=site)) +
   geom_point(size=3) +
   scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
   xlab("estimated egg output") + ylab("estimated number of recruits following year") +
-  ggtitle("Egg-recruit scatter plot for each site, years as subplots") +
+  ggtitle("Egg-recruit scatter plot for each site (metal TA), years as subplots") +
   #theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   facet_grid(.~year) +
   theme(text = element_text(size=25)) +
@@ -314,28 +360,28 @@ ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,201
   theme_bw()
 dev.off()
 
-# Same as above but w/estimated number of females instead of eggs (which looks exactly the same right now b/c eggs aren't dependent on female size yet)
+# Same as above but w/estimated number of females instead of eggs (which looks exactly the same right now b/c eggs aren't dependent on female size yet) - updated to use estimates from metal tags as TA
 pdf(file = here("Plots/EggRecruitRelationship", "Females_recruits_by_site.pdf"))
-ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=totalF_est, y=totalR_est, color=year, shape=site)) +
+ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=totalF_est_metalTA, y=totalR_est_metalTA, color=year, shape=site)) +
   geom_point(size=3) +
   scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
   scale_fill_brewer(palette = "Set1") + #not sure why this is having no effect...
   xlab("estimated # breeding F") + ylab("estimated number of recruits following year") +
-  ggtitle("Female-recruit scatter plot for each site and year individually") +
+  ggtitle("Female-recruit scatter plot for each site and year individually (metal TA)") +
   theme(text = element_text(size=25)) +
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
   theme_bw()
 dev.off()
 
-# Truncated w/estimated number of females instead of eggs (which looks exactly the same right now b/c eggs aren't dependent on female size yet)
+# Truncated w/estimated number of females instead of eggs (which looks exactly the same right now b/c eggs aren't dependent on female size yet) - updated to use metal tags TA estimates
 pdf(file = here("Plots/EggRecruitRelationship", "Females_recruits_by_site_truncated.pdf"))
-ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=totalF_est, y=totalR_est, color=year, shape=site)) +
+ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=totalF_est_metalTA, y=totalR_est_metalTA, color=year, shape=site)) +
   geom_point(size=3) +
   scale_x_continuous(limits=c(0,150)) +
   scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
   scale_fill_brewer(palette = "Set1") + #not sure why this is having no effect...
   xlab("estimated # breeding F") + ylab("estimated number of recruits following year") +
-  ggtitle("Truncated female-recruit scatter plot for each site and year individually") +
+  ggtitle("Truncated female-recruit scatter plot for each site and year individually (metal TA)") +
   theme(text = element_text(size=25)) +
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
   theme_bw()
@@ -354,24 +400,24 @@ ggplot(data = females_recruits_summary %>% filter(year %in% c(2012,2013,2014,201
   theme_bw()
 dev.off()
 
-# Now sum it up by year across all sites, plot females and recruits at metapop level
+# Now sum it up by year across all sites, plot females and recruits at metapop level - updated to use estimates that use metal TA
 pdf(file = here("Plots/EggRecruitRelationship", "Metapop_females_recruits_estimated.pdf"))
-ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=metapop_estF, y=metapop_estR, color=year)) +
+ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=metapop_estF_metalTA, y=metapop_estR_metalTA, color=year)) +
   geom_point(size=3) +
   xlab("estimated # F") + ylab("estimated # R following year") +
-  ggtitle("Estimated F and R summed across all sites sampled in each year") +
+  ggtitle("Estimated F and R summed across all sites sampled in each year (metal TA)") +
   theme(text = element_text(size=25)) +
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
   theme_bw()
 dev.off()
 
-# Now sum it up by year across all sites, plot est eggs and recruits at metapop level
+# Now sum it up by year across all sites, plot est eggs and recruits at metapop level - updated to use estimates from metal TA
 pdf(file = here("Plots/EggRecruitRelationship", "Metapop_eggs_recruits_estimated.pdf"))
-ggplot(data = metapop_level_mod1 %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=metapop_est_eggs, y=metapop_estR, color=year)) +
+ggplot(data = metapop_level_mod5 %>% filter(year %in% c(2012,2013,2014,2015,2016,2017)), aes(x=metapop_est_eggs_metalTA, y=metapop_estR_metalTA, color=year)) +
   geom_point(size=3) +
-  geom_line(color = "black", data=metapop_level_mod1, aes(x=metapop_est_eggs, y=recruits_pred)) +
+  geom_line(color = "black", data=metapop_level_mod5, aes(x=metapop_est_eggs_metalTA, y=recruits_pred_mod5)) +
   xlab("estimated # eggs") + ylab("estimated # R following year") +
-  ggtitle("Estimated eggs and R summed across all sites sampled in each year") +
+  ggtitle("Estimated eggs and R summed across all sites sampled in each year (metal TA)") +
   theme(text = element_text(size=25)) +
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
   theme_bw()
@@ -388,13 +434,16 @@ ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017
   theme_bw()
 dev.off()
 
-
 #################### Saving output: ####################
 save(recruits_info, file=here("Data", "recruits_info.RData"))
 save(females_recruits_summary, file=here("Data", "females_recruits_summary.RData"))
 save(metapop_level, file=here("Data", "metapop_level.RData"))
-save(meta_eggs_recruits_est_mod1, file=here("Data","metapop_lm.RData"))
-save(egg_recruits_est_mod1, file=here("Data","egg_recruit_lm.RData"))
+save(egg_recruits_est_metalTA_m2_mod1, file=here("Data","egg_recruit_lm_mod1.RData"))
+save(egg_recruits_est_midTA_m2_mod2, file=here("Data", "egg_recruit_lm_mod2.RData"))
+save(females_recruits_est_metalTA_m2_mod3, file=here("Data", "female_recruit_lm_mod3.RData"))
+save(females_recruits_est_midTA_m2_mod4, file=here("Data", "female_recruit_lm_mod4.RData"))
+save(meta_eggs_recruits_est_mod5, file=here("Data","metapop_lm_mod5.RData"))
+
 
 #Thinking through the plan
 #For each year, try to estimate the number of eggs released (either at a site level or at a whole-population level)
