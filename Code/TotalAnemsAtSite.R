@@ -369,6 +369,7 @@ for(i in 1:length(total_anem_methods)) {
 # Pull out and reorganize anems_table by year and prop_hab_sampled method
 prop_hab_for_plotting <- data.frame()
 for(i in 1:length(years_sampled)) {
+  
   # high TA
   anems_table_highTA <- anems_table %>% 
     filter(year == years_sampled[i]) %>% #pull out the right year
@@ -406,6 +407,19 @@ is.na(prop_hab_for_plotting$prop_hab_sampled) <- sapply(prop_hab_for_plotting$pr
 ########## KC - if you nuance how to handle Inf (since sometimes should be 0, other times 1), add it here too! #################
 
 # #################### Plots: ####################
+# Look at proportion sampled, using metal tags as total anemones
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_metalTA.pdf"))
+ggplot(data = anems_table, aes(x=site, y=prop_hab_sampled_metal_TA)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  facet_wrap(~year) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled, metal tags as TA")
+dev.off()
+
+
 # Compare different ways of estimating total anems at site
 pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Total_anems_at_site_methods_comp.pdf"))
 ggplot(data = total_anems_for_plotting, aes(site, total_anems)) +
@@ -511,6 +525,17 @@ dev.off()
 
 # 2018
 pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_methods_2018.pdf"))
+ggplot(data = prop_hab_for_plotting %>% filter(year == 2018), aes(x=site, y=prop_hab_sampled, fill=method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled - 2018")
+dev.off()
+
+# all years, metal tags as total anems
+pdf(file = here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_allyears_metaltagsTA.pdf"))
 ggplot(data = prop_hab_for_plotting %>% filter(year == 2018), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
