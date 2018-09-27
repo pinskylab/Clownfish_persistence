@@ -113,19 +113,19 @@ allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
 
 allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
 
-##### Incorporate genetic recaptures with tag recaptures - make identifier that uses cap_id if present, otherwise tag_id
+##### Incorporate genetic recaptures with tag recaptures - make identifier that uses cap_id if present, otherwise tag_id, or sample_id if neither 
+# Possible cases:
+# clipped but not tagged, never caught again (sample_id Y, cap_id NA, tag_id NA): sampleXXXXX  
+# clipped but not tagged, caught + clipped again (sample_id Y, cap_id Y, tag_id NA): capXXXX 
+# clipped but not tagged, tagged + clipped (sample_id Y, cap_id Y, tag_id NA in one Y in other): capXXXX 
+# clipped + tagged, never caught again (sample_id Y, tag_id Y, cap_id NA): tagXXXX
+# tagged but not clipped, never caught again (sample_id NA, tag_id Y, cap_id NA): tagXXXX
+# clipped + tagged 2016 or later, caught again via tag (sample_id NA (but soon!), tag_id Y, cap_id NA): tagXXXXX
+
 # This version over-biases recaps b/c doesn't include fish that just have a sample_id - were clipped (so genetic "tag" taken) but not recaptured
 allfish_mark <- allfish %>%
   filter(!is.na(cap_id) | !is.na(tag_id)) %>% #filter for fish with a cap_id, sample_id, or tag_id
   mutate(fish_id = ifelse(is.na(cap_id), paste("tag", tag_id, sep=""), paste("cap", cap_id, sep = "")))
-
-# Possible cases:
-# clipped but not tagged, never caught again: sampleXXXXX - sample_id Y, cap_id NA, tag_id NA
-# clipped but not tagged, caught + clipped again: capXXXX - sample_id Y, cap_id Y, tag_id NA
-# clipped but not tagged, tagged + clipped: capXXXX - sample_id Y, cap_id Y, tag_id NA in one Y in other
-# clipped + tagged, never caught again: tagXXXX
-# tagged but not clipped, never caught again: tagXXXX
-# clipped + tagged 2016 or later, caught again via tag: tagXXXXX
 
 allfish_mark2 <- allfish %>%
   filter(!is.na(cap_id) | !is.na(sample_id) | !is.na(tag_id)) %>% #pull out fish "tagged" in any way, either PIT or via fin-clip
