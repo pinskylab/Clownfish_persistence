@@ -30,22 +30,22 @@
 
 \begin{document}
 %\linenumbers
-\date{\today}
+\date{}
 \maketitle{}
 \section{Terms}
 \begin{itemize}
 	\item recruit: fish in the 3.5-6.0cm size class (able to be fin-clipped but not tagged), which preliminary growth analyses suggest settled the previous year and are about one year old (will refine growth analyses to confirm/check)
-	\item LEP (lifetime egg production): the expected reproductive output of one individual in terms of eggs, considering only reproduction as a female
+	\item LEP (lifetime egg production): the expected reproductive output in terms of eggs of one individual, considering only reproduction as a female
 	\item LR (local retention): recruits returning home over total output of recruits from the patch
 		\begin{equation}
 			\begin{split}
 				LR & = \frac{\text{\# arrivals returning home}}{\text{output from patch}} \\
 				   & = \frac{\text{\# recruits arriving home}}{\text{ \# recruits produced by patch}} \\
-				   & = \frac{p_{i,i} \times \text{\# recruits from site}}{\frac{\text{recruits}}{\text{eggs}} \times \text{\# eggs produced by site}}
+				   & = \frac{p_{i,i} \times \text{\# recruits from site}}{\frac{\text{recruits}}{\text{egg}} \times \text{\# eggs produced by site}}
 			\end{split}
 		\end{equation}
-	\item $p_{i,j}$: probability of dispersing from patch i to patch j, given that you recruit somewhere
-	\item $p_{\text{hab}}$: proportion of habitat sampled (estimated as number of anemones visited over total number of anemones at site)
+	\item $p_{i,j}$: of recruits from patch $i$ that recruited somewhere, the probability of dispersing from patch i to patch j
+	\item $p_{\text{hab}}$: proportion of habitat sampled (estimated as number of anemones visited over estimated total number of anemones at site)
 	\item $p_{\text{cap}}$: probability of sampling a fish, given that we visited its anemone (estimated using mark-recapture within a sampling season)
 \end{itemize}
 
@@ -54,6 +54,8 @@ A group of patches are network persistent if the largest eigenvalue of the demog
 \begin{equation}
 C_{ij} = LEP_i \times \frac{\text{recruits}}{\text{egg}} \times p_{ij}.
 \end{equation}
+
+Calculate this metric for both the overall population and smaller groups of patches within the network, to see at what scale persistence might occur.
 
 % \begin{equation}
 % \text{realized connectivity matrix} = \text{reproductive output (in terms of "recruits")} \times \text{dispersal prob (for "recruits")} \times \text{probability of survival to maturity for females}
@@ -73,8 +75,9 @@ SP_i = LEP_{i} \times \frac{\text{recruits}}{\text{egg}} \times \frac{p_{i,i} \t
 
 which simplifies to
 \begin{equation}
-SP_i = LEP_{i} \times \frac{\text{recuits}}{\text{egg}} \times p_{i,i} \geq 1 \label{SP_simp_v2}. %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
+SP_i = LEP_{i} \times \frac{\text{recuits}}{\text{egg}} \times p_{i,i} \geq 1 \label{SP_simp_v2}, %IS THIS RIGHT? CHECK / THINK THROUGH THIS AGAIN... SHOULD CHAT WITH MP AND KC ABOUT THIS, RUN BY MICHAEL BODE ONCE HAVE OTHER METRICS IN PLACE
 \end{equation}
+(and is the diagonal entries of $C$). \\
 
 Or, alternately, could write it as:
 \begin{equation}
@@ -141,10 +144,10 @@ SP_i = LEP_{i} \times \frac{\# \text{recuits arriving home to patch i}}{\# \text
 \begin{itemize}
 	\item LEP: use survival-by-size estimates from mark-recapture, growth estimates from mark-recapture, fecundity estimates from egg photos (preliminary numbers and relationship with size in progress by Adam) to estimate LEP with an integral projection model
 	\item output in eggs from each site:
-	$N_{\text{eggs}, i} = \# \text{females} \times p_{\text{hab}} \times p_{\text{cap}} \times \text{fecundity}$, with fecundity estimates from photos (might be related to size, depending on relationship)
-	\item $p_{i,j}$, version 1: estimate from the dispersal kernel estimated from parentage and proportion sampled data with the \cite{bode2018estimating} method (kernel-fitting being done by Katrina)
+	$N_{\text{eggs}, i} = \# \text{females} \times p_{\text{hab}} \times p_{\text{cap}} \times \text{fecundity}$, with fecundity estimates from photos (might be related to size, depending on relationship) and clutches-per-year data from \cite{holtswarth2017fecundity}.
+	\item $p_{i,j}$, version 1: integrate the dispersal kernel estimated with the \cite{bode2018estimating} method (kernel-fitting being done by Katrina using parentage data and proportion habitat sampled) over the distances between sites
 		\begin{itemize}
-			\item kernel is a Laplacian kernel with parameters $k$ (scale parameter) and $\theta$ (exponent) and depends on distance $d$: $f(x,k,\theta)$
+			\item kernel is a Laplacian kernel with parameters $k$ (scale parameter) and $\theta$ (exponent) and depends on distance $x$: $f(x,k,\theta)$
 			\item after normalization, the kernel gives the probability of recruiting distance $x$ away from origin, given that you recruited somewhere
 			\item $d1$: distance between the mid-point of site $i$ and the closest edge of site $j$ 
 			\item $d2$: distance between the mid-point of site $i$ and the farthest edge of site $j$
@@ -153,13 +156,13 @@ SP_i = LEP_{i} \times \frac{\# \text{recuits arriving home to patch i}}{\# \text
 			p_{i,j} = \int_{d1}^{d2}{f(x,k,\theta) dx}. \label{PijfromKernel}
 			\end{equation}
 		\end{itemize}
-	\item $p_{i,j}$, version 2: estimate from the proportion-of-recruitment connectivity matrix generated by \cite{wang2014estimation} (MigEst) methods with the parentage data and proportion population sampled (migration estimates being done by Katrina)
+	\item $p_{i,j}$, version 2: estimate from the proportion-of-recruitment connectivity matrix generated by the \cite{wang2014estimation} (MigEst) method (migration estimates being done by Katrina using the parentage and data and proportion habitat sampled) 
 		\begin{itemize}
 			\item the output of MigEst is an $s$ (destination) by $t$ (source) matrix $M$, where $s$ is the number of sampled patches and there is an additional column for unsampled ghost populations ($t = s+1$)
 			\item the matrix entries $m_{s,t}$ are the proportion of recruits at site $s$ that come from site $t$ (the row sums - recruits coming to site $s$ - are 1)
 			\item $N_{r_s}$: vector of the number of recruits arriving at each site $s$, found by scaling up the number of sampled recruits by the proportion of habitat sampled
 			\item $N_{o_t}$ = $N_{\text{eggs produced}_t} \times \frac{\text{recruits}}{\text{egg}}$: vector of number of recruits produced by each source site $t$
-			\item convert migration estimates($m_{s,t}$) from MigEst to proportion of recruits from site $i$ settling at site $j$:
+			\item convert migration estimates ($m_{s,t}$) from MigEst to proportion of recruits from site $i$ settling at site $j$:
 			\begin{equation}
 			p_{i,j} = \frac{m_{s,t} \times N_{r_s}}{N_{o_t}}. \label{PijfromMigEst}
 			\end{equation}

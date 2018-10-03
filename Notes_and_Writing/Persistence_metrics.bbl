@@ -1,5 +1,5 @@
  \newcommand{\noop}[1]{}
-\begin{thebibliography}{4}
+\begin{thebibliography}{5}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -31,6 +31,14 @@ Lysel Garavelli, J.~Wilson White, Iliana Chollett, and Laurent~Marcel
 \newblock Population models reveal unexpected patterns of local persistence
   despite widespread larval dispersal in a highly exploited species.
 \newblock \emph{Conservation Letters}, page e12567, 2018.
+
+\bibitem[Holtswarth et~al.(2017)Holtswarth, San~Jose, Montes~Jr., Morley, and
+  Pinsky]{holtswarth2017fecundity}
+Jordan~N. Holtswarth, Shem~B. San~Jose, Humberto~R. Montes~Jr., James~W.
+  Morley, and Malin.~L Pinsky.
+\newblock The reproductive seasonality and fecundity of yellowtail clownfish
+  (amphiprion clarkii) off the philippines.
+\newblock \emph{Bulletin of Marine Science}, 93, 2017.
 
 \bibitem[Wang(2014)]{wang2014estimation}
 Jinliang Wang.
