@@ -14,7 +14,10 @@ library(ggplot2)
 library(here)
 #library(rethinking)
 
-#Load data input
+#Load data input (at some point - should figure out where these files come from!!)
+load(file=here("Data",'AnemAllInfowLatLon2.RData')) #file with anems, after 2018 anems matched
+load(file=here("Data", "AnemLatLonObsbyAnem.RData")) #file with lat-lon info appended
+
 load(file=here("Data", "fish_Tagged.RData")) #file with distances appended
 
 #################### Functions: ####################
@@ -32,19 +35,17 @@ logit_recip <- function(logitval) {
   return(recip)
 }
 
-# Creates the summarized encounter history by fish_id: output is a data frame with 2 columns - fish_id (either capXX or tagXXXXX...) and summarized encounter history (i.e. 0010)
+# Creates the summarized encounter history by fish_id: output is a data frame with 2 columns - fish_id (either capXX or tagXXXXX or sampleXXX) and summarized encounter history (i.e. 0010)
 CreateEncounterSummary <- function(start.year, end.year, tagged.fish) { #start.year is first year a fish could have been tagged (either PIT or genetically), end.year is last year of sampling, tagged.fish is dataframe with all fish with cap_ids or tag_ids
   
   sample.years <- seq(start.year, end.year, 1) #make a vector of years the fish could have been seen
   encounters <- list(); #initialize an empty list to store the various encounter data frames by year
  
   for (i in 1:length(sample.years)) { #pull out encounter vector by tag for each year, store each as a data frame of tag ids and binary encounters in the encounter list
-    
     year.name <- sample.years[i] #get year 
     var.name <- paste("sighted", as.character(sample.years[i]), sep=".") #create dynamic column names for encounters - sighted.[samplingyear]
     
     encounters[[i]] <- tagged.fish %>% group_by(fish_id) %>% summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #create data frames for each year that have a vector of fish_ids and a vector of encountered (1) or didn't (0) in 
-    
   }
   
   encounters.out <- as.data.frame(encounters[[1]]) #seed summary data frame with list of tag ids and encounter in 1st year
@@ -57,28 +58,6 @@ CreateEncounterSummary <- function(start.year, end.year, tagged.fish) { #start.y
   return(encounters.out)
 }
 
-#### NEED TO EDIT THIS FUNCTION TO INCLUDE GENETIC TAGS
-#how many fish have both genetic recaptures and 
-either_ID <- allfish %>%
-  filter(!is.na(tag_id) | !is.na(sample_id))
-
-both_IDs <- allfish %>%
-  filter(!is.na(tag_id) & !is.na(sample_id) | !is.na(tag_id) & !is.na(cap_id))
-
-genRecapPIT <- allfish %>%
-  filter(!is.na(tag_id) & !is.na(cap_id))
-
-justCap <- allfish %>%
-  filter(!is.na(cap_id))
- 
-test84 <- allfish %>%
-  filter(cap_id == 84)
-
-test83 <- allfish %>%
-  filter(cap_id == 83)
-
-allfish %>% filter(cap_id == 64)
-
 #################### Running things: ####################
 ##### Pulling and setting up data
 leyte <- read_db("Leyte")
@@ -86,7 +65,7 @@ leyte <- read_db("Leyte")
 #pull all clownfish observations
 allfish_fish <- leyte %>%  
   tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
   collect() #%>%
   #filter(!is.na(tag_id)) 
 
@@ -114,41 +93,165 @@ allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
 allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
 
 ##### Incorporate genetic recaptures with tag recaptures - make identifier that uses cap_id if present, otherwise tag_id, or sample_id if neither 
-# Possible cases:
-# clipped but not tagged, never caught again (sample_id Y, cap_id NA, tag_id NA): sampleXXXXX  
-# clipped but not tagged, caught + clipped again (sample_id Y, cap_id Y, tag_id NA): capXXXX 
-# clipped but not tagged, tagged + clipped (sample_id Y, cap_id Y, tag_id NA in one Y in other): capXXXX 
-# clipped + tagged, never caught again (sample_id Y, tag_id Y, cap_id NA): tagXXXX
-# tagged but not clipped, never caught again (sample_id NA, tag_id Y, cap_id NA): tagXXXX
-# clipped + tagged 2016 or later, caught again via tag (sample_id NA (but soon!), tag_id Y, cap_id NA): tagXXXXX
+# Possible cases: (new gen_id variable to indicate whether fish has a genotype, replaces cap_id, don't need to use sample_id b/c fish might have been clipped but not successfully sequenced)
+# 1) clipped but not tagged, never caught again (sample_id Y, cap_id NA, tag_id NA), sampleXXXX - now gen_id Y, tag_id NA: genXXXXX  
+# 2) clipped but not tagged, caught + clipped again (sample_id Y, cap_id Y, tag_id NA), capXXX - now gen_id Y, tag_id NA: genXXXX 
+# 3) clipped but not tagged, tagged + clipped (sample_id Y, cap_id Y, tag_id NA in one Y in other), capXXXX - now gen_id Y, tag_id Y and NA: genXXX
+# 4) clipped + tagged, never caught again (sample_id Y, tag_id Y, cap_id NA), tagXXXX - now gen_id Y, tag_id Y: genXXXX (should be tag? check if gen id carries through...)
+# 5) tagged but not clipped, never caught again (sample_id NA, tag_id Y, cap_id NA), tagXXXX, now gen_id NA, tag_id Y: tagXXX
+# 6) clipped + tagged 2016 or later, caught again via tag (sample_id NA (but soon!), tag_id Y, cap_id NA), tagXXXXX: now, gen_id NA, tag_id Y: tagXXXX
 
-# This version over-biases recaps b/c doesn't include fish that just have a sample_id - were clipped (so genetic "tag" taken) but not recaptured
-allfish_mark <- allfish %>%
-  filter(!is.na(cap_id) | !is.na(tag_id)) %>% #filter for fish with a cap_id, sample_id, or tag_id
-  mutate(fish_id = ifelse(is.na(cap_id), paste("tag", tag_id, sep=""), paste("cap", cap_id, sep = "")))
+# this doesn't work b/c gen_id doesn't carry through all observations of the fish (like cap_id used to) - allfish_mark with the version is 3655 fish
+allfish_mark <- allfish %>% 
+  filter(!is.na(gen_id) | !is.na(tag_id)) %>% #pull out fish "tagged" in any way, either PIT or via genetic sample
+  mutate(fish_id = case_when(!is.na(gen_id) ~ paste('gen', gen_id, sep=''), #cases 1,2,3,4 above
+                             is.na(gen_id) & !is.na(tag_id) ~ paste('tag', tag_id, sep=''))) #cases 5,6 above
+
 
 allfish_mark2 <- allfish %>%
+  filter(!is.na(gen_id) | !is.na(tag_id)) %>% #pull out fish "tagged" in any way, either PIT or via genetic sample
+  mutate(fish_id = case_when(!is.na(tag_id) ~ paste('tag', tag_id, sep=''), #if has a tag_id, use it in the fish_id
+                             is.na(tag_id) & !is.na(gen_id) ~ paste('gen', gen_id, sep=''))) # %>% #if it doesn't have a tag_id, use the gen_id in the fish_id
+  #mutate(check_id = ifelse(!is.na(tag_id) & !is.na(gen_id), 1, 0)) #if it has both, need to check if there are earlier captures with just the gen_id, otherwise don't need to check
+
+# but doesn't that make sense? Otherwise, could just go through the gen_ids, check if they appear in any rows with tag_ids, if so take the tag_id-based fish_id
+
+for(i in 1:length(allfish_mark2$fish_id)) {
+  if(substring(allfish_mark2$fish_id[i],1,3) == "gen") { #if it has a fish_id based on gen_id rather than tag_id...
+    gen_id_val <- allfish_mark2$gen_id[i] #pull out the gen_id
+    
+    matches <- allfish_mark2 %>%
+      filter(gen_id == gen_id_val) #filter out other cases
+    
+    for(j in 1:length(matches$fish_id)){ #go through the fish entries that match the gen_id
+      if(!is.na(matches$tag_id[j])){ #if one of them has a tag_id
+        allfish_mark2$fish_id[i] <- matches$fish_id[j] #update the fish_id to the fish_id based on the match with a tag_id
+      }
+    }
+  }
+}
+  
+### CHECK THIS TO SEE IF ANY FISH WITH JUST GEN_ID GOT A FISH_ID BASED ON A TAG_ID!!! (BASICALLY, NEED TO CHECK THAT FOR LOOP ABOVE WORKED!)
+  
+  
+# if it has a tag id, use that for identifying
+# if it has a tag id and a gen_id, search to see if that gen_id shows up elsewhere
+# if has a gen_id and later gets tagged, will want to use the fish_id with the tag_id - so, go through and check all fish with gen_ids to see if later they have a tag and change the fish_id
+
+# look at a few cases to see if this is working as expected (not comprehensive, just looking at the dataframe)
+allfish_mark %>% filter(tag_id == 986112100165961) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+allfish_mark2 %>% filter(tag_id == 985153000371766) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id) #hmm, this fish and the one below are the same, not linking up with my current fish_id
+allfish_mark2 %>% filter(gen_id == 1417) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+allfish_mark2 %>% filter(tag_id == 985153000370613) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+allfish_mark2 %>% filter(gen_id == 1392) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+allfish_mark2 %>% filter(tag_id == 985153000355603) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+allfish_mark2 %>% filter(gen_id == 1583) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+
+test_matches <- allfish_mark2 %>% filter(is.na(tag_id)) %>% #gen_ids 678, 772
+  mutate(id_type = substring(fish_id,1,3))
+table(test_matches$id_type) #86 that have a gen_id and get a tag_id-based fish_id added in - seems like the for loop might be working?
+
+allfish_mark2 %>% filter(gen_id == 678) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+allfish_mark2 %>% filter(gen_id == 772) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -anem_table_id)
+
+# old code from when there was cap_id and before gen_id         
+allfish_mark <- allfish %>%
   filter(!is.na(cap_id) | !is.na(sample_id) | !is.na(tag_id)) %>% #pull out fish "tagged" in any way, either PIT or via fin-clip
-  mutate(fish_id = case_when(!is.na(sample_id) & is.na(cap_id) & is.na(tag_id) ~ paste("sample", sample_id, sep = ""),
-                             !is.na(sample_id) & !is.na(cap_id) ~ paste("cap", cap_id, sep = ""),
-                             is.na(cap_id) & !is.na(tag_id) ~ paste("tag", tag_id, sep = "")))
+  mutate(fish_id = case_when(!is.na(sample_id) & is.na(cap_id) & is.na(tag_id) ~ paste("sample", sample_id, sep = ""), #case 1 above
+                             !is.na(sample_id) & !is.na(cap_id) ~ paste("cap", cap_id, sep = ""), #cases 2, 3 above
+                             is.na(cap_id) & !is.na(tag_id) ~ paste("tag", tag_id, sep = ""))) #cases 4, 5, 6 above
                              
-# do a few tests to see if this is working as expected...
-allfish_mark2 %>% filter(cap_id == 46) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
-allfish_mark2 %>% filter(sample_id == "APCL12_090") %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
-allfish_mark2 %>% filter(tag_id == 985153000371766) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
-allfish_mark2 %>% filter(tag_id == 985153000370613) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
-allfish_mark2 %>% filter(cap_id == 34) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
+# do a few tests to see if this is working as expected... (not comprehensive, just looking at the dataframe)
+allfish_mark %>% filter(cap_id == 46) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
+allfish_mark %>% filter(sample_id == "APCL12_090") %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
+allfish_mark %>% filter(tag_id == 985153000371766) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id) #this fish was caught in 4 years!
+allfish_mark %>% filter(tag_id == 985153000370613) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id) #seems unlikely this was YR at 12.2cm... was YP at 12.3 the next year...
+allfish_mark %>% filter(cap_id == 34) %>% select(-anem_obs, -anem_id, -old_anem_id, -dive_type, -fish_table_id, -anem_table_id)
 
-##### Trying out MARK
+dim(allfish %>% filter(!is.na(sample_id) | !is.na(tag_id) | !is.na(gen_id))) #4788 fish
+dim(allfish %>% filter(!is.na(gen_id) | !is.na(tag_id))) #3655 fish - seems like a lot are lost!
+dim(allfish %>% filter(!is.na(tag_id))) #2376 fish
+dim(allfish %>% filter(!is.na(sample_id))) #4370 fish
+dim(allfish %>% filter(!is.na(sample_id) & is.na(gen_id) & is.na(tag_id))) #1133 - this is a lot of fish - does this include the sample_ids just put in the sequencer now? In that case, though, seems too small...
+table((allfish %>% filter(!is.na(sample_id)))$year) #2231 for 2016 (814), 2017 (647), and 2018 (770)
+table((allfish %>% filter(!is.na(gen_id)))$year)
+
+# # compare how many more fish this includes
+# # just tags - 2376 fish
+# allfish_tags <- allfish %>%
+#   filter(!is.na(tag_id)) %>%
+#   group_by(tag_id) %>%
+#   mutate(nobs = n())
+# # tags + cap_ids  - 4788 fish - lots more!
+# allfish_tagsfins <- allfish %>%
+#   filter(!is.na(cap_id) | !is.na(sample_id) | !is.na(tag_id)) %>% #pull out fish "tagged" in any way, either PIT or via fin-clip
+#   mutate(fish_id = case_when(!is.na(sample_id) & is.na(cap_id) & is.na(tag_id) ~ paste("sample", sample_id, sep = ""), #case 1 above
+#                              !is.na(sample_id) & !is.na(cap_id) ~ paste("cap", cap_id, sep = ""), #cases 2, 3 above
+#                              is.na(cap_id) & !is.na(tag_id) ~ paste("tag", tag_id, sep = ""))) %>% #cases 4, 5, 6 above
+#   group_by(fish_id) %>%
+#   mutate(nobs = n())
+
+##### Prep data for MARK
+# Pull out all the tags and their encounter history from 2012-2018, add column to see which fish are IDed by tag, cap, or sample
+encounters_all <- CreateEncounterSummary(2012, 2018, allfish_mark) %>% #simpler way of getting encounter history like above using function
+  mutate(id_type = case_when(substring(fish_id,1,1) == "t" ~ "tag", #1851 fish
+                             substring(fish_id,1,1) == "c" ~ "cap", #135 fish
+                             substring(fish_id,1,1) == "s" ~ "sample")) #2173 fish
+
+# Find site and add it in (this has multiple entries of each fish_id, though)
+encounters_all <- left_join(encounters_all, allfish_mark %>% select(site, fish_id, year, color, size, date, anem_id), by="fish_id")
+
+
+site_info <- allfish_mark %>%
+  group_by(fish_id) %>%
+  mutate(site = site[1])
+  
+
+
+site_info <- allfish %>% filter(!is.na(tag_id)) %>%
+  filter(tag_id %in% encounters_all$tag_id) %>%
+  group_by(tag_id) %>%
+  summarize(site = site[1]) # this assumes that the fish was only seen/caught at one site - should probably check that at some point...
+
+
+
 #Create input file for MARK
-# Pull out all the tags and their encounter history from 2015-2018
-encounters_all <- CreateEncounterSummary(2012, 2018, allfish_mark) #simpler way of getting encounter history like above using function
 
-# How many more fish get included in the mark-recap dataset if include genetic "marking" too? - below isn't a good test, is it?
-encounters_all_tags <- CreateEncounterSummary(2012, 2018, allfish_mark %>% filter(!is.na(tag_id)))
-# Remove the NA tag id at the end (for 1111 fish)
-encounters_all <- encounters_all[1:(length(encounters_all$tag_id)-1),] 
+# # Remove the NA tag id at the end (for 1111 fish)
+# encounters_all <- encounters_all[1:(length(encounters_all$tag_id)-1),] 
+
+# Add in site
+AddFishChar <- function(encounters_df, allfish_df, char) {
+  
+  # filter out fish by how they are identified so can match to characteristics later
+  cap_fish <- encounters_df %>% 
+    filter(id_type == "cap") %>%
+    mutate(cap_id = as.numeric(substring(fish_id,4,length(fish_id)))) 
+  
+  tag_fish <- encounters_df %>%
+    filter(id_type == "tag") %>%
+    mutate(tag_id = substring(fish_id,4,length(fish_id)))
+  
+  sample_fish <- encounters_df %>%
+    filter(id_type == "sample") %>%
+    mutate(sample_id = substring(fish_id,7,length(fish_id)))
+  
+  # check that all fish accounted for in previous filtering step
+  if(dim(encounters_df)[1] != (dim(cap_fish)[1] + dim(tag_fish)[1] + dim(sample_fish)[1])) {
+    print("Not all fish accounted for in cap, tag, and sample filtering.")
+  }
+  
+  if(char == "site") {
+    site_info_cap <- allfish_df %>%
+      filter(cap_id %in% cap_fish$cap_id) 
+    
+    
+    
+  }
+  
+}
+
+# Add in site
 
 # Find site and add it in
 site_info <- allfish %>% filter(!is.na(tag_id)) %>%
@@ -430,6 +533,7 @@ eall.site.real = as.data.frame(eall.Phi.site.p.site$results$real) %>%
                         "Poroc Rose","Poroc San Flower","San Agustin","Sitio Baybayon","Tamakin Dacot","Visca","Wangag"),2))) %>% #add site column (Cabatoan is intercept)
   mutate(row = seq(1,30,1)) #add row numbers to make plotting easier
 
+#################### Plots: ####################
 # make some plots
 ###### Constant survival and recapture prob, no covariates (eall.Phi.dot.p.dot)
 pdf(file = here("Plots/PhiandpEstimates", "eall_Phiandp_constant.pdf"))
@@ -1196,5 +1300,10 @@ data(example.data)
 #   }
 #   return(out)
 # }
-
+# 
+# 
+# # This version over-biases recaps b/c doesn't include fish that just have a sample_id - were clipped (so genetic "tag" taken) but not recaptured
+# allfish_mark <- allfish %>%
+#   filter(!is.na(cap_id) | !is.na(tag_id)) %>% #filter for fish with a cap_id, sample_id, or tag_id
+#   mutate(fish_id = ifelse(is.na(cap_id), paste("tag", tag_id, sep=""), paste("cap", cap_id, sep = "")))
 
