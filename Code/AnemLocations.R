@@ -177,8 +177,31 @@ anem.Info <- leyte %>%
   collect()
 
 #merge dive and anem into one dataframe by dive_table_id (to assign date, year, site, dive type to each anem)
-anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id")
+anem.AllInfo <- left_join(anem.Info, dive.Info, by="dive_table_id") %>%
+  mutate(year = as.numeric(substring(date,1,4)))
 
+#want to filter out anem observations that are actually associated with clownfish observations... see if using lack of anem species would work
+anem.AllInfo %>% filter(is.na(anem_spp) | is.null(anem_spp)) #905 rows...
+table((anem.AllInfo %>% filter(is.na(anem_spp) | is.null(anem_spp)))$anem_id) #do they have anem_ids? - yes, they do! All metal tags except 887, 1063
+table((anem.AllInfo %>% filter(is.na(anem_spp) | is.null(anem_spp)))$dive_type) #what kind of dive? - 0:5, A:53, C:811, R:36
+table((anem.AllInfo %>% filter(is.na(anem_spp) | is.null(anem_spp)))$year) #what years? - all except 2012, most in 2017 (825)
+
+#process anem.AllInfo using anem_table_ids rather than anem_ids so can use for genetic + tag recaptures - also get 2 failed to parse here too...
+anem.Processed.TableIDs <- anem.AllInfo %>%
+  filter(!is.na(anem_spp) & !is.null(anem_spp)) %>% #to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
+  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+  mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>% #add unique anem id (obs + anem_obs if there is one, otherwise id + anem_id)
+  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>% #add in placeholder columns for lat and lon info
+  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
+  mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
+  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+  mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+         day = day(obs_time), 
+         hour = hour(obs_time), 
+         min = minute(obs_time), 
+         sec = second(obs_time))
+  
 #process anem.AllInfo (filter out anem_ids that are NA, add in unique anem_id, format date/time and switch to UTC time zone, add placeholder lat lon columns)
 #says "Warning message: 2 failed to parse" when I run this - I'm assuming that's in reference to the two anems that don't have obs_times (anem_table_id 9857 and 9845), should confirm that at some point
 anem.Processed <- anem.AllInfo %>%
@@ -197,21 +220,29 @@ anem.Processed <- anem.AllInfo %>%
          min = minute(obs_time), 
          sec = second(obs_time)) %>%
          #year = year(obs_time)) %>% #two anems (anem_table_id 9857 and 9845) don't have obs_times (prob b/c ones I saw while snorkeling) so this doesn't pull out year for them
-  mutate(year = as.integer(substring(date, 1, 4))) %>% #so pull out year this way instead
+  #mutate(year = as.integer(substring(date, 1, 4))) %>% #so pull out year this way instead
   mutate(anem_id_unq2 = anem_id_unq) #add another anem_id_unq to use for matching up the anems seen in 2018 (since anem_obs hasn't been run for the new data yet)
 
 #sometimes filtering issues so check to make sure various things gotten taken out
 anemsppNA <- anem.Processed %>% filter(is.na(anem_spp)) #any nas in anem_spp?
 if(length(anemsppNA$anem_table_id != 0)) {
-  print("There are still NA anem_spp entries!")
+  print("There are still NA anem_spp entries in anem.Processed!")
+}
+anemsppNA <- anem.Processed.TableIDs %>% filter(is.na(anem_spp)) #any nas in anem_spp?
+if(length(anemsppNA$anem_table_id != 0)) {
+  print("There are still NA anem_spp entries in anem.Processed.TableIDs!")
 }
 anemsppNULL <- anem.Processed %>% filter(is.null(anem_spp)) #any nulls in anem_spp?
 if(length(anemsppNULL$anem_table_id != 0)) {
-  print("There are still NULL anem_spp entries!")
+  print("There are still NULL anem_spp entries in anem.Processed!")
+}
+anemsppNULL <- anem.Processed.TableIDs %>% filter(is.null(anem_spp)) #any nulls in anem_spp?
+if(length(anemsppNULL$anem_table_id != 0)) {
+  print("There are still NULL anem_spp entries in anem.TableIDs!")
 }
 
 ###### THE CODE BELOW PRODUCES THE RDATA FILES LOADED AT THE TOP (LOADED B/C TAKES SEVERAL MINUTES TO GENERATE)
-#go through anem_table_ids and find the lat/lon for each anem observation (this is the step that takes a long time to do, prints row (out of 4977) so can track progress)
+#go through anem_table_ids and find the lat/lon for each anem observation for anem.Processed (this is the step that takes a long time to do, prints row (out of 4977) so can track progress)
 for (i in 1:length(anem.Processed$anem_table_id)) {
   outlatlon <- anemid_latlong(anem.Processed$anem_table_id[i], anem.Processed, gps.Info)
   anem.Processed$lat[i] <- outlatlon$lat
@@ -225,6 +256,22 @@ for (i in 1:length(anem.Processed$anem_table_id)) {
     print(paste(i,"problem with lon replacement length",sep=" "))
     problem_i_lon[i] = 1 
     }
+}
+
+#go through anem_table_ids and find the lat/lon for each anem observation for anem.Processed.TableIDs (10005 rows) 
+for (i in 1:length(anem.Processed.TableIDs$anem_table_id)) {
+  outlatlon <- anemid_latlong(anem.Processed.TableIDs$anem_table_id[i], anem.Processed.TableIDs, gps.Info)
+  anem.Processed.TableIDs$lat[i] <- outlatlon$lat
+  anem.Processed.TableIDs$lon[i] <- outlatlon$lon
+  print(i)
+  if(length(outlatlon$lat) != 1) {
+    print(paste(i,"problem with lat replacement length",sep=" "))
+    problem_i_lat[i] = 1
+  }
+  if(length(outlatlon$lon) != 1) {
+    print(paste(i,"problem with lon replacement length",sep=" "))
+    problem_i_lon[i] = 1 
+  }
 }
 ###### NOW BACK TO CODE THAT TAKES NO TIME TO RUN
 
@@ -438,6 +485,9 @@ save(anem.Processed, file=here("Data",'AnemAllInfowLatLon.RData'))
 
 #save output that has 2018 anems reconciled with previous anems (since anem_obs has not been generated for them)
 save(anem.Processed2, file=here("Data",'AnemAllInfowLatLon2.RData')) 
+
+#save output where lat lons are assigned to each anem for all anems with anem_table_ids (removing those w/no anem species) for use in gen+tag recap
+save(anem.Processed.TableIDs, file=here::here('Data','anemProcessed_tableIDs.RData'))
 
 #save output where the summary lat lon statisics are calculated for anems known to be the same
 save(anem.LatLon, file=here("Data", "AnemLatLonObsbyAnem.RData"))
