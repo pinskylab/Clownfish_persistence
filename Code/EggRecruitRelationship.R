@@ -29,18 +29,24 @@ dive_list <- c("0","C","D","E")
 load(file=here("Data",'anem_sampling_table.RData')) #file with anems, after 2018 anems matched
 
 # KC estimates of site area - she calculated these in QGIS, using the hulls, m2 is what was calculated directly (right now the conversion to km2 is off by 1000)
-site_areas = read.csv(file=here("Data", "site_area.csv"), header = TRUE) 
-site_areas <- site_areas %>%
+site_areas_KC = read.csv(file=here("Data", "site_area.csv"), header = TRUE) 
+site_areas_KC <- site_areas_KC %>%
   mutate(kmsq_area = area_msq/1000000)
 
 # Edit the area estimates for Cabatoan and Magbangon, which are together right now - put Cabatoan as 1/3 and Magbangon as 2/3
-site_areas_edited <- site_areas
-site_areas_edited$site <- as.character(site_areas_edited$site)
-site_areas_edited[4,1] <- "Elementary School" #fix spelling of Elementary School so can join with other data frames by site
-site_areas_edited[1,2] <- site_areas[1,2]*1/3 #Cabatoan m2
-site_areas_edited[1,4] <- site_areas[1,4]*1/3 #Cabatoan km2
-site_areas_edited[8,2] <- site_areas[8,2]*2/3 #Magbangon m2
-site_areas_edited[8,4] <- site_areas[8,4]*2/3 #Magbangon km2
+# Editing again now that Magbangon has been split into N and S Magbangon - for now, giving 1/3 of the total area to each Cab, NMag, and SMag but should update at some point!
+site_areas <- site_areas_KC
+site_areas$site <- as.character(site_areas$site)
+site_areas[4,1] <- "Elementary School" #fix spelling of Elementary School so can join with other data frames by site
+site_areas[1,2] <- site_areas_KC[1,2]*1/3 #Cabatoan m2
+site_areas[1,4] <- site_areas_KC[1,4]*1/3 #Cabatoan km2
+site_areas[8,1] <- "N. Magbangon" #change Magbangon entry to N. Magbangon
+site_areas[19,1] <- "S. Magbangon" #add S. Magbangon
+site_areas[8,2] <- site_areas_KC[8,2]*1/3 #N. Magbangon m2
+site_areas[8,4] <- site_areas_KC[8,4]*1/3 #N. Magbangon km2
+site_areas[19,2] <- site_areas_KC[8,2]*1/3 #S. Magbangon m2
+site_areas[19,4] <- site_areas_KC[8,4]*1/3 #S. Magbangon km2
+site_areas <- site_areas %>% select(-area_kmsq) #remove the incorrect km2 column
 
 # prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
@@ -169,7 +175,7 @@ breedingF_info <- breedingF_info %>%
   mutate(rawF_egg_est = NbreedingF_combo*eggs_per_clutch*clutch_per_year) #using raw numbers of captured or tagged breeding females
 
 # Join site area data frame in
-breedingF_info <- left_join(breedingF_info, site_areas_edited %>% select(site, area_msq, kmsq_area), by = "site")
+breedingF_info <- left_join(breedingF_info, site_areas, by = "site")
 
 # Scale estimate of number of females and eggs by site area
 breedingF_info <- breedingF_info %>%
@@ -435,6 +441,7 @@ ggplot(data = metapop_level %>% filter(year %in% c(2012,2013,2014,2015,2016,2017
 dev.off()
 
 #################### Saving output: ####################
+save(site_areas, file=here::here('Data','site_areas.RData'))
 save(recruits_info, file=here("Data", "recruits_info.RData"))
 save(females_recruits_summary, file=here("Data", "females_recruits_summary.RData"))
 save(metapop_level, file=here("Data", "metapop_level.RData"))
