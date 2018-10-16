@@ -741,11 +741,9 @@ dev.off()
 pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat.pdf'))
 ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order), fill=prop_disp)) +
   geom_tile() +
-  scale_y_discrete(migEst_pijmat$dest_geo_order) +
-  scale_x_discrete(migEst_pijmat$org_geo_order) +
-  xlab("origin site") + ylab("destination site") + ggtitle("Proportion of recruits from origin settling at dest, converted from migEst") +
   theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  xlab("origin site") + ylab("destination site") + ggtitle("Proportion of recruits from origin settling at dest, converted from migEst") 
 dev.off()
 
 ##### SP metric (FAKE DATA RIGHT NOW)
