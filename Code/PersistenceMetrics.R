@@ -508,8 +508,9 @@ migEst_pijmat <- site_dist_info %>% select(org_site, dest_site)
 migEst_pijmat <- left_join(migEst_pijmat, site_vec_order, by=c("org_site" = "site_name")) #coerces factor into character vector...
 migEst_pijmat <- migEst_pijmat %>%
   dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order) %>% #rename order columns so clear that they are for the origin site
-  mutate(mig_rate = rep(NA, length(org_site)), prob_disp = rep(NA, length(org_site)),  #columns to put in MigEst migration rates and the conversions to pijs
-         dest_alpha_order = rep(1:19, 19)) #destination site number (by alpha order)
+  mutate(mig_rate = rep(NA, length(org_site)), prop_disp = rep(NA, length(org_site)),  #columns to put in MigEst migration rates and the conversions to pijs
+         dest_alpha_order = rep(1:19, 19), #destination site number (by alpha order)
+         dest_geo_order = rep(site_vec_order$geo_order, 19)) #destination site number by geographical order 
 
 # find summary N recruits and N eggs by site, averaged across years sampled (also take mid, high, low?) - lots of NAs in recruits_info in prob_hab sampled... should check into that (maybe b/c 0 metal-tagged anems?)
 # recruits info - something is wrong with a the N. and S. Magbangon proportion habitat sampled.....
@@ -550,7 +551,7 @@ for(i in 1:length(migEst_pijmat$org_site)){
   eggs_from_org = (demog_info_eggs %>% filter(site == org_site))$mean_est_eggs
   recruits_from_org = findRfromE(slope_mod1, eggs_from_org, intercept_mod1)
 
-  migEst_pijmat$prob_disp[i] = (mig_rate * recruits_to_dest)/recruits_from_org
+  migEst_pijmat$prop_disp[i] = (mig_rate * recruits_to_dest)/recruits_from_org
 }
 
 ##### ADD IN HIGH AND LOW ESTIMATES OF PROB_DISP WITH HIGH/LOW est R and est eggs - all combos?
@@ -734,6 +735,17 @@ ggplot(data = tag_years_site, aes(nyears)) +
   facet_grid(.~ site, labeller = label_wrap_gen(8)) + 
   xlab("number of years recaught") + ggtitle("# years tagged fish recaught by site") +
   theme_bw()
+dev.off()
+
+##### Proportion of recruits from i arriving at j - estimates converted from Mig Est output
+pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat.pdf'))
+ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order), fill=prop_disp)) +
+  geom_tile() +
+  scale_y_discrete(migEst_pijmat$dest_geo_order) +
+  scale_x_discrete(migEst_pijmat$org_geo_order) +
+  xlab("origin site") + ylab("destination site") + ggtitle("Proportion of recruits from origin settling at dest, converted from migEst") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
 ##### SP metric (FAKE DATA RIGHT NOW)
