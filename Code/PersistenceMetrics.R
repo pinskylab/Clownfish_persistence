@@ -1,19 +1,21 @@
 # Script to calculate persistence metrics
 # For now, using fake data + parameters where necessary to get structure right - will note clearly, format might shift as real stuff comes in
+# 
+# #################### Set-up: ####################
+source(here::here('Code', 'Constants_database_common_functions.R'))
 
-#################### Set-up: ####################
-#Load relevant libraries
-library(RCurl) #allows running R scripts from GitHub
-library(RMySQL) #might need to load this to connect to the database?
-library(dplyr)
-library(tidyr)
-library(lubridate)
-library(stringr)
-library(geosphere)
-library(varhandle)
-library(ggplot2)
-library(reshape)
-library(here)
+# #Load relevant libraries
+# library(RCurl) #allows running R scripts from GitHub
+# library(RMySQL) #might need to load this to connect to the database?
+# library(dplyr)
+# library(tidyr)
+# library(lubridate)
+# library(stringr)
+# library(geosphere)
+# library(varhandle)
+# library(ggplot2)
+# library(reshape)
+# library(here)
 
 # Load some data files while deciding how various scripts should interact/communicate
 # Load output from AnemLocations.R (or source that file) - mean gps coordinates across multiple observations of anemones
@@ -24,21 +26,37 @@ library(here)
 #load(file=here("Data", "encounters_all.RData"))
 
 # Load mig_est data
-load(file=here("Data", "MigEstPooled_out_justimmigration.txt"))
-
-migEst_conn <- read.table(file=here("Data", "MigEstPooled_out_justimmigration.txt"), 
-           header = TRUE, sep = "")
-
+# #load(file=here("Data", "MigEstPooled_out_justimmigration.txt"))
+# # Old version - MigEst pooled matrix but w/out ghost populations
+# migEst_conn <- read.table(file=here("Data", "MigEstPooled_out_justimmigration.txt"), 
+#            header = TRUE, sep = "")
 migEst_sites <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas",
                   "Haina", "Hicgop South", "Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower",
                   "San Agustin", "Sitio Baybayon", "Sitio Lonas", "Sitio Tugas", "Tamakin Dacot",
                   "Visca", "Wangag")
-migEst_site <- data.frame(site = migEst_sites, pop = seq(from=1,to=18,by=1), stringsAsFactors = FALSE)
+migEst_conn <- read.table(file=here::here('Data','allyears_average_migest_justmeantable.txt'), skip=2, header=TRUE) #just the mean all-years table from allyears_average_migest.txt, run on 9/25/18
+# While using this migEst output that has Magbangon as one site (not broken into N and S), split it by assuming the arrivals at each are the same and half of the dispersers from Mag are from N and half from S
+# Duplicate the Magbangon row in the migEst output to have one for N. Mag and one for S. Mag (eventually, will get a run with them as separate sites), and remove the column with pop number
+migEst_conn <- migEst_conn[,-1] #remove Pop number column
+Mag_pos = 8 #position of the Magbangon row and column (once pop column is removed)
+n_migEstrow <- dim(migEst_conn)[1] #number of rows total
+n_migEstcol <- dim(migEst_conn)[2]
+# duplicate the row showing composition of arrivers to Mag so same for N and S
+migEst_1 <- migEst_conn[1:Mag_pos,] #get Mag row once here (as well as those before it)
+migEst_2 <- migEst_conn[Mag_pos:n_migEstrow,] #get Mag row once here (as well as those after it)
+migEst_conn <- rbind(migEst_1, migEst_2)
+# duplicate the column showing outgoers from Mag and halve the values (so same total percentage from Mag, just half are from N and half are from S)
+migEst_a <- migEst_conn[,1:Mag_pos] #get Mag column once here (plus all the ones to the left of it)
+migEst_a[,Mag_pos] = migEst_a[,Mag_pos]/2 # divide values in half
+migEst_b <- migEst_conn[,Mag_pos:n_migEstcol] #get Mag column again here, plus all the columns to the right of it
+migEst_b[,1] <- migEst_b[,1]/2
+migEst_conn <- cbind(migEst_a, migEst_b)
 
 # Load recruit estimates
 load(file=here("Data", "recruits_info.RData"))
-load(file=here("Data", "females_recruits_summary.RData"))
-load(file=here("Data", "metapop_level.RData"))
+load(file=here('Data', 'breedingF_info.RData'))
+#load(file=here("Data", "females_recruits_summary.RData"))
+#load(file=here("Data", "metapop_level.RData"))
 
 # Load egg-recruit linear model estimates
 load(file=here("Data", "metapop_lm.RData")) #estimate at metapop level, pretty low R2 and not significant
@@ -48,7 +66,7 @@ load(file=here("Data", "egg_recruit_lm.RData")) #estimate using each site and ye
 load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
 
 # Set a few things
-sample_years = c(2015,2016,2017,2018)
+tag_sample_years = c(2015,2016,2017,2018)
 
 # PRELIM OR FAKE FOR NOW THAT WILL GET REPLACED BY REAL DATA
 eggs_per_clutch = 1763 #from LEP_calc_WillWhite.R
@@ -98,8 +116,9 @@ Magbangon_mid <- 680
 Magbangon_S <- 213
 Magbangon_N_N <- 2079
 Magbangon_N_mid <- #2257 is mid of northern-most chunk; 475 or 2952 N of mid-chunk
-Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
-Magbagon_S_N <- 1113 #209 is another option
+#Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
+Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value?
+Magbangon_S_N <- 1113 #209 is another option
 Magbangon_S_mid <- 2437
 Magbangon_S_S <- 213 #214, 215 other options 
 Palanas_N <- 2001 #1030 also quite close
@@ -132,17 +151,17 @@ Wangag_mid <- 2734
 Wangag_S <- 2063 #1034 also a good end point
 
 
-#################### Functions: ####################
-# Functions and constants from my GitHub function/constant collection
-# script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQAXExRItr2tnepmkRr7NRt4hylZrks5aciBtwA%3D%3D", ssl.verifypeer = FALSE)
+# #################### Functions: ####################
+# # Functions and constants from my GitHub function/constant collection
+# # script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQAXExRItr2tnepmkRr7NRt4hylZrks5aciBtwA%3D%3D", ssl.verifypeer = FALSE)
+# # eval(parse(text = script))
+# script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQJT5uCEwjgDGYOneY0W6Zdjol5axks5alHmBwA%3D%3D", ssl.verifypeer = FALSE)
 # eval(parse(text = script))
-script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R?token=AH_ZQJT5uCEwjgDGYOneY0W6Zdjol5axks5alHmBwA%3D%3D", ssl.verifypeer = FALSE)
-eval(parse(text = script))
-
-# Functions from Michelle's GitHub helpers script
-#field_helpers (similar idea to helpers, in field repository) - this might be the newer version of the helpers collection?
-script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
+# 
+# # Functions from Michelle's GitHub helpers script
+# #field_helpers (similar idea to helpers, in field repository) - this might be the newer version of the helpers collection?
+# script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
+# eval(parse(text = script))
 
 # Eggs by female size function (from Adam Y's work), could change to have default intercept or slope in there once have those better estimated
 eggsBySize <- function(intercept, slope, fish_size) {
@@ -231,35 +250,36 @@ anemid_latlong_2 <- function(anem.table.id, anemdf, latlondata) { #anem.table.id
 }
 
 #################### Running things: ####################
-########## Pull info from database
-leyte <- read_db("Leyte")
-
-allfish_fish <- leyte %>% 
-  tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
-  collect() 
-
-allfish_anems <- leyte %>%
-  tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
-  collect() %>%
-  filter(anem_table_id %in% allfish_fish$anem_table_id)
-
-allfish_dives <- leyte %>%
-  tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  collect() %>%
-  filter(dive_table_id %in% allfish_anems$dive_table_id)
-
-# pull out just the year and put that in a separate column
-allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
-
-#join together
-allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
-allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
-
-allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
-
+# ########## Pull info from database
+# #leyte <- read_db("Leyte")
+# leyte <- read_db("Leyte")
+# 
+# allfish_fish <- leyte %>% 
+#   tbl("clownfish") %>%
+#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
+#   collect() 
+# 
+# allfish_anems <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+#   collect() %>%
+#   filter(anem_table_id %in% allfish_fish$anem_table_id)
+# 
+# allfish_dives <- leyte %>%
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   collect() %>%
+#   filter(dive_table_id %in% allfish_anems$dive_table_id)
+# 
+# # pull out just the year and put that in a separate column
+# allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
+# 
+# #join together
+# allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
+# allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
+# 
+# allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
+# 
 #pull GPS info
 gps.Info <- leyte %>%
   tbl("GPX") %>%
@@ -267,15 +287,15 @@ gps.Info <- leyte %>%
   collect(n = Inf) %>%
   mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
   mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
-         day = day(obs_time), 
-         hour = hour(obs_time), 
-         min = minute(obs_time), 
-         sec = second(obs_time), 
+         day = day(obs_time),
+         hour = hour(obs_time),
+         min = minute(obs_time),
+         sec = second(obs_time),
          year = year(obs_time)) %>%
   separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
-
-#pull out just tagged fish
-taggedfish <- allfish %>% filter(!is.na(tag_id))
+# 
+# #pull out just tagged fish
+# taggedfish <- allfish %>% filter(!is.na(tag_id))
 
 ########## Calculating values, constants, inputs from data
 ##### Find max age (A) - maximum number of times a fish has been caught
@@ -343,17 +363,17 @@ site_width_info <- data.frame(site = site_vec) #initialize dataframe
 
 # anem_id of northern-most anem at site (or eastern-most in case of Haina, which runs E-W)
 site_width_info$N_anem <- c(Cabatoan_N, CaridadCemetery_N, CaridadProper_N, ElementarySchool_N, Gabas_N, Haina_E, HicgopSouth_N,
-                            Magbangon_N, Palanas_N, PorocRose_N, PorocSanFlower_N, SanAgustin_N, SitioBaybayon_N, SitioLonas_N,
+                            Magbangon_N_N, Magbangon_S_N, Palanas_N, PorocRose_N, PorocSanFlower_N, SanAgustin_N, SitioBaybayon_N, SitioLonas_N,
                             SitioTugas_N, TamakinDacot_N, Visca_N, Wangag_N)
 
 # anem_id of southern-most anem at site (or western-most in case of Haina, which runs E-W)
-site_width_info$S_anem <- c(Cabatoan_S, CaridadCemetery_S, CaridadProper_S, ElementarySchool_S, Gabas_S, Haina_W, HicgopSouth_S,
-                            Magbangon_S, Palanas_S, PorocRose_S, PorocSanFlower_S, SanAgustin_S, SitioBaybayon_S, SitioLonas_S,
+site_width_info$S_anem <- c(Cabatoan_S, CaridadCemetery_S, CaridadProper_S, ElementarySchool_S, Gabas_S, Haina_W, HicgopSouth_S, Magbangon_N_S,
+                            Magbangon_S_S, Palanas_S, PorocRose_S, PorocSanFlower_S, SanAgustin_S, SitioBaybayon_S, SitioLonas_S,
                             SitioTugas_S, TamakinDacot_S, Visca_S, Wangag_S)
 
 # anem_id of mid anem at site (or western-most in case of Haina, which runs E-W) #except CardiadProper, Sitio Lonas, Sitio Tugas, used N
 site_width_info$M_anem <- c(Cabatoan_mid, CaridadCemetery_mid, CaridadProper_N, ElementarySchool_mid, Gabas_mid, Haina_mid, HicgopSouth_mid,
-                            Magbangon_mid, Palanas_mid, PorocRose_mid, PorocSanFlower_mid, SanAgustin_mid, SitioBaybayon_mid, SitioLonas_N,
+                            Magbangon_N_mid, Magbangon_S_mid, Palanas_mid, PorocRose_mid, PorocSanFlower_mid, SanAgustin_mid, SitioBaybayon_mid, SitioLonas_N,
                             SitioTugas_N, TamakinDacot_mid, Visca_mid, Wangag_mid)
 
 # pull out anem_table_ids for those anems so can use anemid_latlong2 function to find lat lon for boundary anems
@@ -385,8 +405,8 @@ site_width_anemdives <- left_join(site_width_anems, site_width_dives, by="dive_t
 # find lat lon for the boundary anems -- THIS DOESN'T WORK FOR THE MID ANEMS
 for(i in 1:length(site_width_anemdives$anem_table_id)) {
   out_anemLL <- anemid_latlong_2(site_width_anemdives$anem_table_id[i], site_width_anemdives, gps.Info)
-  site_width_anemdives$lat[i] = out_anemLL$lat
-  site_width_anemdives$lon[i] = out_anemLL$lon
+  site_width_anemdives$lat[i] = out_anemLL$lat[1] #figure out why this is sometimes the wrong replacement length... (put [1] in to try to solve that issue but not sure why it's needed)
+  site_width_anemdives$lon[i] = out_anemLL$lon[1]
 }
 
 # just pull out one row for each anem_id 
@@ -395,14 +415,14 @@ site_width_anemdives_short <- site_width_anemdives %>%
 
 # put lat and lons into info table (requires some column renaming so needs to be run in order)
 # lat/lon for N_anem
-site_width_info <- left_join(site_width_info %>% rename(anem_id = N_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the N anem
-site_width_info <- site_width_info %>% rename(N_anem = anem_id, N_lat = lat, N_lon = lon) #rename the anem_id, lat, lon columns to be N-specific
+site_width_info <- left_join(site_width_info %>% dplyr::rename(anem_id = N_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the N anem
+site_width_info <- site_width_info %>% dplyr::rename(N_anem = anem_id, N_lat = lat, N_lon = lon) #rename the anem_id, lat, lon columns to be N-specific
 # lat/lon for S_anem
-site_width_info <- left_join(site_width_info %>% rename(anem_id = S_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the S anem
-site_width_info <- site_width_info %>% rename(S_anem = anem_id, S_lat = lat, S_lon = lon) #rename the anem_id, lat, lon columns to be S-specific 
+site_width_info <- left_join(site_width_info %>% dplyr::rename(anem_id = S_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the S anem
+site_width_info <- site_width_info %>% dplyr::rename(S_anem = anem_id, S_lat = lat, S_lon = lon) #rename the anem_id, lat, lon columns to be S-specific 
 # lat/lon for M_anem
-site_width_info <- left_join(site_width_info %>% rename(anem_id = M_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the mid anem
-site_width_info <- site_width_info %>% rename(M_anem = anem_id, M_lat = lat, M_lon = lon) #rename the anem_id, lat, lon columns to be M-specific 
+site_width_info <- left_join(site_width_info %>% dplyr::rename(anem_id = M_anem), site_width_anemdives_short %>% select(anem_id, lat, lon), by="anem_id") #join in the lat lons for the mid anem
+site_width_info <- site_width_info %>% dplyr::rename(M_anem = anem_id, M_lat = lat, M_lon = lon) #rename the anem_id, lat, lon columns to be M-specific 
 
 #and calculate the distance!
 for(i in 1:length(site_width_info$site)) {
@@ -420,7 +440,8 @@ site_dist_info <- data.frame(org_site = c(rep(site_vec[1],length(site_vec)), rep
                                           rep(site_vec[11],length(site_vec)), rep(site_vec[12],length(site_vec)),
                                           rep(site_vec[13],length(site_vec)), rep(site_vec[14],length(site_vec)),
                                           rep(site_vec[15],length(site_vec)), rep(site_vec[16],length(site_vec)),
-                                          rep(site_vec[17],length(site_vec)), rep(site_vec[18],length(site_vec))), stringsAsFactors = FALSE)
+                                          rep(site_vec[17],length(site_vec)), rep(site_vec[18],length(site_vec)), 
+                                          rep(site_vec[19],length(site_vec))), stringsAsFactors = FALSE)
 site_dist_info$dest_site <- rep(site_vec, length(site_vec))
 site_dist_info$dist_N_to_S_m <- rep(NA, length(site_dist_info$org_site))
 site_dist_info$dist_N_to_S_km <- rep(NA, length(site_dist_info$org_site))
@@ -481,6 +502,61 @@ for (i in 1:length(site_dist_info$org_site)) {
 }
 
 ########## Looking at eggs and recruits relationships
+
+########## Converting migEst "migration rates" (proportion of settlers at dest that came from each of the other sites) into pij values
+migEst_pijmat <- site_dist_info %>% select(org_site, dest_site) 
+migEst_pijmat <- left_join(migEst_pijmat, site_vec_order, by=c("org_site" = "site_name")) #coerces factor into character vector...
+migEst_pijmat <- migEst_pijmat %>%
+  dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order) %>% #rename order columns so clear that they are for the origin site
+  mutate(mig_rate = rep(NA, length(org_site)), prob_disp = rep(NA, length(org_site)),  #columns to put in MigEst migration rates and the conversions to pijs
+         dest_alpha_order = rep(1:19, 19)) #destination site number (by alpha order)
+
+# find summary N recruits and N eggs by site, averaged across years sampled (also take mid, high, low?) - lots of NAs in recruits_info in prob_hab sampled... should check into that (maybe b/c 0 metal-tagged anems?)
+# recruits info - something is wrong with a the N. and S. Magbangon proportion habitat sampled.....
+demog_info_recruits <- recruits_info %>%
+  group_by(site) %>%
+  summarize(mean_est_R = mean(totalR_est_metalTA, na.rm=TRUE),
+            high_est_R = max(totalR_est_metalTA, na.rm=TRUE),
+            low_est_R = min(totalR_est_metalTA, na.rm=TRUE),
+            mean_raw_R = mean(Nrecruits, na.rm=TRUE),
+            high_raw_R = max(Nrecruits, na.rm=TRUE),
+            low_raw_R = min(Nrecruits, na.rm=TRUE))
+
+demog_info_eggs <- breedingF_info %>%
+  group_by(site) %>%
+  summarize(mean_est_eggs = mean(est_eggs_metalTA, na.rm=TRUE),
+            high_est_eggs = max(est_eggs_metalTA, na.rm=TRUE),
+            low_est_eggs = min(est_eggs_metalTA, na.rm=TRUE),
+            mean_raw_F = mean(NbreedingF_combo, na.rm=TRUE),
+            high_raw_F = max(NbreedingF_combo, na.rm=TRUE),
+            low_raw_F = min(NbreedingF_combo, na.rm=TRUE))
+
+# Put the migEst estimates in the new data frame - cycle through the org and dest sites (put the Mag estimate in for both N Mag and S Mag for now by duplicating the Mag row)
+for(i in 1:19) { #19 sites right now
+  org_num = i
+  for(j in 1:19) {
+    dest_num = j
+    migRate = migEst_conn[j,i] # pull out migration rate from MigEst
+    migEst_pijmat$mig_rate[which(migEst_pijmat$org_alpha_order == org_num & migEst_pijmat$dest_alpha_order == dest_num)] = migRate #put it in the right row for origin + destination
+  }
+}
+
+# Convert migEst output to proportion of recruits from site i settling at site j
+for(i in 1:length(migEst_pijmat$org_site)){
+  org_site = migEst_pijmat$org_site[i]
+  dest_site = migEst_pijmat$dest_site[i]
+  mig_rate = migEst_pijmat$mig_rate[i]
+  recruits_to_dest = (demog_info_recruits %>% filter(site == dest_site))$mean_est_R
+  eggs_from_org = (demog_info_eggs %>% filter(site == org_site))$mean_est_eggs
+  recruits_from_org = findRfromE(slope_mod1, eggs_from_org, intercept_mod1)
+
+  migEst_pijmat$prob_disp[i] = (mig_rate * recruits_to_dest)/recruits_from_org
+}
+
+##### ADD IN HIGH AND LOW ESTIMATES OF PROB_DISP WITH HIGH/LOW est R and est eggs - all combos?
+
+  
+
 
 
 ########## Assessing metrics
