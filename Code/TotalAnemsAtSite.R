@@ -98,7 +98,7 @@ pull_tagged_anems_by_year <- function(anemsdf, year_i) {
   # pull all APCL seen
   allfish_fish <- leyte %>% 
     tbl("clownfish") %>%
-    select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
+    select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
     collect() %>%
     filter(fish_spp == "APCL")
   
