@@ -52,6 +52,13 @@ migEst_b <- migEst_conn[,Mag_pos:n_migEstcol] #get Mag column again here, plus a
 migEst_b[,1] <- migEst_b[,1]/2
 migEst_conn <- cbind(migEst_a, migEst_b)
 
+rm(migEst_1, migEst_2, migEst_a, migEst_b) #remove in-between data frames to clear up clutter...
+
+# Load all parentage matches (as of Oct 2018 - before 2016, 2017, 2018 genotypes are in)
+parentage_moms <- read.csv(file=here('Data','20180713colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
+parentage_dads <- read.csv(file=here('Data','20180713colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
+parentage_trios <- read.csv(file=here('Data','20180713colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
+
 # Load recruit estimates
 load(file=here("Data", "recruits_info.RData"))
 load(file=here('Data', 'breedingF_info.RData'))
@@ -67,6 +74,9 @@ load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
 
 # Set a few things
 tag_sample_years = c(2015,2016,2017,2018)
+
+# Load proportion habitat sampled info
+load(file=here('Data','anem_sampling_table.RData'))
 
 # PRELIM OR FAKE FOR NOW THAT WILL GET REPLACED BY REAL DATA
 eggs_per_clutch = 1763 #from LEP_calc_WillWhite.R
@@ -249,6 +259,11 @@ anemid_latlong_2 <- function(anem.table.id, anemdf, latlondata) { #anem.table.id
   
 }
 
+# for findSP_v2 - inputs are LEP, R_E_slope, prob_disp_home - find recruits from eggs
+findRfromE <- function(m,eggs,b) {
+  recruits = m*eggs + b
+  return(recruits)
+}
 #################### Running things: ####################
 # ########## Pull info from database
 # #leyte <- read_db("Leyte")
@@ -556,18 +571,46 @@ for(i in 1:length(migEst_pijmat$org_site)){
 
 ##### ADD IN HIGH AND LOW ESTIMATES OF PROB_DISP WITH HIGH/LOW est R and est eggs - all combos?
 
-  
+##### Scale up parentage numbers - want number of recruits arriving home to patch i - find by taking number of parentage matches going home and scale up by percentage hab sampled
+# combine parentage files (mums, dads, trios) - first rename columns so they match across the files, add a column for match type, then rbind
+parentage_dads <- parentage_dads %>% 
+  dplyr::rename(parent_site = par2_site, nmatches = n_dad, offspring_site = offs_site) %>% 
+  mutate(match_type = rep('dad', dim(parentage_dads)[1]))
+parentage_moms <- parentage_moms %>% 
+  dplyr::rename(parent_site = par1_site, nmatches = n_mum, offspring_site = offs_site) %>%
+  mutate(match_type = rep('mom', dim(parentage_moms)[1]))
+parentage_trios <- parentage_trios %>% 
+  dplyr::rename(parent_site = par1_site, nmatches = n_trios, offspring_site = offs_site) %>%
+  mutate(match_type = rep('trio', dim(parentage_trios)[1]))
 
+parentage_matches_raw <- rbind(parentage_dads, parentage_moms, parentage_trios)
 
+# select out just the self matches, group by site and year, and sum across match types
+parentage_matches_self <- parentage_matches_raw %>% 
+  filter(offspring_site == parent_site) %>% 
+  group_by(year, offspring_site) %>%
+  summarize(n_matches = sum(nmatches))
 
+# join with proportion habitat sampled
+parentage_matches_self <- left_join(parentage_matches_self, anems_table %>% select(prop_hab_sampled_metal_TA, year, site), by=c('year' = 'year', 'offspring_site' = 'site'))
+
+# WHILE PARENTAGE MATCHES ARE JUST MAG, MAKE PROP HAB SAMPLED THE AVERAGE OF N MAG AND S MAG
+prop_hab_Mag2013 <- mean((anems_table %>% filter(year == 2013, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+prop_hab_Mag2014 <- mean((anems_table %>% filter(year == 2014, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+prop_hab_Mag2015 <- mean((anems_table %>% filter(year == 2015, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+
+parentage_matches_self$prop_hab_sampled_metal_TA[2] = prop_hab_Mag2013
+parentage_matches_self$prop_hab_sampled_metal_TA[7] = prop_hab_Mag2014
+parentage_matches_self$prop_hab_sampled_metal_TA[12] = prop_hab_Mag2015
+
+# scale up raw matches by proportion habitat sampled
+parentage_matches_self <- parentage_matches_self %>%
+  mutate(nrecruits_scaled = n_matches/prop_hab_sampled_metal_TA,
+         nrecruits_rounded = round(n_matches/prop_hab_sampled_metal_TA)) 
 ########## Assessing metrics
 
 ##### Self-persistence
-# for findSP_v2 - inputs are LEP, R_E_slope, prob_disp_home
-findRfromE <- function(m,eggs,b) {
-  recruits = m*eggs + b
-  return(recruits)
-}
+
 
 # Egg-recruit slope with LEP
 intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1
