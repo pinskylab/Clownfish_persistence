@@ -80,7 +80,7 @@ years_sampled <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)
 
 #winter months
 winter_months <- c(1,2) #to pull out winter 2015 surveys - check that they didn't go into March too
-spring_months <- c(3,4,5,6,7) #to pull out non-winter 2015 surveys
+spring_months <- c(3,4,5,6,7,8) #to pull out non-winter 2015 surveys
 
 #recaptured fish known to be caught at two or more sites (been checked for typos)
 multiple_site_recaps <- data.frame(tag_id = c('982000411818588', '982000411818610', '985153000401241'),
@@ -261,6 +261,18 @@ allAPCL$size <- as.numeric(allAPCL$size) #make size numeric (rather than a chr) 
 #pull out just tagged fish
 taggedfish <- allAPCL %>% filter(!is.na(tag_id))
 
+##### Create list of sites and the years they were sampled
+# Summarize sites sampled each year
+dives_processed <- dives_db %>%
+  mutate(year = as.integer(substring(date,1,4))) %>%
+  group_by(year, site) %>% 
+  summarize(ndives = n()) %>%
+  mutate(sampled = ifelse(ndives > 0, 1, 0)) # 1 if sampled (all 1 here b/c no entries for sites not sampled a particular year...)
+
+site_visits <- data.frame(site = rep(site_vec_NS, length(years_sampled)))
+site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_NS)), rep(2014, length(site_vec_NS)), rep(2015, length(site_vec_NS)),
+                      rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
+site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site')) # 1 if sampled in a particular year, NA if not
 
 #################### Save files ####################
 save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
