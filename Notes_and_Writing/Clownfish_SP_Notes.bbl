@@ -1,5 +1,5 @@
  \newcommand{\noop}[1]{}
-\begin{thebibliography}{56}
+\begin{thebibliography}{57}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -296,6 +296,15 @@ Haruki Ochi.
   clarkii, in the temperate waters of southern japan.
 \newblock \emph{Environmental Biology of Fishes}, 26\penalty0 (4):\penalty0
   257--275, 1989.
+
+\bibitem[O'Reilly et~al.(2018)O'Reilly, Titus, Nelsen, Ratchford, and
+  Chadwick]{o2018giant}
+E~O'Reilly, BM~Titus, MW~Nelsen, S~Ratchford, and NE~Chadwick.
+\newblock Giant ephemeral anemones? rapid growth and high mortality of
+  corkscrew sea anemones bartholomea annulata (le sueur, 1817) under variable
+  conditions.
+\newblock \emph{Journal of Experimental Marine Biology and Ecology},
+  509:\penalty0 44--53, 2018.
 
 \bibitem[Puckett and Eggleston(2016)]{puckett2016metapopulation}
 BJ~Puckett and DB~Eggleston.
