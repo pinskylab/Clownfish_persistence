@@ -227,9 +227,43 @@ leyte <- read_db("Leyte")
 
 anem_db <- leyte %>% tbl("anemones") %>% collect()
 fish_db <- leyte %>% tbl("clownfish") %>% collect()
+fish_seen_db <- leyte %>% tbl('clown_sightings') %>% collect()
 dives_db <- leyte %>% tbl("diveinfo") %>% collect()
 gps_db <- leyte %>% tbl("GPX") %>% collect()
 
+# joining dives + anems to all fish from clownfish database for Hannah
+allfish_fishdb <- fish_db %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
+  
+allfish_caught_anems <- anem_db %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+  filter(anem_table_id %in% allfish_fishdb$anem_table_id)
+
+allfish_caught_dives <- dives_db %>%
+  select(dive_table_id, dive_type, date, site, gps) %>%
+  filter(dive_table_id %in% allfish_caught_anems$dive_table_id)
+
+allfish_caught <- left_join(allfish_fishdb, allfish_caught_anems, by='anem_table_id')
+allfish_caught <- left_join(allfish_caught, allfish_caught_dives, by='dive_table_id') %>%
+  mutate(year = substring(date,1,4))
+
+# joining dives + anems to all fish from clown_sighted database for Hannah
+allfish_seendb <- fish_seen_db %>%
+  select(est_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
+
+allfish_seen_anems <- anem_db %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+  filter(anem_table_id %in% allfish_seendb$anem_table_id)
+
+allfish_seen_dives <- dives_db %>%
+  select(dive_table_id, dive_type, date, site, gps) %>%
+  filter(dive_table_id %in% allfish_seen_anems$dive_table_id)
+
+allfish_seen <- left_join(allfish_seendb, allfish_seen_anems, by='anem_table_id')
+allfish_seen <- left_join(allfish_seen, allfish_seen_dives, by='dive_table_id') %>%
+  mutate(year = substring(date,1,4))
+
+  
 allAPCL_fish <- leyte %>% 
   tbl("clownfish") %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
@@ -261,6 +295,11 @@ allAPCL$size <- as.numeric(allAPCL$size) #make size numeric (rather than a chr) 
 #pull out just tagged fish
 taggedfish <- allAPCL %>% filter(!is.na(tag_id))
 
+# all anems that had APCL at some point (have a tag)
+anems_tagged <- anem_db %>%
+  filter(!is.na(anem_id) | !is.na(anem_obs)) %>%
+  mutate(anem_id_unq = if_else(is.na(anem_obs), paste('id',anem_id,sep=''), paste('obs',anem_obs,sep='')))
+
 ##### Create list of sites and the years they were sampled
 # Summarize sites sampled each year
 dives_processed <- dives_db %>%
@@ -274,15 +313,25 @@ site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
 site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site')) # 1 if sampled in a particular year, NA if not
 
+
+# Add in dive + anem info to fish
+allfish_caught <- allfish
 #################### Save files ####################
 save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
 save(anem_db, file = here::here("Data/Database_backups", "anem_db.RData"))
 save(fish_db, file = here::here("Data/Database_backups", "fish_db.RData"))
+save(fish_seen_db, file = here::here('Data/Database_backups', 'fish_seen_db.RData'))
 save(dives_db, file = here::here("Data/Database_backups", "dives_db.RData"))
 save(gps_db, file = here::here("Data/Database_backups", "gps_db.RData"))
 
 save(allAPCL, file=here::here('Data', 'allAPCL.RData'))
 save(taggedfish, file=here::here('Data', 'taggedfish.RData'))
+
+
+# Data for Hannah
+save(anems_tagged, file=here::here('Data','anems_tagged.RData'))
+save(allfish_caught, file=here::here('Data','allfish_caught.RData'))
+save(allfish_seen, file=here::here('Data','allfish_seen.RData'))
 # 
 # load(file = here("Data", "anem_db.RData"))
 # load(file = here("Data", "fish_db.RData"))
