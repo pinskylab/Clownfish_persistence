@@ -313,9 +313,6 @@ site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
 site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site')) # 1 if sampled in a particular year, NA if not
 
-
-# Add in dive + anem info to fish
-allfish_caught <- allfish
 #################### Save files ####################
 save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
 save(anem_db, file = here::here("Data/Database_backups", "anem_db.RData"))
