@@ -25,34 +25,41 @@ source(here::here('Code', 'Constants_database_common_functions.R'))
 # Load encounter history data frame from ClownfishMarkRecap.R
 #load(file=here("Data", "encounters_all.RData"))
 
-# Load mig_est data
-# #load(file=here("Data", "MigEstPooled_out_justimmigration.txt"))
-# # Old version - MigEst pooled matrix but w/out ghost populations
-# migEst_conn <- read.table(file=here("Data", "MigEstPooled_out_justimmigration.txt"), 
-#            header = TRUE, sep = "")
-migEst_sites <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas",
-                  "Haina", "Hicgop South", "Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower",
-                  "San Agustin", "Sitio Baybayon", "Sitio Lonas", "Sitio Tugas", "Tamakin Dacot",
-                  "Visca", "Wangag")
-migEst_conn <- read.table(file=here::here('Data','allyears_average_migest_justmeantable.txt'), skip=2, header=TRUE) #just the mean all-years table from allyears_average_migest.txt, run on 9/25/18
-# While using this migEst output that has Magbangon as one site (not broken into N and S), split it by assuming the arrivals at each are the same and half of the dispersers from Mag are from N and half from S
-# Duplicate the Magbangon row in the migEst output to have one for N. Mag and one for S. Mag (eventually, will get a run with them as separate sites), and remove the column with pop number
-migEst_conn <- migEst_conn[,-1] #remove Pop number column
-Mag_pos = 8 #position of the Magbangon row and column (once pop column is removed)
-n_migEstrow <- dim(migEst_conn)[1] #number of rows total
-n_migEstcol <- dim(migEst_conn)[2]
-# duplicate the row showing composition of arrivers to Mag so same for N and S
-migEst_1 <- migEst_conn[1:Mag_pos,] #get Mag row once here (as well as those before it)
-migEst_2 <- migEst_conn[Mag_pos:n_migEstrow,] #get Mag row once here (as well as those after it)
-migEst_conn <- rbind(migEst_1, migEst_2)
-# duplicate the column showing outgoers from Mag and halve the values (so same total percentage from Mag, just half are from N and half are from S)
-migEst_a <- migEst_conn[,1:Mag_pos] #get Mag column once here (plus all the ones to the left of it)
-migEst_a[,Mag_pos] = migEst_a[,Mag_pos]/2 # divide values in half
-migEst_b <- migEst_conn[,Mag_pos:n_migEstcol] #get Mag column again here, plus all the columns to the right of it
-migEst_b[,1] <- migEst_b[,1]/2
-migEst_conn <- cbind(migEst_a, migEst_b)
+# # Load mig_est data
+# # #load(file=here("Data", "MigEstPooled_out_justimmigration.txt"))
+# # # Old version - MigEst pooled matrix but w/out ghost populations
+# # migEst_conn <- read.table(file=here("Data", "MigEstPooled_out_justimmigration.txt"), 
+# #            header = TRUE, sep = "")
+# migEst_sites <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas",
+#                   "Haina", "Hicgop South", "Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower",
+#                   "San Agustin", "Sitio Baybayon", "Sitio Lonas", "Sitio Tugas", "Tamakin Dacot",
+#                   "Visca", "Wangag")
+# migEst_conn <- read.table(file=here::here('Data','allyears_average_migest_justmeantable.txt'), skip=2, header=TRUE) #just the mean all-years table from allyears_average_migest.txt, run on 9/25/18
+# # While using this migEst output that has Magbangon as one site (not broken into N and S), split it by assuming the arrivals at each are the same and half of the dispersers from Mag are from N and half from S
+# # Duplicate the Magbangon row in the migEst output to have one for N. Mag and one for S. Mag (eventually, will get a run with them as separate sites), and remove the column with pop number
+# migEst_conn <- migEst_conn[,-1] #remove Pop number column
+# Mag_pos = 8 #position of the Magbangon row and column (once pop column is removed)
+# n_migEstrow <- dim(migEst_conn)[1] #number of rows total
+# n_migEstcol <- dim(migEst_conn)[2]
+# # duplicate the row showing composition of arrivers to Mag so same for N and S
+# migEst_1 <- migEst_conn[1:Mag_pos,] #get Mag row once here (as well as those before it)
+# migEst_2 <- migEst_conn[Mag_pos:n_migEstrow,] #get Mag row once here (as well as those after it)
+# migEst_conn <- rbind(migEst_1, migEst_2)
+# # duplicate the column showing outgoers from Mag and halve the values (so same total percentage from Mag, just half are from N and half are from S)
+# migEst_a <- migEst_conn[,1:Mag_pos] #get Mag column once here (plus all the ones to the left of it)
+# migEst_a[,Mag_pos] = migEst_a[,Mag_pos]/2 # divide values in half
+# migEst_b <- migEst_conn[,Mag_pos:n_migEstcol] #get Mag column again here, plus all the columns to the right of it
+# migEst_b[,1] <- migEst_b[,1]/2
+# migEst_conn <- cbind(migEst_a, migEst_b)
+# 
+# rm(migEst_1, migEst_2, migEst_a, migEst_b) #remove in-between data frames to clear up clutter...
 
-rm(migEst_1, migEst_2, migEst_a, migEst_b) #remove in-between data frames to clear up clutter...
+# Load in new MigEst output (with N. Magbangon and S. Magbangon separated) - all years combined and confidence intervals
+migEst_conn <- read.table(file=here::here('Data', '20181029_connmat_allyears.txt'), header=TRUE) #read in all years combined values
+migEst_conn <- migEst_conn[,-1] #remove Pop number column
+migEst_conn_CI <- read.table(file=here::here('Data', '20181029_confid_allyears.txt'), header=TRUE) #read in confidence intervals
+migEst_conn_UCI <- migEst_conn_CI[, grepl("CI_UJ_", names(migEst_conn_CI))] #pull out just upper confidence estimates
+migEst_conn_LCI <- migEst_conn_CI[, grepl('CI_LJ_', names(migEst_conn_CI))] #pull out just lower confidence estimates
 
 # Load all parentage matches (as of Oct 2018 - before 2016, 2017, 2018 genotypes are in)
 parentage_moms <- read.csv(file=here('Data','20180713colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
