@@ -78,6 +78,9 @@ first_metal_tag <- 2001
 #number of years sampled
 years_sampled <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)
 
+#years with tagging
+tag_sample_years = c(2015,2016,2017,2018)
+
 #winter months
 winter_months <- c(1,2) #to pull out winter 2015 surveys - check that they didn't go into March too
 spring_months <- c(3,4,5,6,7,8) #to pull out non-winter 2015 surveys
@@ -85,6 +88,67 @@ spring_months <- c(3,4,5,6,7,8) #to pull out non-winter 2015 surveys
 #recaptured fish known to be caught at two or more sites (been checked for typos)
 multiple_site_recaps <- data.frame(tag_id = c('982000411818588', '982000411818610', '985153000401241'),
                                    gen_id = c(NA, NA, NA))
+
+#anems at N and S ends of sites (visually from QGIS, in particular mid anems totally eyeballed)
+Cabatoan_N <- 198 # 3195, 951 other options, 2502
+Cabatoan_mid <- 2241
+Cabatoan_S <- 904 #2250, 185 other options
+CaridadCemetery_N <- 695
+CaridadCemetery_mid <- 2683 #2256
+CaridadCemetery_S <- 292
+CaridadCemetery_mid <- 289
+CaridadProper_N <- 291
+CaridadProper_S <- 290
+ElementarySchool_N <- 2303
+ElementarySchool_mid <- 1306
+ElementarySchool_S <- 702
+Gabas_N <- 2667 #2271
+Gabas_mid <- 1288
+Gabas_S <- 1340
+Haina_E <- 2138
+Haina_mid <- 441 #2144, 2934
+Haina_W <- 3080
+HicgopSouth_N <- 300
+HicgopSouth_mid <- 2128
+HicgopSouth_S <- 697 #2296
+Magbangon_N <- 2079
+Magbangon_mid <- 680
+Magbangon_S <- 213
+Magbangon_N_N <- 2079
+Magbangon_N_mid <- #2257 is mid of northern-most chunk; 475 or 2952 N of mid-chunk
+  #Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
+  Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value?
+Magbangon_S_N <- 1113 #209 is another option
+Magbangon_S_mid <- 2437
+Magbangon_S_S <- 213 #214, 215 other options 
+Palanas_N <- 2001 #1030 also quite close
+Palanas_mid <- 2632 #totally eyeballed...
+Palanas_S <- 876 #426 also a good end point
+PorocRose_N <- 24 #2650
+PorocRose_mid <- 2310
+PorocRose_S <- 724
+PorocSanFlower_N <- 902 #2315 another option
+PorocSanFlower_mid <- 2646
+PorocSanFlower_S <- 377 #2319
+SanAgustin_N <- 2662
+SanAgustin_mid <- 2660 #711 is mid of hull
+SanAgustin_S <- 705 #outside of hull, 2129 is at bottom of hull 
+SitioBaybayon_N <- 1302
+SitioBaybayon_mid <- 538
+SitioBaybayon_S <- 2747 #outside hull (maybe KC sites?), #805, 2148 w/in hull
+SitioLonas_N <- 48
+SitioLonas_S <- 48
+SitioTugas_N <- 54
+SitioTugas_S <- 59
+TamakinDacot_N <- 2554
+TamakinDacot_mid <- 2861
+TamakinDacot_S <- 2270 #2147
+Visca_N <- 4
+Visca_mid <- 8 #776
+Visca_S <- 2314
+Wangag_N <- 2985
+Wangag_mid <- 2734
+Wangag_S <- 2063 #1034 also a good end point
 
 #################### Functions: ####################
 # Functions from Michelle's GitHub helpers script
