@@ -79,11 +79,20 @@ load(file=here("Data", "egg_recruit_lm.RData")) #estimate using each site and ye
 # Load LEP estimates
 load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
 
-# Set a few things
-tag_sample_years = c(2015,2016,2017,2018)
-
 # Load proportion habitat sampled info
 load(file=here('Data','anem_sampling_table.RData'))
+
+# Dispersal kernel parameters from Katrina (estimates as of 11/01/2018, in 20181101_allkernels.pdf)
+k_allyears = -0.07 #2012-2015 data
+theta_allyears = 0.5 #2012-2015 data
+k_2012 =-2.35
+theta_2012 = 0.5
+k_2013 = -1.83
+theta_2013 = 0.5
+k_2014 = -2.23
+theta_2014 = 2
+k_2015 = -2.7
+theta_2015 = 2
 
 # PRELIM OR FAKE FOR NOW THAT WILL GET REPLACED BY REAL DATA
 eggs_per_clutch = 1763 #from LEP_calc_WillWhite.R
@@ -91,82 +100,20 @@ clutch_per_year = 11.9 #from LEP_calc_WillWhite.R
 eggs_intercept = 100
 eggs_slope = 107 #from Adam Y Aresty poster, #eggs/cm in female size
 
-# prelim dispersal kernel parameters from Katrina (from email sent 7/5/18)
-k_2012 = 0.1
-theta_2012 = 5
-k_2013 = 0.025
-theta_2013 = 2 #or 1
-k_2014 = 0.1
-theta_2014 = 2
-k_2015 = 0.4
-theta_2015 = 1
-
 # LEP
 LEP_Will <- 1780 #eggs/recruit
 LEP_Will_eggs_per_clutch <- LEP_out$LEP_W #my size-survival relationship, Will's eggs per clutch
 LEP <- LEP_out$LEP #AY's prelim egg data, my size-survival relationship
 
-# anems at N and S ends of sites (visually from QGIS, in particular mid anems totally eyeballed)
-Cabatoan_N <- 198 # 3195, 951 other options, 2502
-Cabatoan_mid <- 2241
-Cabatoan_S <- 904 #2250, 185 other options
-CaridadCemetery_N <- 695
-CaridadCemetery_mid <- 2683 #2256
-CaridadCemetery_S <- 292
-CaridadCemetery_mid <- 289
-CaridadProper_N <- 291
-CaridadProper_S <- 290
-ElementarySchool_N <- 2303
-ElementarySchool_mid <- 1306
-ElementarySchool_S <- 702
-Gabas_N <- 2667 #2271
-Gabas_mid <- 1288
-Gabas_S <- 1340
-Haina_E <- 2138
-Haina_mid <- 441 #2144, 2934
-Haina_W <- 3080
-HicgopSouth_N <- 300
-HicgopSouth_mid <- 2128
-HicgopSouth_S <- 697 #2296
-Magbangon_N <- 2079
-Magbangon_mid <- 680
-Magbangon_S <- 213
-Magbangon_N_N <- 2079
-Magbangon_N_mid <- #2257 is mid of northern-most chunk; 475 or 2952 N of mid-chunk
-#Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
-Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value?
-Magbangon_S_N <- 1113 #209 is another option
-Magbangon_S_mid <- 2437
-Magbangon_S_S <- 213 #214, 215 other options 
-Palanas_N <- 2001 #1030 also quite close
-Palanas_mid <- 2632 #totally eyeballed...
-Palanas_S <- 876 #426 also a good end point
-PorocRose_N <- 24 #2650
-PorocRose_mid <- 2310
-PorocRose_S <- 724
-PorocSanFlower_N <- 902 #2315 another option
-PorocSanFlower_mid <- 2646
-PorocSanFlower_S <- 377 #2319
-SanAgustin_N <- 2662
-SanAgustin_mid <- 2660 #711 is mid of hull
-SanAgustin_S <- 705 #outside of hull, 2129 is at bottom of hull 
-SitioBaybayon_N <- 1302
-SitioBaybayon_mid <- 538
-SitioBaybayon_S <- 2747 #outside hull (maybe KC sites?), #805, 2148 w/in hull
-SitioLonas_N <- 48
-SitioLonas_S <- 48
-SitioTugas_N <- 54
-SitioTugas_S <- 59
-TamakinDacot_N <- 2554
-TamakinDacot_mid <- 2861
-TamakinDacot_S <- 2270 #2147
-Visca_N <- 4
-Visca_mid <- 8 #776
-Visca_S <- 2314
-Wangag_N <- 2985
-Wangag_mid <- 2734
-Wangag_S <- 2063 #1034 also a good end point
-
+# # prelim dispersal kernel parameters from Katrina (from email sent 7/5/18)
+# k_2012 = 0.1
+# theta_2012 = 5
+# k_2013 = 0.025
+# theta_2013 = 2 #or 1
+# k_2014 = 0.1
+# theta_2014 = 2
+# k_2015 = 0.4
+# theta_2015 = 1
 
 # #################### Functions: ####################
 # # Functions and constants from my GitHub function/constant collection
@@ -186,13 +133,13 @@ eggsBySize <- function(intercept, slope, fish_size) {
   return(eggs)
 }
 
-# Calculate LEP - consider updating later to include some of the calculating of survivals and such in here instead of as inputs? Probably better as separate function, though
-findLEP <- function(l_vec, f_vec) { #l_vec: vector of survivals-to-age, f_vec: vector of fecundities-at-age. Need to make sure first age of reproduction and max are are included in bounds, otherwise can define starting age as would like.
-  out <- sum(l_vec*f_vec)
-  return(out)
-}
-
-# Calculate LEP via an IPM (like Will did in LEP_calc_WillWhite.R)
+# # Calculate LEP - consider updating later to include some of the calculating of survivals and such in here instead of as inputs? Probably better as separate function, though
+# findLEP <- function(l_vec, f_vec) { #l_vec: vector of survivals-to-age, f_vec: vector of fecundities-at-age. Need to make sure first age of reproduction and max are are included in bounds, otherwise can define starting age as would like.
+#   out <- sum(l_vec*f_vec)
+#   return(out)
+# }
+# 
+# # Calculate LEP via an IPM (like Will did in LEP_calc_WillWhite.R)
 
 # Calculate self-persistence - one version
 findSP_v1 <- function(LEP, home_recruits, egg_prod) { #LEP: lifetime egg production (see above), home_recruits: number o
@@ -271,6 +218,7 @@ findRfromE <- function(m,eggs,b) {
   recruits = m*eggs + b
   return(recruits)
 }
+
 #################### Running things: ####################
 # ########## Pull info from database
 # #leyte <- read_db("Leyte")
@@ -320,15 +268,15 @@ gps.Info <- leyte %>%
 # taggedfish <- allfish %>% filter(!is.na(tag_id))
 
 ########## Calculating values, constants, inputs from data
-##### Find max age (A) - maximum number of times a fish has been caught
-tag_years <- taggedfish %>% 
-  group_by(tag_id) %>%
-  summarize(firstyear = min(year), lastyear = max(year), nyears = max(year) - min(year))
-
-maxyears = max(tag_years$nyears)
-
-# add site back in
-tag_years_site <- left_join(tag_years, (taggedfish %>% select(tag_id, site)) %>% distinct(), by="tag_id") # 4 tags correspond to two sites - looked at below, emailed Michelle about checking data sheets
+# ##### Find max age (A) - maximum number of times a fish has been caught
+# tag_years <- taggedfish %>% 
+#   group_by(tag_id) %>%
+#   summarize(firstyear = min(year), lastyear = max(year), nyears = max(year) - min(year))
+# 
+# maxyears = max(tag_years$nyears)
+# 
+# # add site back in
+# tag_years_site <- left_join(tag_years, (taggedfish %>% select(tag_id, site)) %>% distinct(), by="tag_id") # 4 tags correspond to two sites - looked at below, emailed Michelle about checking data sheets
 
 # # Note to self - if you just do distinct() above, it has 4 more rows - so looks like 4 tags that have multiple sites associated with them - should check into at some point...
 # tagsatsites <- data.frame(table(tag_years_site$tag_id))
@@ -531,6 +479,8 @@ migEst_pijmat <- left_join(migEst_pijmat, site_vec_order, by=c("org_site" = "sit
 migEst_pijmat <- migEst_pijmat %>%
   dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order) %>% #rename order columns so clear that they are for the origin site
   mutate(mig_rate = rep(NA, length(org_site)), prop_disp = rep(NA, length(org_site)),  #columns to put in MigEst migration rates and the conversions to pijs
+         mig_rate_LCI = rep(NA, length(org_site)), mig_rate_UCI = rep(NA, length(org_site)), #columns for upper and lower confidence intervals of migEst output
+         prop_disp_LCI = rep(NA, length(org_site)), prop_disp_UCI = rep(NA, length(org_site)), #columns for upper and lower confidence intervals of converted pijs
          dest_alpha_order = rep(1:19, 19), #destination site number (by alpha order)
          dest_geo_order = rep(site_vec_order$geo_order, 19)) #destination site number by geographical order 
 
@@ -554,13 +504,21 @@ demog_info_eggs <- breedingF_info %>%
             high_raw_F = max(NbreedingF_combo, na.rm=TRUE),
             low_raw_F = min(NbreedingF_combo, na.rm=TRUE))
 
-# Put the migEst estimates in the new data frame - cycle through the org and dest sites (put the Mag estimate in for both N Mag and S Mag for now by duplicating the Mag row)
+# Put the migEst estimates in the new data frame - cycle through the org and dest sites 
 for(i in 1:19) { #19 sites right now
   org_num = i
   for(j in 1:19) {
     dest_num = j
-    migRate = migEst_conn[j,i] # pull out migration rate from MigEst
-    migEst_pijmat$mig_rate[which(migEst_pijmat$org_alpha_order == org_num & migEst_pijmat$dest_alpha_order == dest_num)] = migRate #put it in the right row for origin + destination
+    
+    # pull out migEst estimates
+    migRate = migEst_conn[j,i] # migration rate from MigEst
+    migRate_LCI = migEst_conn_LCI[j,i] # lower confidence interval estimate of migration rate from MigEst
+    migRate_UCI = migEst_conn_UCI[j,i] # upper confidence interval estimate of migration rate from MigEst
+    
+    # put them in the right row for origin and destination
+    migEst_pijmat$mig_rate[which(migEst_pijmat$org_alpha_order == org_num & migEst_pijmat$dest_alpha_order == dest_num)] = migRate #migration rate
+    migEst_pijmat$mig_rate_LCI[which(migEst_pijmat$org_alpha_order == org_num & migEst_pijmat$dest_alpha_order == dest_num)] = migRate_LCI #lower bound of confidence interval for migration rate
+    migEst_pijmat$mig_rate_UCI[which(migEst_pijmat$org_alpha_order == org_num & migEst_pijmat$dest_alpha_order == dest_num)] = migRate_UCI #upper bound of confidence interval for migration rate
   }
 }
 
@@ -569,11 +527,15 @@ for(i in 1:length(migEst_pijmat$org_site)){
   org_site = migEst_pijmat$org_site[i]
   dest_site = migEst_pijmat$dest_site[i]
   mig_rate = migEst_pijmat$mig_rate[i]
+  mig_rate_LCI = migEst_pijmat$mig_rate_LCI[i]
+  mig_rate_UCI = migEst_pijmat$mig_rate_UCI[i]
   recruits_to_dest = (demog_info_recruits %>% filter(site == dest_site))$mean_est_R
   eggs_from_org = (demog_info_eggs %>% filter(site == org_site))$mean_est_eggs
   recruits_from_org = findRfromE(slope_mod1, eggs_from_org, intercept_mod1)
 
   migEst_pijmat$prop_disp[i] = (mig_rate * recruits_to_dest)/recruits_from_org
+  migEst_pijmat$prop_disp_LCI[i] = (mig_rate_LCI * recruits_to_dest)/recruits_from_org
+  migEst_pijmat$prop_disp_UCI[i] = (mig_rate_UCI * recruits_to_dest)/recruits_from_org
 }
 
 ##### ADD IN HIGH AND LOW ESTIMATES OF PROB_DISP WITH HIGH/LOW est R and est eggs - all combos?
@@ -787,13 +749,31 @@ ggplot(data = tag_years_site, aes(nyears)) +
   theme_bw()
 dev.off()
 
-##### Proportion of recruits from i arriving at j - estimates converted from Mig Est output
+##### Proportion of recruits from i arriving at j - estimates converted from Mig Est output - some prop_disps are bigger than one... think through whether that's a quirk (and can just cap them at 1) or a structural error...
 pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat.pdf'))
 ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order), fill=prop_disp)) +
   geom_tile() +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  xlab("origin site") + ylab("destination site") + ggtitle("Proportion of recruits from origin settling at dest, converted from migEst") 
+  xlab("origin site") + ylab("destination site") + ggtitle("Proportion of recruits from origin settling at dest, converted from migEst")
+dev.off()
+
+# Lower confidence interval proportion of recruits from i arriving at j - estimates converted from Mig Est output LCI
+pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat_LCI.pdf'))
+ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order), fill=prop_disp_LCI)) +
+  geom_tile() +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  xlab("origin site") + ylab("destination site") + ggtitle("LCI prop recruits from origin settling at dest, from migEst LCI") 
+dev.off()
+
+# Upper confidence interval proportion of recruits from i arriving at j - estimates converted from Mig Est output UCI
+pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat_UCI.pdf'))
+ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order), fill=prop_disp_UCI)) +
+  geom_tile() +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  xlab("origin site") + ylab("destination site") + ggtitle("UCI prop recruits from origin settling at dest, from migEst UCI") 
 dev.off()
 
 ##### SP metric (FAKE DATA RIGHT NOW)
