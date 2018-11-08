@@ -472,18 +472,17 @@ for (i in 1:length(site_dist_info$org_site)) {
 }
 
 ########## Looking at eggs and recruits relationships
+# Egg-recruit slope with LEP
+intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1
+slope_mod1 <- 5.430e-05 #need to figure out how to extract this from egg_recruits_est_mod1
 
-########## Converting migEst "migration rates" (proportion of settlers at dest that came from each of the other sites) into pij values
-migEst_pijmat <- site_dist_info %>% select(org_site, dest_site) 
-migEst_pijmat <- left_join(migEst_pijmat, site_vec_order, by=c("org_site" = "site_name")) #coerces factor into character vector...
-migEst_pijmat <- migEst_pijmat %>%
-  dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order) %>% #rename order columns so clear that they are for the origin site
-  mutate(mig_rate = rep(NA, length(org_site)), prop_disp = rep(NA, length(org_site)),  #columns to put in MigEst migration rates and the conversions to pijs
-         mig_rate_LCI = rep(NA, length(org_site)), mig_rate_UCI = rep(NA, length(org_site)), #columns for upper and lower confidence intervals of migEst output
-         prop_disp_LCI = rep(NA, length(org_site)), prop_disp_UCI = rep(NA, length(org_site)), #columns for upper and lower confidence intervals of converted pijs
-         dest_alpha_order = rep(1:19, 19), #destination site number (by alpha order)
-         dest_geo_order = rep(site_vec_order$geo_order, 19)) #destination site number by geographical order 
+intercept_meta_mod1 <- -2.657e+02
+slope_meta_mod1 <- 6.624e-05
 
+recruits_per_LEP <- findRfromE(slope_mod1, LEP, intercept_mod1) #18! Means persistence is possible!
+#recruits_per_LEP_meta <- findRfromE(slope_meta_mod1, LEP, intercept_meta_mod1)
+
+########## Pull out summary # recruits and # eggs by site
 # find summary N recruits and N eggs by site, averaged across years sampled (also take mid, high, low?) - lots of NAs in recruits_info in prob_hab sampled... should check into that (maybe b/c 0 metal-tagged anems?)
 # recruits info - something is wrong with a the N. and S. Magbangon proportion habitat sampled.....
 demog_info_recruits <- recruits_info %>%
@@ -503,6 +502,17 @@ demog_info_eggs <- breedingF_info %>%
             mean_raw_F = mean(NbreedingF_combo, na.rm=TRUE),
             high_raw_F = max(NbreedingF_combo, na.rm=TRUE),
             low_raw_F = min(NbreedingF_combo, na.rm=TRUE))
+
+########## Converting migEst "migration rates" (proportion of settlers at dest that came from each of the other sites) into pij values
+migEst_pijmat <- site_dist_info %>% select(org_site, dest_site) 
+migEst_pijmat <- left_join(migEst_pijmat, site_vec_order, by=c("org_site" = "site_name")) #coerces factor into character vector...
+migEst_pijmat <- migEst_pijmat %>%
+  dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order) %>% #rename order columns so clear that they are for the origin site
+  mutate(mig_rate = rep(NA, length(org_site)), prop_disp = rep(NA, length(org_site)),  #columns to put in MigEst migration rates and the conversions to pijs
+         mig_rate_LCI = rep(NA, length(org_site)), mig_rate_UCI = rep(NA, length(org_site)), #columns for upper and lower confidence intervals of migEst output
+         prop_disp_LCI = rep(NA, length(org_site)), prop_disp_UCI = rep(NA, length(org_site)), #columns for upper and lower confidence intervals of converted pijs
+         dest_alpha_order = rep(1:19, 19), #destination site number (by alpha order)
+         dest_geo_order = rep(site_vec_order$geo_order, 19)) #destination site number by geographical order 
 
 # Put the migEst estimates in the new data frame - cycle through the org and dest sites 
 for(i in 1:19) { #19 sites right now
@@ -576,20 +586,23 @@ parentage_matches_self$prop_hab_sampled_metal_TA[12] = prop_hab_Mag2015
 parentage_matches_self <- parentage_matches_self %>%
   mutate(nrecruits_scaled = n_matches/prop_hab_sampled_metal_TA,
          nrecruits_rounded = round(n_matches/prop_hab_sampled_metal_TA)) 
+
 ########## Assessing metrics
+##### Self-persistence, using migEst estimates
+SP_migEst <- migEst_pijmat %>%
+  filter(org_site == dest_site) %>% #just the self-self info
+  mutate(prop_disp = if_else(prop_disp > 1, 1, prop_disp), #if converted prop_disp is > 1, put at 1
+         prop_disp_LCI = if_else(prop_disp_LCI > 1, 1, prop_disp_LCI), #if converted prop_disp_LCI is > 1, put at 1
+         prop_disp_UCI = if_else(prop_disp_UCI > 1, 1, prop_disp_UCI), #if converted prop_disp_LCI is > 1, put at 1
+         SP = prop_disp*recruits_per_LEP,
+         SP_mrLCI = prop_disp_LCI*recruits_per_LEP,
+         SP_mrUCI = prop_disp_UCI*recruits_per_LEP) 
 
-##### Self-persistence
+##### Self-persistnce, using raw and scaled up parentage matches
 
+##### Connectivity matrix, using migEst
 
-# Egg-recruit slope with LEP
-intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1
-slope_mod1 <- 5.430e-05 #need to figure out how to extract this from egg_recruits_est_mod1
-
-intercept_meta_mod1 <- -2.657e+02
-slope_meta_mod1 <- 6.624e-05
-
-recruits_per_LEP <- findRfromE(slope_mod1, LEP, intercept_mod1) #18! Means persistence is possible!
-#recruits_per_LEP_meta <- findRfromE(slope_meta_mod1, LEP, intercept_meta_mod1)
+##### Connectivity matrix, using dispersal kernels
 
 # Find prob of dispersing within the width of the site
 for(i in 1:length(site_width_info$site)){ #this doesn't work
@@ -775,6 +788,39 @@ ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(d
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   xlab("origin site") + ylab("destination site") + ggtitle("UCI prop recruits from origin settling at dest, from migEst UCI") 
 dev.off()
+
+# Bar plot of migEst-converted pijs with upper and lower confidence intervals
+pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdist_by_site_withCI.pdf'))
+ggplot(data = (migEst_pijmat %>% filter(org_site == dest_site)), aes(x=reorder(org_site, org_geo_order), y=prop_disp, ymin=prop_disp_LCI, ymax=prop_disp_UCI)) +
+  geom_errorbar() +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  xlab("site") + ylab("prop disp with CI") + ggtitle("Prop disp with CI converted from MigEst") 
+dev.off()
+
+# Bar plot of migEst mig rates with upper and lower confidence intervals
+pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_migrate_by_site.pdf'))
+ggplot(data = (migEst_pijmat %>% filter(org_site == dest_site)), aes(x=reorder(org_site, org_geo_order), y=mig_rate, ymin=mig_rate_LCI, ymax=mig_rate_UCI)) +
+  geom_errorbar() +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  xlab("site") + ylab("mig rate with CI") + ggtitle("Mig rate with CI from MigEst") 
+dev.off()
+
+
+##### SP metric - migEst  - these all look way high... something is wrong...
+pdf(file = here("Plots/PersistenceMetrics", "SP_by_site_migEst.pdf"))
+ggplot(data = SP_migEst, aes(x=reorder(org_site, org_geo_order), y=SP)) +
+  geom_bar(stat="identity") +
+  geom_hline(yintercept = 1) +
+  xlab("site") + ylab("self-persistence") + ggtitle("SP by site, migEst") +
+  theme_bw() +
+  theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
 
 ##### SP metric (FAKE DATA RIGHT NOW)
 pdf(file = here("Plots/PersistenceMetrics", "SP_by_site.pdf"))
