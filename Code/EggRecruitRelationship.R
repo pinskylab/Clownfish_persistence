@@ -24,6 +24,11 @@ max_size_recruit <- 6.0 #maximum size to be considered a recruit from an egg pro
 sample_months <- c(3,4,5,6,7,8) #set months to avoid winter 2015 anem surveys
 dive_list <- c("0","C","D","E")
 
+# updated site areas for Cabatoan, N. Magbangon and S. Magbangon (from 11/5/18 email from KC)
+Cab_area = 0.0493 #kmsq
+NMag_area = 0.0531 #kmsq
+SMag_area = 0.0559 #kmsq
+
 ##### Run and load other files
 # Source constants file
 source(file=here::here('Code','Constants_database_common_functions.R'))
@@ -38,17 +43,18 @@ site_areas_KC <- site_areas_KC %>%
 
 # Edit the area estimates for Cabatoan and Magbangon, which are together right now - put Cabatoan as 1/3 and Magbangon as 2/3
 # Editing again now that Magbangon has been split into N and S Magbangon - for now, giving 1/3 of the total area to each Cab, NMag, and SMag but should update at some point!
+# And now editing again, now that KC emailed area estimates for Cabatoan, N. Magbangon, and S. Magbangon separately
 site_areas <- site_areas_KC
 site_areas$site <- as.character(site_areas$site)
 site_areas[4,1] <- "Elementary School" #fix spelling of Elementary School so can join with other data frames by site
-site_areas[1,2] <- site_areas_KC[1,2]*1/3 #Cabatoan m2
-site_areas[1,4] <- site_areas_KC[1,4]*1/3 #Cabatoan km2
+site_areas[1,2] <- Cab_area*1000*1000 #Cabatoan m2 - wrong
+site_areas[1,4] <- Cab_area #Cabatoan km2
 site_areas[8,1] <- "N. Magbangon" #change Magbangon entry to N. Magbangon
 site_areas[19,1] <- "S. Magbangon" #add S. Magbangon
-site_areas[8,2] <- site_areas_KC[8,2]*1/3 #N. Magbangon m2
-site_areas[8,4] <- site_areas_KC[8,4]*1/3 #N. Magbangon km2
-site_areas[19,2] <- site_areas_KC[8,2]*1/3 #S. Magbangon m2
-site_areas[19,4] <- site_areas_KC[8,4]*1/3 #S. Magbangon km2
+site_areas[8,2] <- NMag_area*1000*1000 #N. Magbangon m2
+site_areas[8,4] <- NMag_area #N. Magbangon km2
+site_areas[19,2] <- SMag_area*1000*1000 #S. Magbangon m2
+site_areas[19,4] <- SMag_area #S. Magbangon km2
 site_areas <- site_areas %>% select(-area_kmsq) #remove the incorrect km2 column
 
 # prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
