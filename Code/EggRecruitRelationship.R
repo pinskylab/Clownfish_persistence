@@ -293,6 +293,12 @@ meta_eggs_recruits_est_mod5 <- lm(metapop_estR_metalTA ~ metapop_est_eggs_metalT
 meta_egg_recruits_est_predicted_mod5 <- data.frame(recruits_pred_mod5 = predict(meta_eggs_recruits_est_mod5, metapop_level), metapop_est_eggs_metalTA = metapop_level$metapop_est_eggs_metalTA) #predict values
 metapop_level_mod5 <- left_join(metapop_level, meta_egg_recruits_est_predicted_mod5, by = "metapop_est_eggs_metalTA") #add predictions to data frame to plot
 
+### Estimated eggs and recruits for each site individually, area-scaled estimates, forcing intercept to be 0 (Adjusted R2 = 0.4682), coefficient significant at 0.001 level
+egg_recruits_est_metalTA_0intercept_m2_mod6 <- lm(totalR_est_metalTA_m2 ~ 0 + est_eggs_metalTA_m2, data=females_recruits_summary)
+egg_recruits_est_metalTA_0intercept_m2_predicted_mod6 <- data.frame(recruits_pred_mod6 = predict(egg_recruits_est_metalTA_0intercept_m2_mod6, females_recruits_summary), est_eggs_metalTA_m2 = females_recruits_summary$est_eggs_metalTA_m2)  # predict values
+females_recruits_summary_mod6 <- left_join(females_recruits_summary, egg_recruits_est_metalTA_0intercept_m2_predicted_mod6, by = 'est_eggs_metalTA_m2')  # add predictions to data frame to plot
+
+#> abline(intercept, coef(fit))
 #################### Plots: ####################
 # Number of eggs produced per m2 by site with number of recruits per m2 there a year later, metal tags used for total anem estimates
 pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_metalTA_m2.pdf"))
@@ -306,6 +312,33 @@ ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs_metalTA_m2, y=totalR
   theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
   theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
 dev.off()
+
+# Number of eggs produced per m2 by site with number of recruits per m2 there a year later, metal tags used for total anem estimates, forced intercept to be 0
+pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_metalTA_m2_0intercept.pdf"))
+ggplot(data = females_recruits_summary_mod6, aes(x=est_eggs_metalTA_m2, y=totalR_est_metalTA_m2, color=egg_year, shape=site)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
+  geom_line(color = "black", data=females_recruits_summary_mod6, aes(x=est_eggs_metalTA_m2, y=recruits_pred_mod6)) +
+  xlab("estimated egg output per m2") + ylab("estimated number of recruits per m2 following year") +
+  ggtitle("Egg-recruit for site and year individually (metal tags TA), 0 intercept") +
+  theme(text = element_text(size=25)) +
+  theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
+  theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
+dev.off()
+
+# Number of eggs produced per m2 by site with number of recruits per m2 there a year later, metal tags used for total anem estimates
+pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_metalTA_m2.pdf"))
+ggplot(data = females_recruits_summary_mod1, aes(x=est_eggs_metalTA_m2, y=totalR_est_metalTA_m2, color=egg_year, shape=site)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)) +
+  geom_line(color = "black", data=females_recruits_summary_mod1, aes(x=est_eggs_metalTA_m2, y=recruits_pred_mod1)) +
+  xlab("estimated egg output per m2") + ylab("estimated number of recruits per m2 following year") +
+  ggtitle("Egg-recruit scatter plot for each site and year individually (metal tags TA)") +
+  theme(text = element_text(size=25)) +
+  theme(axis.text.x = element_text(size=20)) + theme(axis.text.y = element_text(size=20)) +
+  theme_bw() #can do theme_bw(base_size = 18) to change size of all elements at once while keeping them proportional to each other
+dev.off()
+
 
 # Number of eggs produced per m2 by site with number of recruits per m2 there a year later, mean total anems used for total anem estimates
 pdf(file = here("Plots/EggRecruitRelationship", "Eggs_recruits_by_site_midTA_m2.pdf"))
@@ -463,7 +496,7 @@ save(egg_recruits_est_midTA_m2_mod2, file=here::here("Data", "egg_recruit_lm_mod
 save(females_recruits_est_metalTA_m2_mod3, file=here::here("Data", "female_recruit_lm_mod3.RData"))
 save(females_recruits_est_midTA_m2_mod4, file=here::here("Data", "female_recruit_lm_mod4.RData"))
 save(meta_eggs_recruits_est_mod5, file=here::here("Data","metapop_lm_mod5.RData"))
-
+save(egg_recruits_est_metalTA_0intercept_m2_mod6, file=here::here('Data', 'egg_recruit_lm_mod6.RData'))
 
 #Thinking through the plan
 #For each year, try to estimate the number of eggs released (either at a site level or at a whole-population level)
