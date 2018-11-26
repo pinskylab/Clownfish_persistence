@@ -300,7 +300,7 @@ allfish_fishdb <- fish_db %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
   
 allfish_caught_anems <- anem_db %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp, anem_dia) %>%
   filter(anem_table_id %in% allfish_fishdb$anem_table_id)
 
 allfish_caught_dives <- dives_db %>%
