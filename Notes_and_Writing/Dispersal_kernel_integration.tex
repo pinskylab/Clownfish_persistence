@@ -1,0 +1,119 @@
+\documentclass[12pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{color}
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or epsÂ§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[compact]{titlesec}
+\usepackage{float}
+\usepackage{pdflscape}
+%\usepackage{rotating}
+\usepackage{soul}
+%\usepackage{longtable}
+%\usepackage{threeparttable}
+%\usepackage{lineno}
+\usepackage[round]{natbib} %round makes parentheses instead of square brackets
+\usepackage{url}
+%\usepackage{authblk}
+\setcounter{secnumdepth}{4}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\graphicspath{ {images/} }
+
+\title{Dispersal kernel integration}
+
+\begin{document}
+\date{}
+\maketitle{}
+Integrating dispersal kernels from \cite{bode2018estimating}, which have the general form $p_{d,k,\theta} = k e^{-(kd)^\theta}$. 
+\begin{itemize}
+\item For $\theta = 1$, the dispersal kernel has an analytical indefinite integral, which is below. 
+\item For $\theta = 2$ (confirm the same is true for 0.5 and 3), there is no elementary indefinite integral but there is a definite integral when integrating from $-\infty$ to $\infty$ and from 0 to $\infty$. We can confirm analytically that the sum under the integral from 0 to $\infty$ is 1 (see below) but for partial integration, like among sites, we will have to integrate numerically in R. 
+\item In code from \cite{bode2018estimating}, he integrates numerically using the function \textit{integral} in MatLab, which says it uses global adaptive quadrature. The function \textit{integrate} in R also uses adaptive quadrature and integrated the 4 dispersal kernals from 0 to $\infty$ as 1 with absolute error e-05 or less.
+\end{itemize}
+
+\paragraph*{Gaussian integration and the Gamma function}
+From \url{https://en.wikipedia.org/wiki/Gaussian_integral}, see that:
+\begin{equation}
+\int_0^{\infty} e^{-ax^b} dx = \frac{\Gamma{\frac{1}{b}}}{ba^{\frac{1}{b}}} \label{Gaussian_int}
+\end{equation}
+
+\paragraph*{$\theta = 1$ (eqn. 1 in \cite{bode2018estimating})}
+Equation as written in \cite{bode2018estimating} (1):
+\begin{equation}
+p_1(d,k) = k e^{-kd}
+\end{equation}
+Re-written with $k = z$, where $z = e^k$ using the $k$ KC is estimating, and $d = x$:
+
+\begin{equation}
+p_1(x,z) = z e^{-zd}
+\end{equation}
+Integrating over $x$ from $a$ to $b$:
+\begin{equation}
+	\begin{split}
+	p_{ij} & = \int_a^bz e^{-zx} dx \\
+		   & = z \int_a^b e^{-zx} dx \\
+		   & = z (\frac{-1}{z})[e^{-zb} - e^{-za}] \\
+		   & = -e^{-e^kb} + e^{e^ka}
+	\end{split}
+\end{equation}
+Check total sum under integral:
+\begin{equation}
+	\begin{split}
+	p_{0,\infty} & = \int_0^{\infty}z e^{-zx} dx \\
+			   & = z \int_0^{\infty} e^{-zx} dx \\
+			   & = z(\frac{1}{z}) \\
+			   & = 1
+	\end{split}
+\end{equation}
+
+\paragraph*{$\theta = 2$ (eqn. 6a in \cite{bode2018estimating})}
+Equation as written in \cite{bode2018estimating} (6a) but with $z$ instead of $k$ and $x$ instead of $d_{i,j}$:
+\begin{equation}
+p_2(x) = \frac{2z}{\Gamma(\frac{1}{2})} e^{-(zx)^2}
+\end{equation}
+Integrating over the whole dispersal kernel, using Gaussian integration formula (eqn. \ref{Gaussian_int}) with $a = z^2$ and $b = 2$:
+\begin{equation}
+	\begin{split}
+	p_{0, \infty} & = \int_0^{\infty} \frac{2z}{\Gamma(\frac{1}{2})} e^{-(zx)^2} dx \\
+				  & = \frac{2z}{\Gamma(\frac{1}{2})} \int_0^{\infty} e^{-z^2x^2} dx \\
+				  & = \frac{2z}{\Gamma(\frac{1}{2})} \frac{\Gamma(\frac{1}{2})}{2(z^2)^{\frac{1}{2}}} \\
+				  & = 1
+	\end{split}
+\end{equation}
+
+\paragraph*{$\theta = 3$ (eqn. 6b in \cite{bode2018estimating})}
+Equation as written in \cite{bode2018estimating} (6b) but with $z$ instead of $k$ and $x$ instead of $d_{i,j}$:
+\begin{equation}
+p_3(x) = \frac{3z}{\Gamma(\frac{1}{3})} e^{-(zx)^3}
+\end{equation}
+Integrating over the whole dispersal kernel, using Gaussian integration formula (eqn. \ref{Gaussian_int}) with $a = z^3$ and $b = 3$:
+\begin{equation}
+	\begin{split}
+	p_{0, \infty} & = \int_0^{\infty} \frac{3z}{\Gamma(\frac{1}{3})} e^{-(zx)^3} dx \\
+				  & = \frac{3z}{\Gamma(\frac{1}{3})} \int_0^{\infty} e^{-z^3x^3} dx \\
+				  & = \frac{3z}{\Gamma(\frac{1}{3})} \frac{\Gamma(\frac{1}{3})}{3(z^3)^{\frac{1}{3}}} \\
+				  & = 1
+	\end{split}
+\end{equation}
+
+% \paragraph*{$\theta = 0.5$ (eqn. 6c in \cite{bode2018estimating})}
+% Equation as written in \cite{bode2018estimating} (6c):
+% \begin{equation}
+% p_4(d_{ij,k}) = \frac{2k}{\Gamma(\frac{1}{3})}exp[-(kd_{ij})^2]
+% \end{equation}
+
+% Re-written with $k = z$, where $z = e^k$ using the $k$ KC is estimating, and $d = x$:
+% \begin{equation}
+% p_4(x,z) = \frac{2z}{\Gamma(\frac{1}{3})}exp[-(zx)^2]
+% \end{equation}
+
+\bibliography{../../../BibTexReferences}
+\bibliographystyle{plainnat}
+\end{document}

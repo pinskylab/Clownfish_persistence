@@ -1,0 +1,17 @@
+ \newcommand{\noop}[1]{}
+\begin{thebibliography}{1}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bode et~al.(2018)Bode, Williamson, Harrison, Outram, and
+  Jones]{bode2018estimating}
+Michael Bode, David~H Williamson, Hugo~B Harrison, Nick Outram, and Geoffrey~P
+  Jones.
+\newblock Estimating dispersal kernels using genetic parentage data.
+\newblock \emph{Methods in Ecology and Evolution}, 9\penalty0 (3):\penalty0
+  490--501, 2018.
+
+\end{thebibliography}
