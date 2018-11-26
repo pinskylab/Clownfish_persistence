@@ -73,8 +73,11 @@ load(file=here('Data', 'breedingF_info.RData'))
 #load(file=here("Data", "metapop_level.RData"))
 
 # Load egg-recruit linear model estimates
-load(file=here("Data", "metapop_lm.RData")) #estimate at metapop level, pretty low R2 and not significant
-load(file=here("Data", "egg_recruit_lm.RData")) #estimate using each site and year as a point, R2 of about 0.53, significant
+#load(file=here("Data", "metapop_lm.RData")) #estimate at metapop level, pretty low R2 and not significant
+#load(file=here("Data", "egg_recruit_lm.RData")) #estimate using each site and year as a point, R2 of about 0.53, significant
+load(file=here('Data', 'egg_recruit_lm_mod1.RData'))  # estimate using each site and year as a point, scaled by m2
+load(file=here('Data', 'egg_recruit_lm_mod6.RData'))  # same as egg_recruit_lm_mod1 buth with intercept forced to be 0
+load(file=here('Data', 'metapop_lm_mod5.RData'))
 
 # Load LEP estimates
 load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
@@ -83,7 +86,8 @@ load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
 load(file=here('Data','anem_sampling_table.RData'))
 
 # Dispersal kernel parameters from Katrina (estimates as of 11/01/2018, in 20181101_allkernels.pdf)
-k_allyears = -0.07 #2012-2015 data
+### UPDATE THESE FROM EMAIL!
+k_allyears = 0.07 #2012-2015 data
 theta_allyears = 0.5 #2012-2015 data
 k_2012 =-2.35
 theta_2012 = 0.5
@@ -174,6 +178,12 @@ dispKernel2015 <- function(d) {
   k_2015*exp(-(k_2015*d)^theta_2015)
 }
 
+# Dispersal kernel overall
+dispKernelallyears <- function(d) {
+  k_allyears*exp(-(k_allyears*d)^theta_allyears)
+}
+
+
 # Integrate dispersal kernel  (for theta = 1)
 integrateDK_theta1 <- function(d1,d2,k) {
   int_d2 <- -exp(-k*d2)
@@ -250,19 +260,21 @@ findRfromE <- function(m,eggs,b) {
 # 
 # allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
 # 
-#pull GPS info
-gps.Info <- leyte %>%
-  tbl("GPX") %>%
-  select(lat, lon, time, unit) %>%
-  collect(n = Inf) %>%
-  mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
-  mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
-         day = day(obs_time),
-         hour = hour(obs_time),
-         min = minute(obs_time),
-         sec = second(obs_time),
-         year = year(obs_time)) %>%
-  separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
+# #pull GPS info
+# gps.Info <- leyte %>%
+#   tbl("GPX") %>%
+#   select(lat, lon, time, unit) %>%
+#   collect(n = Inf) %>%
+#   mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
+#   mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
+#          day = day(obs_time),
+#          hour = hour(obs_time),
+#          min = minute(obs_time),
+#          sec = second(obs_time),
+#          year = year(obs_time)) %>%
+#   separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
+
+gps.Info <- gps_db  # already pull gps info in script that source at the top, but maybe call it gps.Info later in this script (should check) so naming it this in case
 # 
 # #pull out just tagged fish
 # taggedfish <- allfish %>% filter(!is.na(tag_id))
@@ -472,15 +484,30 @@ for (i in 1:length(site_dist_info$org_site)) {
 }
 
 ########## Looking at eggs and recruits relationships
-# Egg-recruit slope with LEP
-intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1
-slope_mod1 <- 5.430e-05 #need to figure out how to extract this from egg_recruits_est_mod1
+# Egg-recruit slope with LEP - the models don't seem to be loading correctly... give different values when use summary() here vs. EggRecruitRelationship.R - check into this!!
+# intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1  # these commented values are what show up when use summary() on RData file loaded in this script...
+# slope_mod1 <- 5.430e-05 #need to figure out how to extract this from egg_recruits_est_mod1
 
-intercept_meta_mod1 <- -2.657e+02
-slope_meta_mod1 <- 6.624e-05
+# these values written in from egg_recruits_est_metalTA_m2_mod1 when summary() called in EggRecruitsRelationship.R - Adjusted R2 of 0.1369, both intercept (0.05) and slope (0.01) significant
+intercept_mod1 <- 1.203e-03
+slope_mod1 <- 3.117e-05
 
-recruits_per_LEP <- findRfromE(slope_mod1, LEP, intercept_mod1) #18! Means persistence is possible!
+# these values written in from egg_recruits_est_metalTA_0intercept_m2_mod6 when summary() called in EggRecruitsRelationship.R - Adjusted R2 of 0.4682, slope (0.0001) significant
+intercept_mod6 <- 0
+slope_mod6 <- 4.711e-05
+
+# These were taken from loaded-in file, also probably wrong, though haven't checked...
+# intercept_meta_mod1 <- -2.657e+02
+# slope_meta_mod1 <- 6.624e-05
+
+recruits_per_LEP <- findRfromE(slope_mod1, LEP, intercept_mod1)  # 18! Means persistence is possible! THIS SEEMS SUPER WRONG... pretty high... and now down to 0.007, very low...
+recruits_per_LEP_mod6 <- findRfromE(slope_mod6, LEP, intercept_mod6)  # 0.009...
+
+recruits_per_LEP_Will_eggs <- findRfromE(slope_mod1, LEP_Will_eggs_per_clutch, intercept_mod1)  # using Will eggs-per-clutch estimate
+recruits_per_LEP_Will_LEP <- findRfromE(slope_mod1, LEP_Will, intercept_mod1)  # using Will LEP estimate
 #recruits_per_LEP_meta <- findRfromE(slope_meta_mod1, LEP, intercept_meta_mod1)
+
+plot(0:2000, intercept_mod1 + slope_mod1*(0:2000))
 
 ########## Pull out summary # recruits and # eggs by site
 # find summary N recruits and N eggs by site, averaged across years sampled (also take mid, high, low?) - lots of NAs in recruits_info in prob_hab sampled... should check into that (maybe b/c 0 metal-tagged anems?)
@@ -604,12 +631,24 @@ SP_migEst <- migEst_pijmat %>%
 
 ##### Connectivity matrix, using dispersal kernels
 
-# Find prob of dispersing within the width of the site
+# # Find prob of dispersing within the width of the site
+# for(i in 1:length(site_width_info$site)){ #this doesn't work
+#   site_width_info$prob_disperse_2013[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2013) #2013 kernel using theta=1
+#   site_width_info$prob_disperse_2015[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2015) #2015 kernel
+#   site_width_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+#   site_width_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value
+# }
+
+test_1 <- seq(0,50,by=0.5)
+test_2 <- dispKernelallyears(test_1)
+plot(test_1, test_2)
+
+# Find prob of dispersing within the width of the site - just using integrate function here, should swap out for analytical integration...
 for(i in 1:length(site_width_info$site)){ #this doesn't work
-  site_width_info$prob_disperse_2013[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2013) #2013 kernel using theta=1
-  site_width_info$prob_disperse_2015[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2015) #2015 kernel
-  site_width_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-  site_width_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value
+  site_width_info$prob_disperse_2013[i] = integrate(dispKernel2012, 0, site_width_info$width_km[i])$value 
+  site_width_info$prob_disperse_2015[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value 
+  site_width_info$prob_disperse_2014[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+  site_width_info$prob_disperse_2013[i] = integrate(dispKernel2015, 0, site_width_info$width_km[i])$value
 }
 
 # Find prob of dispersing among sites
@@ -810,7 +849,7 @@ ggplot(data = (migEst_pijmat %>% filter(org_site == dest_site)), aes(x=reorder(o
 dev.off()
 
 
-##### SP metric - migEst  - these all look way high... something is wrong...
+##### SP metric - migEst  - these all look way high... something is wrong... and now look super low once I changed the input values from the egg-recruit relationship...
 pdf(file = here("Plots/PersistenceMetrics", "SP_by_site_migEst.pdf"))
 ggplot(data = SP_migEst, aes(x=reorder(org_site, org_geo_order), y=SP)) +
   geom_bar(stat="identity") +

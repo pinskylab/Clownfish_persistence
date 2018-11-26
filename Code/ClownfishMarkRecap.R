@@ -608,6 +608,42 @@ eall_0.Phi.size.plus.stage.p.dist = mark(eall_0.processed_stage, eall_0.ddl_stag
 eall_0.Phi.size.plus.color.p.dist = mark(eall_0.processed_color, eall_0.ddl_color, model.parameters=list(Phi=Phi.size.plus.color, p=p.dist), prefix = 'eall_0.Phi.size.plus.color.p.dist') #size and color dependent survival, distance-depedent recapture
 eall_0.Phi.color.p.dist = mark(eall_0.processed_color, eall_0.ddl_color, model.parameters=list(Phi=Phi.color, p=p.dist), prefix = 'eall_0.Phi.color.p.dist') #color-dependent survival, distance-dependent recapture
 
+
+######## Try with a function
+fit.eall.models <- function() {
+  
+  # Process data
+  eall_mean.processed = process.data(eall_mean, model = "CJS", groups = "cap_stage")
+  eall_mean.ddl = make.design.data(eall_mean.processed)
+  
+  # set models for Phi
+  Phi.dot = list(formula=~1, link="logit")
+  Phi.time = list(formula=~time, link="logit")
+  Phi.size = list(formula=~cap_size, link="logit")
+  Phi.stage = list(formula=~cap_stage, link="logit")
+  Phi.size.plus.stage = list(formula=~cap_size+cap_stage, link='logit')
+  
+  # set models for p
+  p.dot = list(formula=~1, link="logit")
+  p.time = list(formula=~time, link="logit")
+  p.dist = list(formula=~dist, link="logit")
+  p.size = list(formula=~cap_size, link="logit")
+  p.stage = list(formula=~cap_stage, link="logit")
+  p.size.plus.stage = list(formula=~cap_size+cap_stage, link="logit")
+  
+  # Create model list
+  cml = create.model.list("CJS")
+  
+  # Run and return marklist of models
+  return(mark.wrapper(cml, data = eall_mean.processed, ddl = eall_mean.ddl))
+}
+
+# Fit models
+eall_mean.models <- fit.eall.models()
+
+
+
+
 # eall.Phi.dot.p.time = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.dot, p=p.time)) #has issues running, can't estimate p in 2018
 # eall.Phi.dot.p.dist = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist)) #think this ran!!!
 # eall.Phi.size.p.dot = mark(eall.processed, eall.ddl, model.parameters=list(Phi=Phi.size, p=p.dot))
@@ -624,13 +660,20 @@ eall_0.Phi.color.p.dist = mark(eall_0.processed_color, eall_0.ddl_color, model.p
 # edist.Phi.time.p.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.dist))
 # edist.Phi.time.p.time.plus.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time.plus.dist))
 
+# Compare models
+
 # organize output to get ready to make plots
-###### Constant survival and recapture prob, no covariates (eall.Phi.dot.p.dot)
-eall.constant = as.data.frame(eall.Phi.dot.p.dot$results$beta) %>% 
+###### Constant survival and recapture prob, no covariates (eall_mean.Phi.dot.p.dot)
+eall_mean.constant = as.data.frame(eall_mean.Phi.dot.p.dot$results$beta) %>% 
   mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
   mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
 
-###### Survival constant, p varies by distance (eall.Phi.dot.p.dist)
+###### Survival constant, recapture varies by time (eall_mean.Phi.dot.p.time)
+eall_mean.Phi.dot.p.time = as.data.frame(eall_mean.Phi.dot.p.time$results$beta) #%>% 
+  mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
+  mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
+
+###### Survival constant, p varies by distance (eall_mean.Phi.dot.p.dist)
 mindist = min(eall$dist2016,eall$dist2017,eall$dist2018) #this is 0, obv...
 maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high - not an error, though, it's the fish that moved from Wangag to Hicgop South!
 maxdist2 = 200 #encompasses highest values in 2016, 2018 
@@ -770,7 +813,7 @@ dev.off()
 # make some plots
 ###### Constant survival and recapture prob, no covariates (eall.Phi.dot.p.dot)
 pdf(file = here("Plots/PhiandpEstimates", "eall_Phiandp_constant.pdf"))
-ggplot(data = eall.constant, aes(param, est, color=param)) +
+ggplot(data = eall_mean.constant, aes(param, est, color=param)) +
   geom_pointrange(aes(ymin=lower, ymax=upper), size=1) +
   xlab("parameter") + ylab("estimate") + ggtitle("Constant p and Phi (eall.Phi.dot.p.dot)") +
   scale_y_continuous(limits = c(0, 1)) +
