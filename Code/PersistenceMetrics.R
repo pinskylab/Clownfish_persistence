@@ -61,10 +61,15 @@ migEst_conn_CI <- read.table(file=here::here('Data', '20181029_confid_allyears.t
 migEst_conn_UCI <- migEst_conn_CI[, grepl("CI_UJ_", names(migEst_conn_CI))] #pull out just upper confidence estimates
 migEst_conn_LCI <- migEst_conn_CI[, grepl('CI_LJ_', names(migEst_conn_CI))] #pull out just lower confidence estimates
 
-# Load all parentage matches (as of Oct 2018 - before 2016, 2017, 2018 genotypes are in)
-parentage_moms <- read.csv(file=here('Data','20180713colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
-parentage_dads <- read.csv(file=here('Data','20180713colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
-parentage_trios <- read.csv(file=here('Data','20180713colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
+# Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
+parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
+parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
+parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
+
+# # old files before N and S Mag were separated and before 2016, 2017, 2018 genotypes are in)
+# parentage_moms <- read.csv(file=here('Data','20180713colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
+# parentage_dads <- read.csv(file=here('Data','20180713colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
+# parentage_trios <- read.csv(file=here('Data','20180713colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
 # Load recruit estimates
 load(file=here("Data", "recruits_info.RData"))
@@ -85,18 +90,29 @@ load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
 # Load proportion habitat sampled info
 load(file=here('Data','anem_sampling_table.RData'))
 
-# Dispersal kernel parameters from Katrina (estimates as of 11/01/2018, in 20181101_allkernels.pdf)
-### UPDATE THESE FROM EMAIL!
-k_allyears = 0.07 #2012-2015 data
-theta_allyears = 0.5 #2012-2015 data
-k_2012 =-2.35
-theta_2012 = 0.5
-k_2013 = -1.83
-theta_2013 = 0.5
-k_2014 = -2.23
+# Dispersal kernel parameters from Katrina (estimates as of 11/20/18 - from email) 
+k_2012 = -2.67
+theta_2012 = 3
+k_2013 = -3.27
+theta_2013 = 3
+k_2014 = -2.38
 theta_2014 = 2
-k_2015 = -2.7
+k_2015 = -3.02
 theta_2015 = 2
+k_allyears = -1.36  # with 2012-2015 data
+theta_allyears = 0.5  # with 2012-2015 data
+
+# #estimates as of 11/01/2018, in 20181101_allkernels.pdf 
+# k_allyears = 0.07 #2012-2015 data
+# theta_allyears = 0.5 #2012-2015 data
+# k_2012 =-2.35
+# theta_2012 = 0.5
+# k_2013 = -1.83
+# theta_2013 = 0.5
+# k_2014 = -2.23
+# theta_2014 = 2
+# k_2015 = -2.7
+# theta_2015 = 2
 
 # PRELIM OR FAKE FOR NOW THAT WILL GET REPLACED BY REAL DATA
 eggs_per_clutch = 1763 #from LEP_calc_WillWhite.R
@@ -108,6 +124,18 @@ eggs_slope = 107 #from Adam Y Aresty poster, #eggs/cm in female size
 LEP_Will <- 1780 #eggs/recruit
 LEP_Will_eggs_per_clutch <- LEP_out$LEP_W #my size-survival relationship, Will's eggs per clutch
 LEP <- LEP_out$LEP #AY's prelim egg data, my size-survival relationship
+
+# Process saved gps database info
+gps.Info <- gps_db %>%  
+  select(lat, lon, time, unit) %>%
+  mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
+  mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
+         day = day(obs_time),
+         hour = hour(obs_time),
+         min = minute(obs_time),
+         sec = second(obs_time),
+         year = year(obs_time)) %>%
+  separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
 
 # # prelim dispersal kernel parameters from Katrina (from email sent 7/5/18)
 # k_2012 = 0.1
@@ -157,40 +185,71 @@ findSP_v2 <- function(LEP, R_E_slope, prob_disp_home) { #LEP: lifetime egg produ
   return(SP)
 }
 
-# Calculate dispersal kernel (equation from Katrina email 7/5/18, based on Bode et al. 2017 paper)
-dispKernel <- function(k, theta, d) {
-  disp <- k*exp(-(k*d)^theta)
+# Calculate dispersal kernels (would need to be changed if theta values changed)
+disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  z = exp(k_allyears)
+  disp = (z/2)*exp(-(z*d)^(theta_allyears))
   return(disp)
 }
 
-# Dispersal kernel 2013
-dispKernel2013 <- function(d) {
-  k_2013*exp(-(k_2013*d)^theta_2013)
+disp_2012 <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
+  z = exp(k_2012)
+  disp = (3*z)/(gamma(1/theta_2012))*exp(-(z*d)^theta_2012)
+  return(disp)
 }
 
-# Dispersal kernel 2014
-dispKernel2014 <- function(d) {
-  k_2014*exp(-(k_2014*d)^theta_2014)
+disp_2013 <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
+  z = exp(k_2013)
+  disp = (3*z)/(gamma(1/theta_2013))*exp(-(z*d)^theta_2013)
+  return(disp)
 }
 
-# Dispersal kernel 2015
-dispKernel2015 <- function(d) {
-  k_2015*exp(-(k_2015*d)^theta_2015)
-}
+disp_2014 <- function(d) {  # theta = 2, equation for p(d) in eqn. 6a in Bode et al. 2018
+  z = exp(k_2014)
+  disp = ((2*z)/gamma(1/theta_2014))*exp(-(z*d)^theta_2014)
+  return(disp)
+} 
 
-# Dispersal kernel overall
-dispKernelallyears <- function(d) {
-  k_allyears*exp(-(k_allyears*d)^theta_allyears)
-}
+disp_2015 <- function(d) {  # theta = 2, equation for p(d) in eqn. 6a in Bode et al. 2018
+  z = exp(k_2015)
+  disp = ((2*z)/gamma(1/theta_2015))*exp(-(z*d)^theta_2015)
+  return(disp)
+} 
 
-
-# Integrate dispersal kernel  (for theta = 1)
-integrateDK_theta1 <- function(d1,d2,k) {
-  int_d2 <- -exp(-k*d2)
-  int_d1 <- -exp(-k*d1)
-  int_out <- int_d2-int_d1
-  return(int_out)
-}
+# # Calculate dispersal kernel (equation from Katrina email 7/5/18, based on Bode et al. 2017 paper)
+# dispKernel <- function(k, theta, d) {
+#   disp <- k*exp(-(k*d)^theta)
+#   return(disp)
+# }
+# 
+# # Dispersal kernel 2013
+# dispKernel2013 <- function(d) {
+#   k_2013*exp(-(k_2013*d)^theta_2013)
+# }
+# 
+# # Dispersal kernel 2014
+# dispKernel2014 <- function(d) {
+#   k_2014*exp(-(k_2014*d)^theta_2014)
+# }
+# 
+# # Dispersal kernel 2015
+# dispKernel2015 <- function(d) {
+#   k_2015*exp(-(k_2015*d)^theta_2015)
+# }
+# 
+# # Dispersal kernel overall
+# dispKernelallyears <- function(d) {
+#   k_allyears*exp(-(k_allyears*d)^theta_allyears)
+# }
+# 
+# 
+# # Integrate dispersal kernel  (for theta = 1)
+# integrateDK_theta1 <- function(d1,d2,k) {
+#   int_d2 <- -exp(-k*d2)
+#   int_d1 <- -exp(-k*d1)
+#   int_out <- int_d2-int_d1
+#   return(int_out)
+# }
 
 # Find lat lon for an anem (very similar function to anemid_latlong in AnemLocations.R - should probably combine the two and put in my common constants and code script...)
 anemid_latlong_2 <- function(anem.table.id, anemdf, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
@@ -274,8 +333,6 @@ findRfromE <- function(m,eggs,b) {
 #          year = year(obs_time)) %>%
 #   separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
 
-gps.Info <- gps_db  # already pull gps info in script that source at the top, but maybe call it gps.Info later in this script (should check) so naming it this in case
-# 
 # #pull out just tagged fish
 # taggedfish <- allfish %>% filter(!is.na(tag_id))
 
@@ -386,7 +443,8 @@ site_width_anemdives <- left_join(site_width_anems, site_width_dives, by="dive_t
 
 # find lat lon for the boundary anems -- THIS DOESN'T WORK FOR THE MID ANEMS
 for(i in 1:length(site_width_anemdives$anem_table_id)) {
-  out_anemLL <- anemid_latlong_2(site_width_anemdives$anem_table_id[i], site_width_anemdives, gps.Info)
+  out_anemLL <- anemid_latlong_2(site_width_anemdives$anem_table_id[i], site_width_anemdives, gps.Info)  # SHOULD COMBINE/DECIDE BETWEEN THE TWO ANEM_LATLON FUNCTIONS AT SOME POINT
+  #out_anemLL <- anemid_latlong(site_width_anemdives$anem_table_id, site_width_anemdives, gps.Info)
   site_width_anemdives$lat[i] = out_anemLL$lat[1] #figure out why this is sometimes the wrong replacement length... (put [1] in to try to solve that issue but not sure why it's needed)
   site_width_anemdives$lon[i] = out_anemLL$lon[1]
 }
@@ -600,14 +658,18 @@ parentage_matches_self <- parentage_matches_raw %>%
 # join with proportion habitat sampled
 parentage_matches_self <- left_join(parentage_matches_self, anems_table %>% select(prop_hab_sampled_metal_TA, year, site), by=c('year' = 'year', 'offspring_site' = 'site'))
 
-# WHILE PARENTAGE MATCHES ARE JUST MAG, MAKE PROP HAB SAMPLED THE AVERAGE OF N MAG AND S MAG
-prop_hab_Mag2013 <- mean((anems_table %>% filter(year == 2013, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
-prop_hab_Mag2014 <- mean((anems_table %>% filter(year == 2014, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
-prop_hab_Mag2015 <- mean((anems_table %>% filter(year == 2015, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+# join with egg production numbers
+parentage_matches_self <- left_join(parentage_matches_self, breedingF_info %>% select(site, year, est_eggs_metalTA), by = c('year' = 'year', 'offspring_site' = 'site'))
 
-parentage_matches_self$prop_hab_sampled_metal_TA[2] = prop_hab_Mag2013
-parentage_matches_self$prop_hab_sampled_metal_TA[7] = prop_hab_Mag2014
-parentage_matches_self$prop_hab_sampled_metal_TA[12] = prop_hab_Mag2015
+# # Don't need to do this anymore b/c have new parentage files now with N and S Mag separated
+# # WHILE PARENTAGE MATCHES ARE JUST MAG, MAKE PROP HAB SAMPLED THE AVERAGE OF N MAG AND S MAG 
+# prop_hab_Mag2013 <- mean((anems_table %>% filter(year == 2013, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+# prop_hab_Mag2014 <- mean((anems_table %>% filter(year == 2014, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+# prop_hab_Mag2015 <- mean((anems_table %>% filter(year == 2015, site %in% c('N. Magbangon', 'S. Magbangon')))$prop_hab_sampled_metal_TA)
+# 
+# parentage_matches_self$prop_hab_sampled_metal_TA[2] = prop_hab_Mag2013
+# parentage_matches_self$prop_hab_sampled_metal_TA[7] = prop_hab_Mag2014
+# parentage_matches_self$prop_hab_sampled_metal_TA[12] = prop_hab_Mag2015
 
 # scale up raw matches by proportion habitat sampled
 parentage_matches_self <- parentage_matches_self %>%
@@ -625,7 +687,123 @@ SP_migEst <- migEst_pijmat %>%
          SP_mrLCI = prop_disp_LCI*recruits_per_LEP,
          SP_mrUCI = prop_disp_UCI*recruits_per_LEP) 
 
-##### Self-persistnce, using raw and scaled up parentage matches
+# Separate out migEst point, upper, and lower CI intervals so can rbind all the SP estimates together
+SP_migEst_est <- SP_migEst %>%
+  select(org_site, org_alpha_order, org_geo_order, SP) %>%
+  dplyr::rename(site = org_site, alpha_order = org_alpha_order, geo_order = org_geo_order) %>%
+  mutate(est_method = 'migEst_pointEst',
+         data = 'migEst',
+         year = 'combined')
+
+SP_migEst_LCI <- SP_migEst %>%
+  select(org_site, org_alpha_order, org_geo_order, SP_mrLCI) %>%
+  dplyr::rename(site = org_site, alpha_order = org_alpha_order, geo_order = org_geo_order, SP = SP_mrLCI) %>%
+  mutate(est_method = 'migEst_LCI',
+         data = 'migEst',
+         year = 'combined')
+
+SP_migEst_UCI <- SP_migEst %>%
+  select(org_site, org_alpha_order, org_geo_order, SP_mrUCI) %>%
+  dplyr::rename(site = org_site, alpha_order = org_alpha_order, geo_order = org_geo_order, SP = SP_mrUCI) %>%
+  mutate(est_method = 'migEst_UCI',
+         data = 'migEst',
+         year = 'combined')
+
+##### Self-persistence, using raw and scaled up parentage matches
+SP_parentage <- parentage_matches_self %>%
+  mutate(SP_raw = LEP*(n_matches/est_eggs_metalTA),
+         SP_scaled = LEP*(nrecruits_rounded/est_eggs_metalTA))
+
+# Join with site_vec_order to get geo order column
+SP_parentage <- left_join(SP_parentage, site_vec_order, by = c("offspring_site" = "site_name"))
+
+# Separate out raw and scaled so can join all SP methods together
+SP_parentage_raw <- SP_parentage %>%
+  select(year, offspring_site, SP_raw, alpha_order, geo_order) %>%
+  dplyr::rename(site = offspring_site, SP = SP_raw) %>%
+  mutate(est_method = 'parentage_raw',
+         data = 'parentage')
+
+SP_parentage_scaled <- SP_parentage %>%
+  select(year, offspring_site, SP_scaled, alpha_order, geo_order) %>%
+  dplyr::rename(site = offspring_site, SP = SP_scaled) %>%
+  mutate(est_method = 'parentage_scaled',
+         data = 'parentage')
+
+##### Self-persistence, using dispersal kernels
+SP_kernels <- site_dist_info %>%
+  filter(org_site == dest_site) %>%
+  select(org_site, dest_width) %>%
+  mutate(pdisp_allyears = as.numeric(NA),
+         pdisp_2012 = as.numeric(NA),
+         pdisp_2013 = as.numeric(NA),
+         pdisp_2014 = as.numeric(NA),
+         pdisp_2015 = as.numeric(NA))
+
+# Fill in prob of dispersing (tried using mutate instead but integrate doesn't work well within dplyr)
+for(i in 1:length(SP_kernels$org_site)) {
+  SP_kernels$pdisp_allyears[i] = integrate(disp_allyears, 0, SP_kernels$dest_width[i])$value
+  SP_kernels$pdisp_2012[i] = integrate(disp_2012, 0, SP_kernels$dest_width[i])$value
+  SP_kernels$pdisp_2013[i] = integrate(disp_2013, 0, SP_kernels$dest_width[i])$value
+  SP_kernels$pdisp_2014[i] = integrate(disp_2014, 0, SP_kernels$dest_width[i])$value
+  SP_kernels$pdisp_2015[i] = integrate(disp_2015, 0, SP_kernels$dest_width[i])$value
+}
+
+# Calculate SP
+SP_kernels <- SP_kernels %>%
+  mutate(SP_allyears = pdisp_allyears*recruits_per_LEP,
+         SP_2012 = pdisp_2012*recruits_per_LEP,
+         SP_2013 = pdisp_2013*recruits_per_LEP,
+         SP_2014 = pdisp_2014*recruits_per_LEP,
+         SP_2015 = pdisp_2015*recruits_per_LEP)
+
+# Join with site_vec_info
+SP_kernels <- left_join(SP_kernels, site_vec_order, by = c('org_site' = 'site_name'))
+
+# Separate out SP by year so can bind together with other SP estimates
+SP_kernels_allyears <- SP_kernels %>%
+  select(org_site, SP_allyears, alpha_order, geo_order) %>%
+  dplyr::rename(site = org_site, SP = SP_allyears) %>%
+  mutate(year = 'combined',
+         est_method = 'all years kernel',
+         data = 'kernel')
+  
+SP_kernels_2012 <- SP_kernels %>%
+  select(org_site, SP_2012, alpha_order, geo_order) %>%
+  dplyr::rename(site = org_site, SP = SP_2012) %>%
+  mutate(year = '2012',
+         est_method = '2012 kernel',
+         data = 'kernel')
+
+SP_kernels_2013 <- SP_kernels %>%
+  select(org_site, SP_2013, alpha_order, geo_order) %>%
+  dplyr::rename(site = org_site, SP = SP_2013) %>%
+  mutate(year = '2013',
+         est_method = '2013 kernel',
+         data = 'kernel')
+
+SP_kernels_2014 <- SP_kernels %>%
+  select(org_site, SP_2014, alpha_order, geo_order) %>%
+  dplyr::rename(site = org_site, SP = SP_2014) %>%
+  mutate(year = '2014',
+         est_method = '2014 kernel',
+         data = 'kernel')
+
+SP_kernels_2015 <- SP_kernels %>%
+  select(org_site, SP_2015, alpha_order, geo_order) %>%
+  dplyr::rename(site = org_site, SP = SP_2015) %>%
+  mutate(year = '2015',
+         est_method = '2015 kernel',
+         data = 'kernel')
+
+##### Bind self-persistence estimates together so can easily plot to compare
+SP_all <- rbind(SP_migEst_est, SP_migEst_LCI, SP_migEst_UCI, 
+                as.data.frame(SP_parentage_raw), as.data.frame(SP_parentage_scaled),
+                SP_kernels_allyears, SP_kernels_2012, SP_kernels_2013,
+                SP_kernels_2014, SP_kernels_2015)
+
+##### Connectivity matrix, using dispersal kernels
+
 
 ##### Connectivity matrix, using migEst
 
@@ -846,6 +1024,69 @@ ggplot(data = (migEst_pijmat %>% filter(org_site == dest_site)), aes(x=reorder(o
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   xlab("site") + ylab("mig rate with CI") + ggtitle("Mig rate with CI from MigEst") 
+dev.off()
+
+##### SP metric - all methods
+pdf(file = here('Plots/PersistenceMetrics', 'SP_allmethods.pdf'))
+ggplot(data = SP_all, aes(x = reorder(site, geo_order), y=SP, color = est_method)) +
+  geom_bar(aes(fill = data), position = 'dodge', stat='identity') +
+  #geom_col() +
+  geom_hline(yintercept = 1) +
+  xlab("site") + ylab("self-persistence") + ggtitle("SP by site and method") +
+  theme_bw() +
+  #theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### SP metric - all methods - zoomed
+pdf(file = here('Plots/PersistenceMetrics', 'SP_allmethods_zoomed.pdf'))
+ggplot(data = SP_all, aes(x = reorder(site, geo_order), y=SP, color = est_method)) +
+  geom_bar(aes(fill = data), position = 'dodge', stat='identity') +
+  #geom_col() +
+  #geom_hline(yintercept = 1) +
+  xlab("site") + ylab("self-persistence") + ggtitle("SP by site and method") +
+  theme_bw() +
+  #theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### SP metric - all methods - this one looks weird...
+pdf(file = here('Plots/PersistenceMetrics', 'SP_allmethods_site.pdf'))
+ggplot(data = SP_all, aes(x = reorder(site, geo_order), y=SP, color = est_method)) +
+  geom_bar(aes(fill = data), position = 'dodge', stat='identity') +
+  #geom_col() +
+  geom_hline(yintercept = 1) +
+  facet_wrap(~site) +
+  xlab("site") + ylab("self-persistence") + ggtitle("SP by site and method") +
+  theme_bw() +
+  #theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### SP metric - all methods
+pdf(file = here('Plots/PersistenceMetrics', 'SP_allmethods_method.pdf'))
+ggplot(data = SP_all, aes(x = reorder(site, geo_order), y=SP, color = est_method)) +
+  geom_bar(aes(fill = data), position = 'dodge', stat='identity') +
+  #geom_col() +
+  geom_hline(yintercept = 1) +
+  facet_wrap(~ est_method) +
+  xlab("site") + ylab("self-persistence") + ggtitle("SP by site and method") +
+  theme_bw() +
+  #theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### SP metric - all methods
+pdf(file = here('Plots/PersistenceMetrics', 'SP_allmethods_method_zoomed.pdf'))
+ggplot(data = SP_all, aes(x = reorder(site, geo_order), y=SP, fill = est_method)) +
+  geom_bar(position = 'dodge', stat='identity') +
+  #geom_col() +
+  #geom_hline(yintercept = 1) +
+  facet_wrap(~ est_method) +
+  xlab("site") + ylab("self-persistence") + ggtitle("SP by site and method") +
+  theme_bw() +
+  #theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
 
