@@ -16,9 +16,15 @@ load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output
 
 ## Set various constants
 # Set size-dependent growth (right now from Will's prelim estimates, need to refine growth)
-Linf = 10.68
-k = 1.078
+# Linf = 10.68
+# k = 1.078
 s = exp(-0.0148)
+
+k_lowestAIC = 0.9447194
+Linf_lowestAIC = 10.50670
+
+Linf = Linf_lowestAIC
+k = k_lowestAIC
 
 # Other size points
 min_size = 0
