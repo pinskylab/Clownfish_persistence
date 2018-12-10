@@ -377,22 +377,22 @@ site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
 site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site')) # 1 if sampled in a particular year, NA if not
 
-#################### Save files ####################
-save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
-save(anem_db, file = here::here("Data/Database_backups", "anem_db.RData"))
-save(fish_db, file = here::here("Data/Database_backups", "fish_db.RData"))
-save(fish_seen_db, file = here::here('Data/Database_backups', 'fish_seen_db.RData'))
-save(dives_db, file = here::here("Data/Database_backups", "dives_db.RData"))
-save(gps_db, file = here::here("Data/Database_backups", "gps_db.RData"))
-
-save(allAPCL, file=here::here('Data', 'allAPCL.RData'))
-save(taggedfish, file=here::here('Data', 'taggedfish.RData'))
-
-
-# Data for Hannah
-save(anems_tagged, file=here::here('Data','anems_tagged.RData'))
-save(allfish_caught, file=here::here('Data','allfish_caught.RData'))
-save(allfish_seen, file=here::here('Data','allfish_seen.RData'))
+# #################### Save files ####################
+# save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
+# save(anem_db, file = here::here("Data/Database_backups", "anem_db.RData"))
+# save(fish_db, file = here::here("Data/Database_backups", "fish_db.RData"))
+# save(fish_seen_db, file = here::here('Data/Database_backups', 'fish_seen_db.RData'))
+# save(dives_db, file = here::here("Data/Database_backups", "dives_db.RData"))
+# save(gps_db, file = here::here("Data/Database_backups", "gps_db.RData"))
+# 
+# save(allAPCL, file=here::here('Data', 'allAPCL.RData'))
+# save(taggedfish, file=here::here('Data', 'taggedfish.RData'))
+# 
+# 
+# # Data for Hannah
+# save(anems_tagged, file=here::here('Data','anems_tagged.RData'))
+# save(allfish_caught, file=here::here('Data','allfish_caught.RData'))
+# save(allfish_seen, file=here::here('Data','allfish_seen.RData'))
 # 
 # load(file = here("Data", "anem_db.RData"))
 # load(file = here("Data", "fish_db.RData"))
