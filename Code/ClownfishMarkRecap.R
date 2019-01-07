@@ -595,7 +595,7 @@ eall_mean.Phi.size.plus.stage.p.size = mark(eall_mean.processed_stage, eall_mean
 eall_mean.Phi.size.plus.stage.p.dist = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.size.plus.stage, p=p.dist), prefix = 'eall_mean.Phi.size.plus.stage.p.dist') #size and stage dependent survival, distance-dependent recapture
 eall_mean.Phi.size.plus.stage.p.stage = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.size.plus.stage, p=p.stage), prefix = 'eall_mean.Phi.size.plus.stage.p.stage') #size and stage dependent survival, stage-dependent recapture
 eall_mean.Phi.stage.p.dot = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.dot), prefix = 'eall_mean.Phi.stage.p.dot') #stage-dependent survival, constant recapture
-eall_mean.Phi.stage.p.dot = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.dist), prefix = 'eall_mean.Phi.stage.p.dist') #stage-dependent survival, distance-dependent recapture
+eall_mean.Phi.stage.p.dist = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.dist), prefix = 'eall_mean.Phi.stage.p.dist') #stage-dependent survival, distance-dependent recapture
 eall_mean.Phi.size.plus.color.p.dot = mark(eall_mean.processed_color, eall_mean.ddl_color, model.parameters=list(Phi=Phi.size.plus.color, p=p.dot), prefix = 'eall_mean.Phi.size.plus.color.p.dot') #size and color dependent survival, constant recapture
 eall_mean.Phi.size.plus.color.p.dist = mark(eall_mean.processed_color, eall_mean.ddl_color, model.parameters=list(Phi=Phi.size.plus.color, p=p.dist), prefix = 'eall_mean.Phi.size.plus.color.p.dist') #size and color dependent survival, distance-depedent recapture
 eall_mean.Phi.color.p.dot = mark(eall_mean.processed_color, eall_mean.ddl_color, model.parameters=list(Phi=Phi.color, p=p.dot), prefix = 'eall_mean.Phi.color.p.dot') #color dependent survival, constant recapture
@@ -661,7 +661,23 @@ eall_mean.models <- fit.eall.models()
 # edist.Phi.time.p.time.plus.dist = mark(edist.processed, edist.ddl, model.parameters=list(Phi=Phi.time, p=p.time.plus.dist))
 
 # Compare models
+model_comp = data.frame(model = c('eall_mean.Phi.dot.p.dot','eall_mean.Phi.dot.p.time','eall_mean.Phi.time.p.dot',
+                                  'eall_mean.Phi.dot.p.dist','eall_mean.Phi.size.p.size','eall_mean.Phi.size.p.dist',
+                                  'eall_mean.Phi.size.plus.stage.p.dot','eall_mean.Phi.size.plus.stage.p.size.plus.stage',
+                                  'eall_mean.Phi.size.plus.stage.p.size','eall_mean.Phi.size.plus.stage.p.dist',
+                                  'eall_mean.Phi.size.plus.stage.p.stage','eall_mean.Phi.stage.p.dot', 'eall_mean.Phi.stage.p.dist',
+                                  'eall_mean.Phi.size.plus.color.p.dot','eall_mean.Phi.size.plus.color.p.dist',
+                                  'eall_mean.Phi.color.p.dot','eall_mean.Phi.color.p.dist'),
+                        AIC = c(eall_mean.Phi.dot.p.dot$results$AICc, eall_mean.Phi.dot.p.time$results$AICc, eall_mean.Phi.time.p.dot$results$AICc,
+                                eall_mean.Phi.dot.p.dist$results$AICc, eall_mean.Phi.size.p.size$results$AICc, eall_mean.Phi.size.p.dist$results$AICc,
+                                eall_mean.Phi.size.plus.stage.p.dot$results$AICc, eall_mean.Phi.size.plus.stage.p.size.plus.stage$results$AICc,
+                                eall_mean.Phi.size.plus.stage.p.size$results$AICc, eall_mean.Phi.size.plus.stage.p.dist$results$AICc,
+                                eall_mean.Phi.size.plus.stage.p.stage$results$AICc, eall_mean.Phi.stage.p.dot$results$AICc,
+                                eall_mean.Phi.stage.p.dist$results$AICc, eall_mean.Phi.size.plus.color.p.dot$results$AICc,
+                                eall_mean.Phi.size.plus.color.p.dist$results$AICc, eall_mean.Phi.color.p.dot$results$AICc, eall_mean.Phi.color.p.dist$results$AICc))
 
+model_comp <- model_comp %>%
+  mutate(dAIC = min(AIC) - AIC)
 # organize output to get ready to make plots
 ###### Constant survival and recapture prob, no covariates (eall_mean.Phi.dot.p.dot)
 eall_mean.constant = as.data.frame(eall_mean.Phi.dot.p.dot$results$beta) %>% 
@@ -951,6 +967,8 @@ save(encounters_all_means, file=here("Data", "encounters_all_means.RData"))
 save(encounters_all_0s, file=here("Data", "encounters_all_0s.RData"))
 save(allfish, file=here("Data", "allfish.RData"))
 
+load(file=here('Data','encounters_all_means.RData'))
+load(file=here('Data','encounters_all_0s.RData'))
 
 save(eall.Phi.size.p.dist.results, file=here("Data","eall_Phi_size_p_dist_results.RData"))
 
