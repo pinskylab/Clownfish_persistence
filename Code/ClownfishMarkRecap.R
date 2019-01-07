@@ -185,33 +185,33 @@ findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampley
 ##### Pulling and setting up data
 leyte <- read_db("Leyte")
 
-#pull all clownfish observations
-allfish_fish <- leyte %>%  
-  tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
-  collect()
+# Pull all clownfish observations from the caught-clownfish table (don't need the ones only observed b/c won't be able to link them, right?)
+allfish_fish <- leyte %>%
+  tbl('clownfish') %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, notes) %>%
+  collect() %>%
+  filter(fish_spp == 'APCL')
 
-#and their corresponding anemones
-allfish_anems <- leyte %>%  
-  tbl("anemones") %>%
+# and their corresponding anemones
+allfish_anems <- leyte %>%
+  tbl('anemones') %>%
   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
   collect() %>%
   filter(anem_table_id %in% allfish_fish$anem_table_id)
-
-#and the corresponding dives
+  
+# and the corresponding dives
 allfish_dives <- leyte %>%  
   tbl("diveinfo") %>%
   select(dive_table_id, dive_type, date, site, gps) %>%
   collect() %>%
-  filter(dive_table_id %in% allfish_anems$dive_table_id)
-
-# pull out just the year and put that in a separate column
-allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
-
-#join together
+  filter(dive_table_id %in% allfish_anems$dive_table_id) %>%
+  mutate(year = as.integer(substring(date, 1, 4)))
+  
+# then join them together
 allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
 
+# Make size numeric (rather than a chr) so can do means and such
 allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
 
 # Pull out dive info (for assigning distances to anems each year)
@@ -219,7 +219,7 @@ dive.Info <- leyte %>%
   tbl("diveinfo") %>%
   select(dive_table_id, dive_type, date, site, gps) %>%
   collect() %>%
-  mutate(year = as.integer(substring(date,1,4)))#%>%
+  mutate(year = as.integer(substring(date,1,4))) 
 
 # Pull out GPS info (for assigning distances to anems each year)
 gps.Info <- leyte %>%
@@ -234,6 +234,113 @@ gps.Info <- leyte %>%
          sec = second(obs_time), 
          year = year(obs_time)) %>%
   separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
+
+##### Join together recaptures of the same fish, whether through genetic recapture or tag recapture
+
+# Right now (1/7/18) - gen_id is the same for instances where it is really certain the fish is the same
+# If everything checks out but the fish has moved sites, the gen_id is different but the words "genetic recapture" are in the notes
+# Michelle thinks there is some tag loss
+
+# Create several data sets:
+# 1) all recaptures, genetic + tag, but only certain ones
+# 2) all recaptures, genetic + tag, but including uncertain (site-switching) ones
+# 3) just tag recaptures
+# 4) all recaptures, genetic + tag, only certain ones, size estimated for unrecaught fish
+# 5) all recaptures, genetic + tag, including uncertain (site-switching) ones, size estimated for unrecaught fish
+# 6) just tag recaptures, size estimated for unrecaught fish
+
+##### Pull out fish that are marked in some way (either tag or genetic) - 3997 fish
+# allfish_mark <- allfish %>%
+#   filter(!is.na(gen_id) | (tag_id != 'NA' & !is.na(tag_id))) %>% #pull out fish "tagged" in any way, either PIT or via genetic sample
+#   mutate(fish_id = case_when(tag_id != 'NA' ~ paste('tag', tag_id, sep=''), #if has a tag_id, use it in the fish_id
+#                              tag_id == 'NA' & !is.na(gen_id) ~ paste('gen', gen_id, sep=''))) # %>% #if it doesn't have a tag_id, use the gen_id in the fish_id - but some of these fish might later have a tag_id
+
+allfish_mark <- allfish %>%
+  filter(!is.na(gen_id) | (tag_id != 'NA' & !is.na(tag_id))) %>%  # pull out fish "tagged" in any way, either PIT or via genetic sample
+  mutate(fish_id = case_when(gen_id != 'NA' ~ paste('gen', gen_id, sep=''),  # if fish has a gen_id, use that as the fish_id
+                             is.na(gen_id) ~ paste('tag', tag_id, sep='')))  # f it doesn't have a gen_id, use the tag_id
+
+
+# Exploring recaptures - gen_id 1394 gets genetically id-ed 3 times (2015, May 2016, June 2016), getting a new PIT tag each time, then gets recaught with the third tag again in 2018... nuts!
+
+mark_set <- as.data.frame(table((allfish_mark %>% group_by(gen_id))$gen_id))
+
+#### Set one: all recaptures, genetic + tag, only certain (non-site-switching) genetic recaps
+allfish_set1 <- allfish_mark
+
+# Link up genetic ids with tagged ones, if posible - this time, going to switch to the gen_id rather than the tag, since seems like fish sometimes have multiple tags... should look into how common that is...
+for(i in 1:length(allfish_set1$fish_id)) {
+  if(substring(allfish_set1$fish_id[i],1,3) == 'tag') {  # if it has a fish_id based on tag_id rather than gen_id...
+    tag_id_val <- allfish_set1$tag_id[i]  # pull out the tag_id
+    
+    matches <- allfish_set1 %>%
+      filter(tag_id == tag_id_val)  # filter out any other cases that match that tag_id
+    
+    for(j in 1:length(matches$fish_id)) {
+     if(!is.na(matches$gen_id[j])) {  # if any of the captures with that tag_id have a gen_id
+       allfish_set1$fish_id[i] <- matches$fish_id[j]  # update the fish_id to the fish_id based on the match with a gen_id
+     }
+    }
+  }
+}
+
+# This seems to be working pretty well at catching all tags that have the same gen_id at some point, still 721 tag observations (617 individual tags) that are not associated with gen_ids (looks like sequencing failed on first capture, then didn't take samples after that b/c was tagged)
+# For fish that still have a tag_id-based fish_id, see if other captures of that tag
+  
+# for each gen_id, figure out if there are any associated tag_ids
+# for those cases, put the fish_id as the gen_id
+# need to go through each of those tag_ids and find cases when fish got caught just based on the tag
+  
+# Do some spot-checking
+allfish_set1 %>% filter(gen_id == 1394) %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1394') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+
+set1 <- as.data.frame(table(allfish_set1$fish_id))
+
+allfish_set1 %>% filter(substring(fish_id,1,3) == 'tag') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)  # still about 720 with tags but no gen_id - looks like cases where samples were taken but genotyping failed?
+
+# Spot-checking, looks like in these cases, the gen_id as fish_id percolates through multiple tags so long they are linked to the gen_id at some point
+allfish_set1 %>% filter(fish_id == 'gen1015') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(tag_id == '986112100170625') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(tag_id == '985153000406699') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1019') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(tag_id == '982000411818704') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(tag_id == '985153000404653') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1020') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1065') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1071') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1499') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+allfish_set1 %>% filter(fish_id == 'gen1496') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+
+# For cases that still have a tag_id-based fish_id, double-check that there aren't other captures of those fish with that tag that have a gen_id
+tag_set1 <- allfish_set1 %>% filter(substring(fish_id,1,3) == 'tag')  # still about 720 with tags but no gen_id - looks like cases where samples were taken but genotyping failed?
+tag_set1_table <- as.data.frame(table(tag_set1$fish_id))  # 617 individual fish (or tags...)
+tag_set1 %>% filter(fish_id == "tag982000411818572")
+tag_set1 %>% filter(!is.na(gen_id))  # none that have a gen_id
+
+tag_ids_set1 <- allfish_set1 %>%
+  filter(tag_id %in% tag_set1$tag_id)  # pull out any fish with the tags that are in the tag_set1 tag_ids
+tag_ids_set1 %>% filter(!is.na(gen_id))  # do any of them have a gen_id at any point? - looks like no
+  
+  
+# # Link up genetic ids with tag ones, if possible: go through allfish_mark, for any fish that has a gen_id-based fish_id, see if a fish with the same gen_id later has a tag_id and update the fish_id if so
+# for(i in 1:length(allfish_mark$fish_id)) {
+#   if(substring(allfish_mark$fish_id[i],1,3) == "gen") { #if it has a fish_id based on gen_id rather than tag_id...
+#     gen_id_val <- allfish_mark$gen_id[i] #pull out the gen_id
+#     
+#     matches <- allfish_mark %>%
+#       filter(gen_id == gen_id_val) #filter out other cases
+#     
+#     for(j in 1:length(matches$fish_id)){ #go through the fish entries that match the gen_id
+#       if(!is.na(matches$tag_id[j])){ #if one of them has a tag_id
+#         allfish_mark$fish_id[i] <- matches$fish_id[j] #update the fish_id to the fish_id based on the match with a tag_id
+#       }
+#     }
+#   }
+# }
+
+
+
 
 ##### Incorporate genetic recaptures with tag recaptures - make identifier that uses cap_id if present, otherwise tag_id, or sample_id if neither 
 # Possible cases: (new gen_id variable to indicate whether fish has a genotype, replaces cap_id, don't need to use sample_id b/c fish might have been clipped but not successfully sequenced)
