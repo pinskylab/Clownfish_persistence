@@ -286,6 +286,7 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   return(anem)
   
 }
+
 #################### Pull out database info ####################
 leyte <- read_db("Leyte") 
 
@@ -300,7 +301,7 @@ allfish_fishdb <- fish_db %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
   
 allfish_caught_anems <- anem_db %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp, anem_dia) %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp, anem_dia, anem_obs_time, notes) %>%
   filter(anem_table_id %in% allfish_fishdb$anem_table_id)
 
 allfish_caught_dives <- dives_db %>%
@@ -313,10 +314,10 @@ allfish_caught <- left_join(allfish_caught, allfish_caught_dives, by='dive_table
 
 # joining dives + anems to all fish from clown_sighted database for Hannah
 allfish_seendb <- fish_seen_db %>%
-  select(est_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
+  select(est_table_id, anem_table_id, fish_spp, size, notes, collector) 
 
 allfish_seen_anems <- anem_db %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_obs_time) %>%
   filter(anem_table_id %in% allfish_seendb$anem_table_id)
 
 allfish_seen_dives <- dives_db %>%
@@ -326,6 +327,41 @@ allfish_seen_dives <- dives_db %>%
 allfish_seen <- left_join(allfish_seendb, allfish_seen_anems, by='anem_table_id')
 allfish_seen <- left_join(allfish_seen, allfish_seen_dives, by='dive_table_id') %>%
   mutate(year = substring(date,1,4))
+
+
+# Try joining the two by anem_table_id - just presence/absence of fish spp
+allfish_seen_fish_spp <- allfish_seen %>%
+  dplyr::distinct(anem_table_id, fish_spp, .keep_all=TRUE)
+
+allfish_caught_fish_spp <- allfish_caught %>%
+  distinct(anem_table_id, fish_spp, .keep_all=TRUE)
+
+allfish_fish_spp_PA <- rbind(allfish_seen_fish_spp %>% select(anem_table_id, fish_spp, year, site),
+                            allfish_caught_fish_spp %>% select(anem_table_id, fish_spp, year, site))
+      
+
+# Keeping anem_ids in the mix (b/c otherwise, how can track anems through time?) - doesn't filter out any differently...
+allfish_seen_fish_spp_anem_id <- allfish_seen %>%
+  dplyr::distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
+
+allfish_caught_fish_spp_anem_id <- allfish_caught %>%
+  distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
+
+# Are there any overlapping anem_table_ids between the two dfs? (shouldn't be, right?)
+test3 <- allfish_caught_fish_spp %>% filter(anem_table_id %in% allfish_seen_fish_spp)
+
+# This data frame 
+allfish_fish_spp_PA_distinct <- allfish_fish_spp_PA %>%
+  distinct(anem_table_id, fish_spp, year, site)
+
+allfish_fish_spp_PA %>%
+  filter(!anem_table_id %in% allfish_fish_spp_PA_distinct$anem_table_id)
+
+!where_case_travelled_1 %in%
+
+test2 <- as.data.frame(table(allfish_fish_spp_PA$anem_table_id))
+
+###################
 
   
 allAPCL_fish <- leyte %>% 
