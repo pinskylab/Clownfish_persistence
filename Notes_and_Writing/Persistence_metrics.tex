@@ -168,9 +168,73 @@ SP_i = LEP_{i} \times \frac{\# \text{recuits arriving home to patch i}}{\# \text
 			\end{equation}
 		\end{itemize}
 	% \item $\# \text{eggs produced by } i$ (equals $N_{o_t}$ above): fecundity (either average or size-specific), estimated by Adam egg photo work, multiplied by the estimated number of breeding females at a site (either total or by size), estimated using number of fish caught scaled up by proportion habitat sampled and probability of capturing a fish (estimated by mark-recapture dives within the same year) 
-	\item $\frac{\text{recruits}}{\text{eggs}}$: relationship between $\frac{\text{eggs}}{m^2}$ and $\frac{\text{recruits}}{m^2}$ the following year, estimated at a site level and where estimates of both egg production and recruits have been scaled up to account for the proportion of habitat sampled in each year and the probability of sampling a fish given that we covered its anemone
+	\item $\frac{\text{recruits}}{\text{eggs}}$: relationship between $\frac{\text{eggs}}{m^2}$ and $\frac{\text{recruits}}{m^2}$ the following year, estimated at a site level and where estimates of both egg production and recruits have been scaled up to account for the proportion of habitat sampled in each year and the probability of sampling a fish given that we covered its anemone (see \ref{FIG_EggRecruitRelbyArea})
 	\item $\# \text{recruits arriving home to patch i}$: take raw number of parentage matches matched from site $i$ to $i$ and scale up by proportion habitat sampled (will be an underestimate of self-persistence but could be worth doing as a comparison)
+
+\section*{Plots}
+%Egg-recruit relationship
+\begin{figure}[H] %Eggs/recruits relationship
+    \centering
+    \includegraphics[width=0.8\textwidth]{\detokenize{../Plots/EggRecruitRelationship/Eggs_recruits_by_site_metalTA_m2.pdf}}
+    \caption{Plot with best-fit linear line for estimated eggs output (number of females sampled scaled by probability of catching a fish and proportion of habitat sampled and estimated eggs produced per female per year) and the estimated number of recruits (number of recruits sampled scaled by probability of catching a fish and proportion of habitat sampled) in the following year, both scaled by site area. $R^2$ = 0.1509, p-value of F-statistic = 0.00166. \label{FIG_EggRecruitRelbyArea}}
+\end{figure}
 	
+%Estimated growth from mark-recap data
+\begin{figure}[H] 
+    \centering
+    \includegraphics[width=0.8\textwidth]{\detokenize{../../Growth/plots/GrowthPerYear_L1_6mobetween.pdf}}
+    \caption{Calculated growth-per-year in cm compared to starting length for fish recaptured at least 6 months after initial capture. Fish caught multiple times are represented as separated catch-recapture pairs, with each recapture compared to the previous capture. Evidence that fish can grow to about 5-6cm within a year? \label{FIG_Growth_L1}}
+\end{figure}
+
+%Best-fit VonBL growth curve
+\begin{figure}[H] 
+    \centering
+    \includegraphics[width=0.8\textwidth]{\detokenize{../../Growth/plots/K-S_newData.pdf}}
+    \caption{Estimated VonBert growth curve \label{FIG_VonBert}}
+\end{figure}
+
+% %Best-fit survival
+% \begin{figure}[H] %Eggs/recruits relationship
+%     \centering
+%     \includegraphics[width=0.8\textwidth]{\detokenize{../../Growth/plots/K-S_newData.pdf}}
+%     \caption{Estimated VonBert growth curve \label{FIG_VonBert}}
+% \end{figure}
+
+%Network persistence, multiple methods
+\begin{figure}[H] 
+    \centering
+    \includegraphics[width=1.0\textwidth]{\detokenize{../Plots/PersistenceMetrics/NP_realizedconnectivity.pdf}}
+    \caption{Network persistence metric (first eigenvalue of realized connectivity matrix), multiple methods. \label{FIG_NP_Metric}}
+\end{figure}
+
+%Connectivity matrix eigenvalues, multiple methods
+\begin{figure}[H] 
+    \centering
+    \includegraphics[width=1.0\textwidth]{\detokenize{../Plots/PersistenceMetrics/Eig_connmats.pdf}}
+    \caption{First eigenvalue of connectivity matrices, multiple methods. \label{FIG_Conn_Eig}}
+\end{figure}
+
+%Self persistence
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{\detokenize{../Plots/PersistenceMetrics/SP_allmethods.pdf}}
+    \caption{Self-persistence, variety of methods. \label{FIG_SP}}
+\end{figure}
+
+%Connectivity matrix, all years kernel
+\begin{figure}[H] 
+    \centering
+    \includegraphics[width=1.0\textwidth]{\detokenize{../Plots/PersistenceMetrics/Connectivity_allyears_kernel.pdf}}
+    \caption{Connectivity matrix, calculated from all years dispersal kernel. \label{FIG_ConnMat_AllYearsDK}}
+\end{figure}
+
+%Connectivity matrix, migEst
+\begin{figure}[H] %Eggs/recruits relationship
+    \centering
+    \includegraphics[width=1.0\textwidth]{\detokenize{../Plots/PersistenceMetrics/MigEst_propdisp_mat.pdf}}
+    \caption{Connectivity matrix, calculated from migEst values. \label{FIG_ConnMat_AllYearsMigEst}}
+\end{figure}
+
 % \item $A$: assuming fish are 1 when they hit 3.5cm, can use the max number of years a fish has been recaught (checking with a histogram that this a minority of fish and likely that we have caught the tail, not the majority) or a number from the literature or annual average survival multipled until proportion surviving is $<$ some threshold (1\%?)
 % \item $f(a)$: can start with an average number of eggs per female multiplied by average number of reproductive events per year from Adam's work, then can nuance with size of female (and age from Michelle's growth work or a von-Bertalanffy to estimate age from size), if necessary. Then need to to multiply by probability of surviving from egg to recruit (either here or outside the sum). Or use IPM like Will White did to get at size effects on survival and egg production. %Need to check: can you estimate age from size using a vB? Probably, think Lewis did it in that rockfish paper...
 % \item $l(a)$: Use survival-at-size relationship to estimate annual survival at each size (or just use an annual survival) and multiply together to get survival to each age. This is survival from first age of reproduction to the other stages or survival from some other stage to the various ages - need to make sure that is really clearly defined. Could be lifetime egg production of a breeding female, of a 3.5cm recruit, or a larvae, etc.
@@ -260,6 +324,7 @@ SP_i = LEP_{i} \times \frac{\# \text{recuits arriving home to patch i}}{\# \text
 % \end{itemize}
 % \subsection*{Summaries of what others have done}
 
+\newpage{}
 
 \bibliography{../../../BibTexReferences}
 \bibliographystyle{plainnat}
