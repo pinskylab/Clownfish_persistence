@@ -90,14 +90,14 @@ load(file=here("Data","LEP_out.RData")) #LEP estimates from LEP_estimate.R
 # Load proportion habitat sampled info
 load(file=here('Data','anem_sampling_table.RData'))
 
-# Dispersal kernel parameters from Katrina (estimates as of 11/20/18 - from email) 
+# Dispersal kernel parameters from Katrina (estimates as of 12/15/18 from KC paper draft) 
 k_2012 = -2.67
 theta_2012 = 3
 k_2013 = -3.27
 theta_2013 = 3
 k_2014 = -2.38
 theta_2014 = 2
-k_2015 = -3.02
+k_2015 = -2.73
 theta_2015 = 2
 k_allyears = -1.36  # with 2012-2015 data
 theta_allyears = 0.5  # with 2012-2015 data
@@ -803,155 +803,160 @@ SP_all <- rbind(SP_migEst_est, SP_migEst_LCI, SP_migEst_UCI,
                 SP_kernels_2014, SP_kernels_2015)
 
 ##### Connectivity matrix, using dispersal kernels
+# Set up matrices
+conn_mat_2012K <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+conn_mat_2013K <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+conn_mat_2014K <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+conn_mat_2015K <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+conn_mat_allyearsK <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
 
-
-##### Connectivity matrix, using migEst
-
-##### Connectivity matrix, using dispersal kernels
-
-# # Find prob of dispersing within the width of the site
-# for(i in 1:length(site_width_info$site)){ #this doesn't work
-#   site_width_info$prob_disperse_2013[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2013) #2013 kernel using theta=1
-#   site_width_info$prob_disperse_2015[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2015) #2015 kernel
-#   site_width_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-#   site_width_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value
-# }
-
-test_1 <- seq(0,50,by=0.5)
-test_2 <- dispKernelallyears(test_1)
-plot(test_1, test_2)
+site_dist_info <- site_dist_info %>%
+  mutate(prob_disp_2012 = as.numeric(NA),
+         prob_disp_2013 = as.numeric(NA),
+         prob_disp_2014 = as.numeric(NA),
+         prob_disp_2015 = as.numeric(NA),
+         prob_disp_allyears = as.numeric(NA))
 
 # Find prob of dispersing within the width of the site - just using integrate function here, should swap out for analytical integration...
-for(i in 1:length(site_width_info$site)){ #this doesn't work
-  site_width_info$prob_disperse_2013[i] = integrate(dispKernel2012, 0, site_width_info$width_km[i])$value 
-  site_width_info$prob_disperse_2015[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value 
-  site_width_info$prob_disperse_2014[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-  site_width_info$prob_disperse_2013[i] = integrate(dispKernel2015, 0, site_width_info$width_km[i])$value
-}
-
-# Find prob of dispersing among sites
 for(i in 1:length(site_dist_info$org_site)){ 
-  site_dist_info$prob_disperse_2013[i] = integrateDK_theta1(site_dist_info$d1_km[i], site_dist_info$d2_km[i], k_2013) #2013 kernel using theta=1
-  site_dist_info$prob_disperse_2015[i] = integrateDK_theta1(site_dist_info$d1_km[i], site_dist_info$d2_km[i], k_2015) #2015 kernel
-  site_dist_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-  site_dist_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value
+  site_dist_info$prob_disp_2012[i] = integrate(disp_2012, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
+  site_dist_info$prob_disp_2013[i] = integrate(disp_2013, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
+  site_dist_info$prob_disp_2014[i] = integrate(disp_2014, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
+  site_dist_info$prob_disp_2015[i] = integrate(disp_2015, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
+  site_dist_info$prob_disp_allyears[i] = integrate(disp_allyears, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
 }
 
-# Add in index values
-site_dist_info$origin <- c(rep(4, length(site_vec)), rep(5, length(site_vec)), rep(6, length(site_vec)), #Cabatoan, Caridad Cemetery, Caridad Proper
-                           rep(9, length(site_vec)), rep(15, length(site_vec)), rep(17, length(site_vec)), #Elementary School, Gabas, Haina
-                           rep(7, length(site_vec)), rep(3, length(site_vec)), rep(1, length(site_vec)), #Hicgop South, Magbangon, Palanas
-                           rep(13, length(site_vec)), rep(12, length(site_vec)), rep(11, length(site_vec)), #Poroc Rose, Poroc San Flower, San Agustin
-                           rep(18, length(site_vec)), rep(10, length(site_vec)), rep(8, length(site_vec)), #Sitio Baybayon, Sitio Lonas, Sitio Tugas
-                           rep(16, length(site_vec)), rep(14, length(site_vec)), rep(2, length(site_vec))) #Tamakin Dacot, Visca, Wangag
+# Add in origin site alpha and geo order
+site_dist_info <- left_join(site_dist_info, site_vec_order, by = c('org_site' = 'site_name'))
+site_dist_info <- site_dist_info %>%
+  dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order)
 
-site_dist_info$destination <- rep(c(4,5,6,9,15,17,7,3,1,13,12,11,18,10,8,16,14,2), length(site_vec))
-# list of sites N-S: 
-# 1) Palanas, 2) Wangag, 3) Magbangon, 4) Cabatoan, 5) Caridad Cemetery, 6) Caridad Proper
-# 7) Hicgop South, 8) Sitio Tugas, 9) Elementary School 10) Sitio Lonas
-# 11) San Agustin, 12) Poroc San Flower, 13) Poroc Rose, 14) Visca, 15) Gabas  1288, 2273 2271 anems
-# 16) Tamakin Dacot, 17) Haina, 18) Sitio Baybayon
+# Add in destination site alpha and geo order
+site_dist_info <- left_join(site_dist_info, site_vec_order, by = c('dest_site' = 'site_name'))
+site_dist_info <- site_dist_info %>%
+  dplyr::rename(dest_alpha_order = alpha_order, dest_geo_order = geo_order)
 
-# Turn site_dist_info into a matrix
-disp_mat_2014 <- matrix(NA, 18, 18)
-realized_C_2014 <- matrix(NA, 18, 18)
-realized_C_2013 <- matrix(NA, 18, 18)
-realized_C_2015 <- matrix(NA, 18, 18)
+# Multiply by recruits_per_LEP to get realized connectivity
+site_dist_info <- site_dist_info %>%
+  mutate(realizedC_2012 = prob_disp_2012*recruits_per_LEP,
+         realizedC_2013 = prob_disp_2013*recruits_per_LEP,
+         realizedC_2014 = prob_disp_2014*recruits_per_LEP,
+         realizedC_2015 = prob_disp_2015*recruits_per_LEP,
+         realizedC_allyears = prob_disp_allyears*recruits_per_LEP)
+
+# Create connectivity and realized connectivity matrices as matrices rather than data frames so can find eigenvalues
+rCmat_2012 = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+rCmat_2013 = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+rCmat_2014 = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+rCmat_2015 = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+rCmat_allyears = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+rCmat_allyears_test =  matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+
+Cmat_allyears_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+Cmat_2012_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+Cmat_2013_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+Cmat_2014_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+Cmat_2015_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
+
 for(i in 1:length(site_dist_info$org_site)) {
-  column = site_dist_info$origin[i]
-  row = site_dist_info$destination[i]
-  disp_mat_2014[row, column] = site_dist_info$prob_disperse_2014_oldway[i]
-  realized_C_2014[row, column] = site_dist_info$realizedC_2014[i]
-  realized_C_2015[row, column] = site_dist_info$realizedC_2015[i]
-  realized_C_2013[row, column] = site_dist_info$realizedC_2013[i]
+  column = site_dist_info$org_geo_order[i]  # column is origin 
+  row = site_dist_info$dest_geo_order[i]  # row is destination
+  rCmat_2012[row, column] = site_dist_info$realizedC_2012[i]
+  rCmat_2013[row, column] = site_dist_info$realizedC_2013[i]
+  rCmat_2014[row, column] = site_dist_info$realizedC_2014[i]
+  rCmat_2015[row, column] = site_dist_info$realizedC_2015[i]
+  rCmat_allyears[row, column] = site_dist_info$realizedC_allyears[i]
+  
+  Cmat_allyears_dK_justconn[row, column] = site_dist_info$prob_disp_allyears[i]
+  Cmat_2012_dK_justconn[row, column] = site_dist_info$prob_disp_2012[i]
+  Cmat_2013_dK_justconn[row, column] = site_dist_info$prob_disp_2013[i]
+  Cmat_2014_dK_justconn[row, column] = site_dist_info$prob_disp_2014[i]
+  Cmat_2015_dK_justconn[row, column] = site_dist_info$prob_disp_2015[i]
+  
+  rCmat_allyears_test[column, row] = site_dist_info$realizedC_allyears[i]  # threw this in just to make sure it didn't seem to matter which order the dest vs. org were (row vs. column) - doesn't seem to, has same eigenvalues as the one with the rows and columns switched
 }
 
 # Find eigenvalues
-eig_2013 <- eigen(realized_C_2013)
-eig_2014 <- eigen(realized_C_2014)
-eig_2015 <- eigen(realized_C_2015)
+eig_2012_dK = eigen(rCmat_2012)
+eig_2013_dK = eigen(rCmat_2013)
+eig_2014_dK = eigen(rCmat_2014)
+eig_2015_dK = eigen(rCmat_2015)
+eig_allyears_dK = eigen(rCmat_allyears)
+eig_allyears_dK_test = eigen(rCmat_allyears_test)
 
+eig_allyears_dK_conn = eigen(Cmat_allyears_justconn)
+eig_2012_dK_conn = eigen(Cmat_2012_dK_justconn)
+eig_2013_dK_conn = eigen(Cmat_2013_dK_justconn)
+eig_2014_dK_conn = eigen(Cmat_2014_dK_justconn)
+eig_2015_dK_conn = eigen(Cmat_2015_dK_justconn)
 
+##### Connectivity matrix, using migEst
+# Set up matrices
+rCmat_allyearsME <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+rCmat_allyearsME_lowCI <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+rCmat_allyearsME_highCI <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
+Cmat_allyearsME_justconn <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
 
-# Try to melt this into a matrix
-#disp_mat_2014 <- melt(site_dist_info %>% select(org_site, dest_site, prob_disperse_2014_oldway), id.vars = c("org_site", "dest_site"))
-
-#SHOULD TRY ASSIGNING EACH A ROW AND COLUMN VALUE (CAN BE N-S), THEN MAKE THOSE THE INDICES
-
-
-# # Old way (for practice presentation)
-# for(i in 1:length(site_width_info$site)){ #this doesn't work
-#   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-#   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
-# }
-# site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
-
-#save(site_width_info, file=here("Data", "site_width_info.RData"))
-
-## Calculating the metric!
-SP_site <- site_width_info %>% select(site, width_km, prob_disperse, prob_disperse_abserror) %>%
-  mutate(SP_avg = prob_disperse*recruits_per_LEP)
-
-# ## Try network persistence! - uh-oh, migEst gives self-recruitment...
-# realizedC <- migEst_conn[,2:19]*recruits_per_LEP #multiply connectivity matrix by recruits_from_LEP
-# realizedCmat <- as.matrix(realizedC)
-# realizedC_mat_eig <- eigen(realizedC)
-
-## Calculate realized connectivity matrix in plotting way (dataframe)
-site_dist_info <- site_dist_info %>%
-  mutate(realizedC_2014 = prob_disperse_2014_oldway*recruits_per_LEP) %>%
-  mutate(realizedC_2013 = prob_disperse_2013*recruits_per_LEP) %>%
-  mutate(realizedC_2015 = prob_disperse_2015*recruits_per_LEP) %>%
-  mutate(realizedC_2013_oldway = prob_disperse_2013_oldway*recruits_per_LEP) 
+# Make realized connectivity from mig Est prop disp (and make any > 1 = 1)
+migEst_pijmat <- migEst_pijmat %>%
+  mutate(prop_disp_edit = if_else(prop_disp > 1, 1, prop_disp),
+         prop_disp_LCI_edit = if_else(prop_disp_LCI > 1, 1, prop_disp_LCI),
+         prop_disp_UCI_edit = if_else(prop_disp_UCI > 1, 1, prop_disp_UCI)) %>%
+  mutate(r_prop_disp = prop_disp_edit*recruits_per_LEP,
+         r_prop_disp_LCI = prop_disp_LCI_edit*recruits_per_LEP,
+         r_prop_disp_UCI = prop_disp_UCI_edit*recruits_per_LEP)
   
+# Fill in the matrices with the realized connetivity values
+for(i in 1:length(migEst_pijmat$org_site)) {
+  column = migEst_pijmat$org_geo_order[i]  # column is origin 
+  row = migEst_pijmat$dest_geo_order[i]  # row is destination
+  
+  rCmat_allyearsME[row, column] = migEst_pijmat$r_prop_disp[i]
+  rCmat_allyearsME_lowCI[row, column] = migEst_pijmat$r_prop_disp_LCI[i]
+  rCmat_allyearsME_highCI[row, column] = migEst_pijmat$r_prop_disp_UCI[i]
+  Cmat_allyearsME_justconn = migEst_pijmat$prop_disp_edit[i]
+}
 
+# Find eigenvalues
+eig_allyears_ME = eigen(rCmat_allyearsME)
+eig_allyears_ME_LCI = eigen(rCmat_allyearsME_lowCI)
+eig_allyears_ME_UCI = eigen(rCmat_allyearsME_highCI)
+eig_allyears_ME_conn = eigen(Cmat_allyearsME_justconn)
 
-plot(realizedCmat)
-myImagePlot(realizedCmat, xlabels, ylabels, zlim, title=c("my title")) 
-
-# ## FAKE DATA FOR NOW, JUST TO SEE
-# # Average number of recruits per site (ALL FAKE DATA!!!!!)
-# recruits_to_site <- data.frame(site = site_vec)
-# recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
-# recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
-# 
-# # Average number of recruits per site (trying out real data)
-# recruits_info_input <- recruits_info %>% 
-#   group_by(site) %>%
-#   summarise(avg_annual_recruits_est = mean(totalR_est), avg_annual_recruits_raw = mean(Nrecruits))
-#   
-# recruits_to_site <- data.frame(site = site_vec)
-# recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
-# recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
-# 
-# # Average egg output a year per site (ALL FAKE DATA!!!!!!)
-# egg_output <- data.frame(site = site_vec)
-# egg_output$breedingF <- c(30,10,10,5,10,40,30,100,200,5,5,5,300,0,0,50,15,200)
-# egg_output$eggs_per_year <- egg_output$breedingF*eggs_per_clutch*clutch_per_year
-# 
-# ## Finding number of recruits returning home for each site (numerator of LR fraction) 
-# # Find prob of dispersing within the width of the site
-# for(i in 1:length(site_width_info$site)){ #this doesn't work
-#   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
-#   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
-# }
-# site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
-# 
-# save(site_width_info, file=here("Data", "site_width_info.RData"))
-# 
-# ## Calculating the metric!
-# SP_site <- data.frame(site = site_vec)
-# SP_site <- left_join(SP_site, egg_output, by="site")
-# SP_site <- left_join(SP_site, recruits_to_site, by="site")
-# SP_site <- left_join(SP_site, site_width_info %>% select(site, prob_disperse, prob_disperse_abserror), by="site")
-# SP_site$home_recruits <- SP_site$avg_recruits_from_site*SP_site$prob_disperse
-# SP_site$home_recuits_high <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse + SP_site$prob_disperse_abserror)
-# SP_site$home_recuits_low <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse - SP_site$prob_disperse_abserror)
-# SP_site$SP_avg <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recruits, SP_site$eggs_per_year)
-# SP_site$SP_avgU <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_high, SP_site$eggs_per_year)
-# SP_site$SP_avgL <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_low, SP_site$eggs_per_year)
-# SP_site$site <- unfactor(SP_site$site)
-# SP_site$SP_avg[14:15] <- c(0,0) #make sites w/0 or NaN SP have 0
+##### Pull out first eigenvalues so can plot
+NP_eigs <- data.frame(eigen_val = c(eig_2012_dK$values[1], 
+                                    eig_2013_dK$values[1],
+                                    eig_2014_dK$values[1],
+                                    eig_2015_dK$values[1],
+                                    eig_allyears_dK$values[1],
+                                    eig_allyears_dK_conn$values[1],
+                                    eig_2012_dK_conn$values[1],
+                                    eig_2013_dK_conn$values[1],
+                                    eig_2014_dK_conn$values[1],
+                                    eig_2015_dK_conn$values[1],
+                                    Re(eig_allyears_ME$values[1]),
+                                    Re(eig_allyears_ME_LCI$values[1]),
+                                    Re(eig_allyears_ME_UCI$values[1]),
+                                    Re(eig_allyears_ME_conn$values[1])),
+                      origin = c('2012 kernel', 
+                                 '2013 kernel',
+                                 '2014 kernel',
+                                 '2015 kernel',
+                                 'all years kernel',
+                                 'all years kernel conn',
+                                 '2012 kernel conn',
+                                 '2013 kernel conn',
+                                 '2014 kernel conn',
+                                 '2015 kernel conn',
+                                 'all years MigEst',
+                                 'all years MigEst LCI',
+                                 'all years MigEst UCI', 
+                                 'all years MigEst just conn'),
+                      type = c('realized','realized','realized','realized','realized',
+                               'connectivity','connectivity','connectivity','connectivity','connectivity',
+                               'realized','realized','realized','connectivity'))
+                      #type = c('kernel', 'kernel', 'kernel', 'kernel', 'kernel', 'kernel', 'kernel', 
+                      #         'MigEst', 'MigEst', 'MigEst', 'MigEst'))
 
 ##### Calculating an example dispersal kernel to plot
 distance_dp <- data.frame(distance = seq(0,50,0.5))
@@ -979,13 +984,39 @@ ggplot(data = tag_years_site, aes(nyears)) +
   theme_bw()
 dev.off()
 
+##### Realized connectivity matrix -- all years dispersal kernel
+pdf(file=here("Plots/PersistenceMetrics", "Realized_connectivity_allyears_kernel.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=realizedC_allyears)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') +
+  theme_bw() +
+  #theme(text = element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+##### Connectivity matrix, all years dispersal kernel
+pdf(file=here("Plots/PersistenceMetrics", "Connectivity_allyears_kernel.pdf"),width=7,height=5,useDingbats=F) #looks like the lines don't intercept the y-axis together...
+ggplot(data=site_dist_info, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_allyears)) +
+  scale_fill_gradient(high='black',low="white") +
+  #scale_fill_gradient(high='lightgray',low='black') +
+  labs(x='origin',y='destination') + ggtitle('All years dispersal kernel connectivity') +
+  theme_bw() +
+  #theme(text = element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+
+
 ##### Proportion of recruits from i arriving at j - estimates converted from Mig Est output - some prop_disps are bigger than one... think through whether that's a quirk (and can just cap them at 1) or a structural error...
-pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat.pdf'))
+pdf(file = here::here('Plots/PersistenceMetrics', 'MigEst_propdisp_mat.pdf'),width=7,height=5,useDingbats=F)
 ggplot(data = migEst_pijmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order), fill=prop_disp)) +
   geom_tile() +
+  scale_fill_gradient(high='black', low='white') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  xlab("origin site") + ylab("destination site") + ggtitle("Proportion of recruits from origin settling at dest, converted from migEst")
+  xlab("origin") + ylab("destination") + ggtitle("Prop. of recruits from origin settling at dest, converted from migEst")
 dev.off()
 
 # Lower confidence interval proportion of recruits from i arriving at j - estimates converted from Mig Est output LCI
@@ -1101,28 +1132,49 @@ ggplot(data = SP_migEst, aes(x=reorder(org_site, org_geo_order), y=SP)) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
-
-##### SP metric (FAKE DATA RIGHT NOW)
-pdf(file = here("Plots/PersistenceMetrics", "SP_by_site.pdf"))
-ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
-  geom_bar(stat="identity") +
+##### NP metrics
+# NP metric (first eigenvalue) from dispersal kernels and MigEst reverse estimates - realized connectivity
+pdf(file = here::here('Plots/PersistenceMetrics', 'NP_realizedconnectivity.pdf'))
+ggplot(data = NP_eigs %>% filter(type == 'realized'), aes(x= origin, y = eigen_val, fill = origin)) +
+  geom_bar(stat='identity') +
+  xlab('estimate type') + ylab('first eigenvalue') + ggtitle('Eigenvalue of realized connectivity matrix') +
   geom_hline(yintercept = 1) +
-  xlab("site") + ylab("self-persistence") + ggtitle("FAKE DATA SP by site plot") +
   theme_bw() +
-  theme(text =  element_text(size=20)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+dev.off()
+  
+# NP metric (first eigenvalue) from dispersal kernels and MigEst reverse estimates - just connectivity
+pdf(file = here::here('Plots/PersistenceMetrics', 'Eig_connmats.pdf'))
+ggplot(data = NP_eigs %>% filter(type == 'connectivity'), aes(x= origin, y = eigen_val, fill = origin)) +
+  geom_bar(stat='identity') +
+  xlab('estimate origin') + ylab('first eigenvalue') + ggtitle('Eigenvalue of connectivity matrix') +
+  #geom_hline(yintercept = 1) +
+  theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
-##### SP metric (prelim data for ESA!)
-pdf(file = here("Plots/PersistenceMetrics", "SP_by_site_ESAdraft.pdf"))
-ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
-  geom_bar(stat="identity") +
-  geom_hline(yintercept = 1) +
-  xlab("site") + ylab("self-persistence") +
-  theme_bw() +
-  theme(text =  element_text(size=20)) +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-dev.off()
+
+# ##### SP metric (FAKE DATA RIGHT NOW)
+# pdf(file = here("Plots/PersistenceMetrics", "SP_by_site.pdf"))
+# ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
+#   geom_bar(stat="identity") +
+#   geom_hline(yintercept = 1) +
+#   xlab("site") + ylab("self-persistence") + ggtitle("FAKE DATA SP by site plot") +
+#   theme_bw() +
+#   theme(text =  element_text(size=20)) +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+# dev.off()
+
+# ##### SP metric (prelim data for ESA!)
+# pdf(file = here("Plots/PersistenceMetrics", "SP_by_site_ESAdraft.pdf"))
+# ggplot(data = SP_site, aes(x=site, y=SP_avg)) +
+#   geom_bar(stat="identity") +
+#   geom_hline(yintercept = 1) +
+#   xlab("site") + ylab("self-persistence") +
+#   theme_bw() +
+#   theme(text =  element_text(size=20)) +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+# dev.off()
 
 ##### Prob of self-dispersing (from dispersal kernel) (prelim data for ESA!)
 pdf(file = here("Plots/PersistenceMetrics", "Disp_home_by_site_ESAdraft.pdf"))
@@ -1344,3 +1396,172 @@ myImagePlot <- function(x, ...){
   layout(1)
 }
 # ----- END plot function ----- #
+
+#################### Old code: ####################
+
+
+# #### STOPPED EDITING HERE FOR NP STUFF!
+# site_dist_info <- site_dist_info %>%
+#   mutate(realizedC_2014 = prob_disperse_2014_oldway*recruits_per_LEP) %>%
+#   mutate(realizedC_2013 = prob_disperse_2013*recruits_per_LEP) %>%
+#   mutate(realizedC_2015 = prob_disperse_2015*recruits_per_LEP) %>%
+#   mutate(realizedC_2013_oldway = prob_disperse_2013_oldway*recruits_per_LEP) 
+
+# # Fill in with prob_disp
+# for(i in 1:length(site_vec_order$site_name)) {
+#   row_val <- site_vec_order$geo_order[i]
+#   for(j in 1:length(site_vec_order$site_name)) {
+#     col_val <- site_vec_order$geo_order[j]
+#     
+#     conn_mat
+#   }
+#   
+# }
+
+
+
+# ##### Connectivity matrix, using dispersal kernels
+# 
+# # # Find prob of dispersing within the width of the site
+# # for(i in 1:length(site_width_info$site)){ #this doesn't work
+# #   site_width_info$prob_disperse_2013[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2013) #2013 kernel using theta=1
+# #   site_width_info$prob_disperse_2015[i] = integrateDK_theta1(0, site_width_info$width_km[i], k_2015) #2015 kernel
+# #   site_width_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+# #   site_width_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value
+# # }
+# 
+# test_1 <- seq(0,50,by=0.5)
+# test_2 <- dispKernelallyears(test_1)
+# plot(test_1, test_2)
+# 
+# # # Find prob of dispersing within the width of the site - just using integrate function here, should swap out for analytical integration...
+# # for(i in 1:length(site_width_info$site)){ #this doesn't work
+# #   site_width_info$prob_disperse_2013[i] = integrate(dispKernel2012, 0, site_width_info$width_km[i])$value 
+# #   site_width_info$prob_disperse_2015[i] = integrate(dispKernel2013, 0, site_width_info$width_km[i])$value 
+# #   site_width_info$prob_disperse_2014[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+# #   site_width_info$prob_disperse_2013[i] = integrate(dispKernel2015, 0, site_width_info$width_km[i])$value
+# # }
+# # 
+# # # Find prob of dispersing among sites
+# # for(i in 1:length(site_dist_info$org_site)){ 
+# #   site_dist_info$prob_disperse_2013[i] = integrateDK_theta1(site_dist_info$d1_km[i], site_dist_info$d2_km[i], k_2013) #2013 kernel using theta=1
+# #   site_dist_info$prob_disperse_2015[i] = integrateDK_theta1(site_dist_info$d1_km[i], site_dist_info$d2_km[i], k_2015) #2015 kernel
+# #   site_dist_info$prob_disperse_2014_oldway[i] = integrate(dispKernel2014, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+# #   site_dist_info$prob_disperse_2013_oldway[i] = integrate(dispKernel2013, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value
+# # }
+# 
+# # Add in index values
+# site_dist_info$origin <- c(rep(4, length(site_vec)), rep(5, length(site_vec)), rep(6, length(site_vec)), #Cabatoan, Caridad Cemetery, Caridad Proper
+#                            rep(9, length(site_vec)), rep(15, length(site_vec)), rep(17, length(site_vec)), #Elementary School, Gabas, Haina
+#                            rep(7, length(site_vec)), rep(3, length(site_vec)), rep(1, length(site_vec)), #Hicgop South, Magbangon, Palanas
+#                            rep(13, length(site_vec)), rep(12, length(site_vec)), rep(11, length(site_vec)), #Poroc Rose, Poroc San Flower, San Agustin
+#                            rep(18, length(site_vec)), rep(10, length(site_vec)), rep(8, length(site_vec)), #Sitio Baybayon, Sitio Lonas, Sitio Tugas
+#                            rep(16, length(site_vec)), rep(14, length(site_vec)), rep(2, length(site_vec))) #Tamakin Dacot, Visca, Wangag
+# 
+# site_dist_info$destination <- rep(c(4,5,6,9,15,17,7,3,1,13,12,11,18,10,8,16,14,2), length(site_vec))
+# # list of sites N-S: 
+# # 1) Palanas, 2) Wangag, 3) Magbangon, 4) Cabatoan, 5) Caridad Cemetery, 6) Caridad Proper
+# # 7) Hicgop South, 8) Sitio Tugas, 9) Elementary School 10) Sitio Lonas
+# # 11) San Agustin, 12) Poroc San Flower, 13) Poroc Rose, 14) Visca, 15) Gabas  1288, 2273 2271 anems
+# # 16) Tamakin Dacot, 17) Haina, 18) Sitio Baybayon
+# 
+# # Turn site_dist_info into a matrix
+# disp_mat_2014 <- matrix(NA, 18, 18)
+# realized_C_2014 <- matrix(NA, 18, 18)
+# realized_C_2013 <- matrix(NA, 18, 18)
+# realized_C_2015 <- matrix(NA, 18, 18)
+# for(i in 1:length(site_dist_info$org_site)) {
+#   column = site_dist_info$origin[i]
+#   row = site_dist_info$destination[i]
+#   disp_mat_2014[row, column] = site_dist_info$prob_disperse_2014_oldway[i]
+#   realized_C_2014[row, column] = site_dist_info$realizedC_2014[i]
+#   realized_C_2015[row, column] = site_dist_info$realizedC_2015[i]
+#   realized_C_2013[row, column] = site_dist_info$realizedC_2013[i]
+# }
+# 
+# # Find eigenvalues
+# eig_2013 <- eigen(realized_C_2013)
+# eig_2014 <- eigen(realized_C_2014)
+# eig_2015 <- eigen(realized_C_2015)
+# 
+# 
+# 
+# # Try to melt this into a matrix
+# #disp_mat_2014 <- melt(site_dist_info %>% select(org_site, dest_site, prob_disperse_2014_oldway), id.vars = c("org_site", "dest_site"))
+# 
+# #SHOULD TRY ASSIGNING EACH A ROW AND COLUMN VALUE (CAN BE N-S), THEN MAKE THOSE THE INDICES
+# 
+# 
+# # # Old way (for practice presentation)
+# # for(i in 1:length(site_width_info$site)){ #this doesn't work
+# #   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+# #   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
+# # }
+# # site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
+# 
+# #save(site_width_info, file=here("Data", "site_width_info.RData"))
+# 
+# ## Calculating the metric!
+# SP_site <- site_width_info %>% select(site, width_km, prob_disperse, prob_disperse_abserror) %>%
+#   mutate(SP_avg = prob_disperse*recruits_per_LEP)
+# 
+# # ## Try network persistence! - uh-oh, migEst gives self-recruitment...
+# # realizedC <- migEst_conn[,2:19]*recruits_per_LEP #multiply connectivity matrix by recruits_from_LEP
+# # realizedCmat <- as.matrix(realizedC)
+# # realizedC_mat_eig <- eigen(realizedC)
+# 
+# ## Calculate realized connectivity matrix in plotting way (dataframe)
+# site_dist_info <- site_dist_info %>%
+#   mutate(realizedC_2014 = prob_disperse_2014_oldway*recruits_per_LEP) %>%
+#   mutate(realizedC_2013 = prob_disperse_2013*recruits_per_LEP) %>%
+#   mutate(realizedC_2015 = prob_disperse_2015*recruits_per_LEP) %>%
+#   mutate(realizedC_2013_oldway = prob_disperse_2013_oldway*recruits_per_LEP) 
+#   
+# 
+# 
+# plot(realizedCmat)
+# myImagePlot(realizedCmat, xlabels, ylabels, zlim, title=c("my title")) 
+
+# ## FAKE DATA FOR NOW, JUST TO SEE
+# # Average number of recruits per site (ALL FAKE DATA!!!!!)
+# recruits_to_site <- data.frame(site = site_vec)
+# recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
+# recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
+# 
+# # Average number of recruits per site (trying out real data)
+# recruits_info_input <- recruits_info %>% 
+#   group_by(site) %>%
+#   summarise(avg_annual_recruits_est = mean(totalR_est), avg_annual_recruits_raw = mean(Nrecruits))
+#   
+# recruits_to_site <- data.frame(site = site_vec)
+# recruits_to_site$avg_recruit_pop <- c(45,15,15,20,20,55,45,200,350,10,10,15,450,5,5,75,30,400)
+# recruits_to_site$avg_recruits_from_site <- recruits_to_site$avg_recruit_pop*10
+# 
+# # Average egg output a year per site (ALL FAKE DATA!!!!!!)
+# egg_output <- data.frame(site = site_vec)
+# egg_output$breedingF <- c(30,10,10,5,10,40,30,100,200,5,5,5,300,0,0,50,15,200)
+# egg_output$eggs_per_year <- egg_output$breedingF*eggs_per_clutch*clutch_per_year
+# 
+# ## Finding number of recruits returning home for each site (numerator of LR fraction) 
+# # Find prob of dispersing within the width of the site
+# for(i in 1:length(site_width_info$site)){ #this doesn't work
+#   site_width_info$prob_disperse[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$value #this is almost certainly a terrible way to integrate - make this better! Could probably even do it analytically!
+#   site_width_info$prob_disperse_abserror[i] = integrate(dispKernel2014, 0, site_width_info$width_km[i])$abs.error
+# }
+# site_width_info$prob_disperse <- unlist(site_width_info$prob_disperse) #makes prob_disperse a list for some reason, make it not anymore
+# 
+# save(site_width_info, file=here("Data", "site_width_info.RData"))
+# 
+# ## Calculating the metric!
+# SP_site <- data.frame(site = site_vec)
+# SP_site <- left_join(SP_site, egg_output, by="site")
+# SP_site <- left_join(SP_site, recruits_to_site, by="site")
+# SP_site <- left_join(SP_site, site_width_info %>% select(site, prob_disperse, prob_disperse_abserror), by="site")
+# SP_site$home_recruits <- SP_site$avg_recruits_from_site*SP_site$prob_disperse
+# SP_site$home_recuits_high <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse + SP_site$prob_disperse_abserror)
+# SP_site$home_recuits_low <- SP_site$avg_recruits_from_site*(SP_site$prob_disperse - SP_site$prob_disperse_abserror)
+# SP_site$SP_avg <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recruits, SP_site$eggs_per_year)
+# SP_site$SP_avgU <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_high, SP_site$eggs_per_year)
+# SP_site$SP_avgL <- findSP(rep(LEP_Will, length(SP_site$site)), SP_site$home_recuits_low, SP_site$eggs_per_year)
+# SP_site$site <- unfactor(SP_site$site)
+# SP_site$SP_avg[14:15] <- c(0,0) #make sites w/0 or NaN SP have 0
