@@ -54,6 +54,12 @@ source(here::here('Code', 'Constants_database_common_functions.R'))
 # 
 # rm(migEst_1, migEst_2, migEst_a, migEst_b) #remove in-between data frames to clear up clutter...
 
+# Load in site_areas
+load(file=here::here('Data','site_areas.RData'))
+
+# Load file with proportion habitat sampled estimates (from TotalAnemsAtSite.R)
+load(file=here("Data",'anem_sampling_table.RData')) #file with anems, after 2018 anems matched
+
 # Load in new MigEst output (with N. Magbangon and S. Magbangon separated) - all years combined and confidence intervals
 migEst_conn <- read.table(file=here::here('Data', '20181029_connmat_allyears.txt'), header=TRUE) #read in all years combined values
 migEst_conn <- migEst_conn[,-1] #remove Pop number column
@@ -418,7 +424,7 @@ site_width_info$M_anem <- c(Cabatoan_mid, CaridadCemetery_mid, CaridadProper_N, 
 # pull out anem_table_ids for those anems so can use anemid_latlong2 function to find lat lon for boundary anems
 site_width_anems <- leyte %>%
   tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, obs_time) %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_obs_time) %>%
   collect() %>%
   filter(anem_id %in% c(site_width_info$N_anem, site_width_info$S_anem, site_width_info$M_anem)) 
 
@@ -431,7 +437,7 @@ site_width_dives <- leyte %>%
 
 # join into one data frame to put into MS function (anem_latlong), get the anem obs_time in the same time zone (UTC) as the GPX data, create placeholder lat and lon columns
 site_width_anemdives <- left_join(site_width_anems, site_width_dives, by="dive_table_id") %>%
-  mutate(obs_time = force_tz(ymd_hms(str_c(date, obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
+  mutate(obs_time = force_tz(ymd_hms(str_c(date, anem_obs_time, sep = " ")), tzone = "Asia/Manila")) %>% #tell it that it is currently in Asia/Manila time zone
   mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>% #convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
   mutate(month = month(obs_time), #and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
          day = day(obs_time), 
@@ -452,6 +458,10 @@ for(i in 1:length(site_width_anemdives$anem_table_id)) {
 # just pull out one row for each anem_id 
 site_width_anemdives_short <- site_width_anemdives %>%
   distinct(anem_id, .keep_all = TRUE)
+
+# looks like anem_id is a chr now? switch to numeric
+site_width_anemdives_short <- site_width_anemdives_short %>%
+  mutate(anem_id = as.numeric(anem_id))
 
 # put lat and lons into info table (requires some column renaming so needs to be run in order)
 # lat/lon for N_anem
@@ -676,7 +686,54 @@ parentage_matches_self <- parentage_matches_self %>%
   mutate(nrecruits_scaled = n_matches/prop_hab_sampled_metal_TA,
          nrecruits_rounded = round(n_matches/prop_hab_sampled_metal_TA)) 
 
+########## Assess survival from egg-recruit in a new way - use total parentage matches/N parents genotypes
+# Total number of offspring identified
+n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring identified via parentage
+n_parents_parentage_df <- allfish_caught %>%
+  filter(!is.na(gen_id)) %>%
+  filter(size >= min_breeding_M_size | color == 'YP' | color == 'O') %>%
+  distinct(gen_id, .keep_all = TRUE) 
+n_parents_parentage <- length(n_parents_parentage_df$gen_id)
+
+# Sum up total site area (all site areas times all years sampled) - total possible sampling area
+sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
+                           'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
+                           'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
+                           'Visca', 'Wangag', 'S. Magbangon')  # excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this (should I exclude the Sitio Lonas match too?)
+site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)
+
+total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
+
+# Find proportion of habitat sampled overall - sum of area sampled in each
+sampled_area_each_year <- left_join(site_areas_modified, anems_table %>% select(site, year, prop_hab_sampled_metal_TA), by = 'site')
+sampled_area_each_year <- sampled_area_each_year %>%
+  mutate(area_sampled = prop_hab_sampled_metal_TA*kmsq_area)
+total_area_sampled <- sum(sampled_area_each_year$area_sampled)
+
+total_prop_hab_sampled <- total_area_sampled/total_area_all_years
+
+# Estimate survival from adult-recruit
+prop_F_M <- 0.5  # saying 50% of the "adults" we clip are males that won't make it to females -- reasonable? could check this. But LEP takes that into account, right?
+tagged_offspring <- n_parents_parentage*LEP
+recruited_offspring <- n_offspring_parentage/total_prop_hab_sampled
+surv_egg_recruit <- recruited_offspring/tagged_offspring
+  
+#How does that compare to what we had from the estimated egg-recruit relationship?
+surv_RfromE <- findRfromE(slope_mod1, 1, intercept_mod1)
+
+###### Re-Run METRICS! BUT NEED TO RE-RUN LEP FIRST!
+
 ########## Assessing metrics
+
+##### Do pops look persistence just based on the number of recruits? (estimating this by calculating SP using all the recruits coming in)
+SP_allRecruits <- left_join(demog_info_recruits, demog_info_eggs, by = 'site') %>%
+  mutate(SP_mean_est = LEP*(mean_est_R/mean_est_eggs),
+         SP_high_est = LEP*(high_est_R/mean_est_eggs))
+
+SP_allRecruits_2 <- left_join(demog_info_recruits, demog_info_eggs, by = 'site') %>%
+  mutate(SP_mean_est = 5000*(mean_est_R/mean_est_eggs),
+         SP_high_est = 5000*(high_est_R/mean_est_eggs))
+
 ##### Self-persistence, using migEst estimates
 SP_migEst <- migEst_pijmat %>%
   filter(org_site == dest_site) %>% #just the self-self info
