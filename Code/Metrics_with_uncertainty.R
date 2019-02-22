@@ -11,7 +11,7 @@ n_runs = 100
 
 ##### Parameter info (candidates for uncertainty)
 # Growth (for LEP)
-s = exp(-0.0148)  # what is this?? goes into dnorm for growth part...
+s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from...
 k_growth_mean = 0.9447194  # lowest AIC model
 Linf_growth_mean = 10.50670  # lowest AIC model
 Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
@@ -19,6 +19,8 @@ Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
 # Eggs (for LEP)
 eggs_per_clutch_mean = 514.11
 clutches_per_year_mean = 11.9
+egg_intercept = -426.57
+egg_slope = 107  # eggs/cm size of F
 
 # Survival (for LEP)
 Sint_mean = eall.Phi.size.p.dist.results$estimate[1]  # survival intercept (on logit scale)
@@ -38,6 +40,8 @@ recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson met
 # Set params for IPM structure
 n_bins = 100
 n_tsteps = 100
+start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
+start_recruit_sd = 0.1
 
 # Other size points
 min_size = 0
@@ -53,30 +57,31 @@ breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_
 #################### Functions: ####################
 
 # Find LEP (SHOULD CHECK, UPDATE THIS!)
-findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, eggs_per_clutch, clutches_per_year, breeding_size) {
+findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, eggs_per_clutch, clutches_per_year, 
+                   breeding_size, start_recruit_size, start_recruit_sd, egg_size_slope, egg_size_intercept) {
   
   # Create vector of lengths
   lengths_vec = seq(min_size, max_size, length.out = n_bins)
   dx = diff(lengths_vec[1:2])
   
   # Make matrix
-  xmat = matrix(rep(lengths_vec, n_bins), nrow=n_bins, ncol=n_bins, byrow=TRUE) #100 rows of lengths_vec
+  xmat = matrix(rep(lengths_vec, n_bins), nrow=n_bins, ncol=n_bins, byrow=TRUE)  # 100 rows of lengths_vec
   ymat = t(xmat)
   
   # Survival probability (based on size)
-  S = logit_recip(Sint + lengths_vec*Sl) #is this right? Also, this should be prob of surviving, not prob of dying, right? (Which it is right now)
-  Smat = matrix(rep(S,n_bins), nrow=n_bins, ncol=n_bins, byrow = TRUE) #survival part
+  S = logit_recip(Sint + lengths_vec*Sl)  # survival probability (based on size) - make sure doing this right, with the whole logit_recip thing...
+  Smat = matrix(rep(S,n_bins), nrow=n_bins, ncol=n_bins, byrow = TRUE)  # survival part of kernel
   
-  # Growth probability (this is the part that really could use updating!)
-  Ls = Linf - (Linf - xmat)*exp(-k_growth)
-  Lmat = dnorm(ymat,Ls,s) #growth part
+  # Growth probability 
+  Ls = Linf - (Linf - xmat)*exp(-k_growth)  # expected length (z') in next time step based on current length (z)
+  Lmat = dnorm(ymat,Ls,s)  # turn that into a matrix of probability densities
   
   # Make the kernel with the survival + growth inputs
   K = Lmat*Smat
   K = dx*K
   
-  # Iterate with 1 subadult to start
-  N0 = dnorm(lengths_vec,3.5,0.1) # not totally clear what is happening here...
+  # Iterate with 1 subadult to start  # 3.5, 0.1
+  N0 = dnorm(lengths_vec, start_recruit_size, start_recruit_sd)  # create a size distribution for one recruit
   
   # Integrate and scale to have it integrate to 1
   N0 = N0/sum(N0*dx)
@@ -89,6 +94,28 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
     N[,t] = K %*% N[, t-1]
   }
   
+  # Make fecundity matrix
+  # Start with vector of whether or not a fish is reproducing (has it reached female or not yet)
+  Fvec = rep(0,n_bins)  # start with 0 (so no reproduction) for all sizes
+  Fvec[which(lengths_vec > breeding_size)] = 1
+  
+  # Vector of eggs produced per clutch, dependent on female size
+  eggs_by_size_vec = egg_size_intercept + lengths_vec*egg_size_slope
+  eggs_by_size_vec[eggs_by_size_vec < 0] = 0  # make negative values of eggs 0 
+  
+  # Multiply breeding-or-not vec by eggs fec to get eggs-per-clutch at each size, then multiply by clutches per year
+  Fec_by_size = Fvec*eggs_by_size_vec*clutches_per_year
+  
+  # And put this into a matrix, like ymat, where lengths are down the rows and columns are replicated
+  Fmat = matrix(rep(Fec_by_size, n_tsteps), nrow=n_bins, ncol=n_tsteps, byrow=FALSE)  # 100 columns of Fec_by_size
+  
+  # Now multiply the size-structure produced in each year by the fecundity-by-length
+  egg_out = N*Fmat
+  
+  # And integrate over all the eggs that get produced
+  LEP = sum(egg_out*dx)
+  
+  # Compare to the LEP estimate without size-dependent fecundity
   # Find the number of breeding adults one recruit produces
   breeding_Adults <- colSums(N[lengths_vec>breeding_size,]*dx)
   
@@ -96,7 +123,9 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   eggs <- eggs_per_clutch*clutches_per_year
   
   # Combine to get LEP
-  LEP <- sum(breeding_Adults*eggs)
+  LEP_nossF <- sum(breeding_Adults*eggs)
+  
+  out = list(LEP=LEP, LEP_nossF = LEP_nossF)
   
   return(LEP)
 }
@@ -106,7 +135,8 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
   
   # Find LEP (in terms of eggs) - COULD MAKE MORE OF THESE PARAMETERS PULLED FROM A DISTRIBUTION!
   LEP = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
-                param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, param_set$breeding_size)
+                param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, 
+                param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd, param_set$egg_size_slope, param_set$egg_size_intercept)
   
   # Find egg-recruit survival (recruits/egg) - RIGHT NOW, USING JOHNSON-LIKE ESTIMATE BUT COULD MAKE THIS A DISTRIBUTION TOO
   recruits_per_egg = param_set$recruits_per_egg
@@ -140,7 +170,9 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
 ##### Put static + pulled-from-distribution parameters together into one dataframe
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = eggs_per_clutch_mean, clutches_per_year = clutches_per_year_mean,
+         eggs_per_clutch = eggs_per_clutch_mean, clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = egg_slope, egg_size_intercept = egg_intercept,  # size-dependent fecundity info
+         start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg)
 site_list <- c_mat_allyears$dest_site[1:19]
