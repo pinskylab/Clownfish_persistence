@@ -289,6 +289,7 @@ dev.off()
 pdf(file =  here('Plots/PersistenceMetrics', 'Linf_LEP_scatter.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
   geom_point(size=2) +
+  geom_line(aes(x=sss),
   xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
   theme_bw()
 dev.off()

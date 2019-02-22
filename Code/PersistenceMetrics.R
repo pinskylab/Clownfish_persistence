@@ -143,6 +143,9 @@ gps.Info <- gps_db %>%
          year = year(obs_time)) %>%
   separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
 
+# Load site_dist_info (also generated below)
+# load(file=here::here('Data','site_dist_info.RData'))
+
 # # prelim dispersal kernel parameters from Katrina (from email sent 7/5/18)
 # k_2012 = 0.1
 # theta_2012 = 5
@@ -551,6 +554,16 @@ for (i in 1:length(site_dist_info$org_site)) {
   }
 }
 
+# Add in origin site alpha and geo order
+site_dist_info <- left_join(site_dist_info, site_vec_order, by = c('org_site' = 'site_name'))
+site_dist_info <- site_dist_info %>%
+  dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order)
+
+# Add in destination site alpha and geo order
+site_dist_info <- left_join(site_dist_info, site_vec_order, by = c('dest_site' = 'site_name'))
+site_dist_info <- site_dist_info %>%
+  dplyr::rename(dest_alpha_order = alpha_order, dest_geo_order = geo_order)
+
 ########## Looking at eggs and recruits relationships
 # Egg-recruit slope with LEP - the models don't seem to be loading correctly... give different values when use summary() here vs. EggRecruitRelationship.R - check into this!!
 # intercept_mod1 <- 1.856e+01 #need to figure out how to extract this from egg_recruits_est_mod1  # these commented values are what show up when use summary() on RData file loaded in this script...
@@ -867,7 +880,7 @@ conn_mat_2014K <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = len
 conn_mat_2015K <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
 conn_mat_allyearsK <- matrix(NA, nrow = length(site_vec_order$site_name), ncol = length(site_vec_order$site_name))
 
-site_dist_info <- site_dist_info %>%
+site_connectivity_info <- site_dist_info %>%
   mutate(prob_disp_2012 = as.numeric(NA),
          prob_disp_2013 = as.numeric(NA),
          prob_disp_2014 = as.numeric(NA),
@@ -875,26 +888,16 @@ site_dist_info <- site_dist_info %>%
          prob_disp_allyears = as.numeric(NA))
 
 # Find prob of dispersing within the width of the site - just using integrate function here, should swap out for analytical integration...
-for(i in 1:length(site_dist_info$org_site)){ 
-  site_dist_info$prob_disp_2012[i] = integrate(disp_2012, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
-  site_dist_info$prob_disp_2013[i] = integrate(disp_2013, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
-  site_dist_info$prob_disp_2014[i] = integrate(disp_2014, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
-  site_dist_info$prob_disp_2015[i] = integrate(disp_2015, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
-  site_dist_info$prob_disp_allyears[i] = integrate(disp_allyears, site_dist_info$d1_km[i], site_dist_info$d2_km[i])$value 
+for(i in 1:length(site_connectivity_info$org_site)){ 
+  site_connectivity_info$prob_disp_2012[i] = integrate(disp_2012, site_connectivity_info$d1_km[i], site_connectivity_info$d2_km[i])$value 
+  site_connectivity_info$prob_disp_2013[i] = integrate(disp_2013, site_connectivity_info$d1_km[i], site_connectivity_info$d2_km[i])$value 
+  site_connectivity_info$prob_disp_2014[i] = integrate(disp_2014, site_connectivity_info$d1_km[i], site_connectivity_info$d2_km[i])$value 
+  site_connectivity_info$prob_disp_2015[i] = integrate(disp_2015, site_connectivity_info$d1_km[i], site_connectivity_info$d2_km[i])$value 
+  site_connectivity_info$prob_disp_allyears[i] = integrate(disp_allyears, site_connectivity_info$d1_km[i], site_connectivity_info$d2_km[i])$value 
 }
 
-# Add in origin site alpha and geo order
-site_dist_info <- left_join(site_dist_info, site_vec_order, by = c('org_site' = 'site_name'))
-site_dist_info <- site_dist_info %>%
-  dplyr::rename(org_alpha_order = alpha_order, org_geo_order = geo_order)
-
-# Add in destination site alpha and geo order
-site_dist_info <- left_join(site_dist_info, site_vec_order, by = c('dest_site' = 'site_name'))
-site_dist_info <- site_dist_info %>%
-  dplyr::rename(dest_alpha_order = alpha_order, dest_geo_order = geo_order)
-
 # Multiply by recruits_per_LEP to get realized connectivity
-site_dist_info <- site_dist_info %>%
+site_connectivity_info <- site_connectivity_info %>%
   mutate(realizedC_2012 = prob_disp_2012*recruits_per_LEP,
          realizedC_2013 = prob_disp_2013*recruits_per_LEP,
          realizedC_2014 = prob_disp_2014*recruits_per_LEP,
@@ -915,22 +918,22 @@ Cmat_2013_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site
 Cmat_2014_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
 Cmat_2015_dK_justconn = matrix(NA, length(site_vec_order$site_name), length(site_vec_order$site_name))
 
-for(i in 1:length(site_dist_info$org_site)) {
-  column = site_dist_info$org_geo_order[i]  # column is origin 
-  row = site_dist_info$dest_geo_order[i]  # row is destination
-  rCmat_2012[row, column] = site_dist_info$realizedC_2012[i]
-  rCmat_2013[row, column] = site_dist_info$realizedC_2013[i]
-  rCmat_2014[row, column] = site_dist_info$realizedC_2014[i]
-  rCmat_2015[row, column] = site_dist_info$realizedC_2015[i]
-  rCmat_allyears[row, column] = site_dist_info$realizedC_allyears[i]
+for(i in 1:length(site_connectivity_info$org_site)) {
+  column = site_connectivity_info$org_geo_order[i]  # column is origin 
+  row = site_connectivity_info$dest_geo_order[i]  # row is destination
+  rCmat_2012[row, column] = site_connectivity_info$realizedC_2012[i]
+  rCmat_2013[row, column] = site_connectivity_info$realizedC_2013[i]
+  rCmat_2014[row, column] = site_connectivity_info$realizedC_2014[i]
+  rCmat_2015[row, column] = site_connectivity_info$realizedC_2015[i]
+  rCmat_allyears[row, column] = site_connectivity_info$realizedC_allyears[i]
   
-  Cmat_allyears_dK_justconn[row, column] = site_dist_info$prob_disp_allyears[i]
-  Cmat_2012_dK_justconn[row, column] = site_dist_info$prob_disp_2012[i]
-  Cmat_2013_dK_justconn[row, column] = site_dist_info$prob_disp_2013[i]
-  Cmat_2014_dK_justconn[row, column] = site_dist_info$prob_disp_2014[i]
-  Cmat_2015_dK_justconn[row, column] = site_dist_info$prob_disp_2015[i]
+  Cmat_allyears_dK_justconn[row, column] = site_connectivity_info$prob_disp_allyears[i]
+  Cmat_2012_dK_justconn[row, column] = site_connectivity_info$prob_disp_2012[i]
+  Cmat_2013_dK_justconn[row, column] = site_connectivity_info$prob_disp_2013[i]
+  Cmat_2014_dK_justconn[row, column] = site_connectivity_info$prob_disp_2014[i]
+  Cmat_2015_dK_justconn[row, column] = site_connectivity_info$prob_disp_2015[i]
   
-  rCmat_allyears_test[column, row] = site_dist_info$realizedC_allyears[i]  # threw this in just to make sure it didn't seem to matter which order the dest vs. org were (row vs. column) - doesn't seem to, has same eigenvalues as the one with the rows and columns switched
+  rCmat_allyears_test[column, row] = site_connectivity_info$realizedC_allyears[i]  # threw this in just to make sure it didn't seem to matter which order the dest vs. org were (row vs. column) - doesn't seem to, has same eigenvalues as the one with the rows and columns switched
 }
 
 # Find eigenvalues
@@ -1384,7 +1387,13 @@ save(allfish_fish, file=here("Data", "allfish_fish.RData"))
 save(allfish_anems, file=here("Data", "allfish_anems.RData"))
 save(allfish_dives, file=here("Data", "allfish_dives.RData"))
 save(gps.Info, file=here("Data", "gps.Info.RData"))
-save(site_dist_info, file=here("Data", "site_dist_info.RData"))
+save(site_dist_info, file=here("Data", "site_dist_info.RData"))  # Re-saved this with just the distance info, not prob of disp or anything...
+save(site_connectivity_info, file=here('Data', 'site_connectivity_info.RData'))
+
+# Save just the prob of dispersal (for Metrics_with_uncertainty before I pull in uncertainty in dispersal too...)
+c_mat_allyears <- site_connectivity_info %>% select(org_site, dest_site, d1_km, d2_km, prob_disp_2012, prob_disp_2013, prob_disp_2014,
+                                            prob_disp_2015, prob_disp_allyears, org_alpha_order, org_geo_order, dest_alpha_order, dest_geo_order)
+save(c_mat_allyears, file=here('Data','c_mat_allyears.RData'))
 
 # ----- Define a function for plotting a matrix ----- #
 myImagePlot <- function(x, ...){
