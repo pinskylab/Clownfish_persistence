@@ -296,109 +296,37 @@ fish_seen_db <- leyte %>% tbl('clown_sightings') %>% collect()
 dives_db <- leyte %>% tbl("diveinfo") %>% collect()
 gps_db <- leyte %>% tbl("GPX") %>% collect()
 
-# joining dives + anems to all fish from clownfish database for Hannah
-allfish_fishdb <- fish_db %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
-  
-allfish_caught_anems <- anem_db %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp, anem_dia, anem_obs_time, notes) %>%
-  filter(anem_table_id %in% allfish_fishdb$anem_table_id)
-
-allfish_caught_dives <- dives_db %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  filter(dive_table_id %in% allfish_caught_anems$dive_table_id)
-
-allfish_caught <- left_join(allfish_fishdb, allfish_caught_anems, by='anem_table_id')
-allfish_caught <- left_join(allfish_caught, allfish_caught_dives, by='dive_table_id') %>%
-  mutate(year = substring(date,1,4))
-
-# joining dives + anems to all fish from clown_sighted database for Hannah
-allfish_seendb <- fish_seen_db %>%
-  select(est_table_id, anem_table_id, fish_spp, size, notes, collector) 
-
-allfish_seen_anems <- anem_db %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_obs_time) %>%
-  filter(anem_table_id %in% allfish_seendb$anem_table_id)
-
-allfish_seen_dives <- dives_db %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  filter(dive_table_id %in% allfish_seen_anems$dive_table_id)
-
-allfish_seen <- left_join(allfish_seendb, allfish_seen_anems, by='anem_table_id')
-allfish_seen <- left_join(allfish_seen, allfish_seen_dives, by='dive_table_id') %>%
-  mutate(year = substring(date,1,4))
-
-
-# Try joining the two by anem_table_id - just presence/absence of fish spp
-allfish_seen_fish_spp <- allfish_seen %>%
-  dplyr::distinct(anem_table_id, fish_spp, .keep_all=TRUE)
-
-allfish_caught_fish_spp <- allfish_caught %>%
-  distinct(anem_table_id, fish_spp, .keep_all=TRUE)
-
-allfish_fish_spp_PA <- rbind(allfish_seen_fish_spp %>% select(anem_table_id, fish_spp, year, site),
-                            allfish_caught_fish_spp %>% select(anem_table_id, fish_spp, year, site))
-      
-
-# Keeping anem_ids in the mix (b/c otherwise, how can track anems through time?) - doesn't filter out any differently...
-allfish_seen_fish_spp_anem_id <- allfish_seen %>%
-  dplyr::distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
-
-allfish_caught_fish_spp_anem_id <- allfish_caught %>%
-  distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
-
-# Are there any overlapping anem_table_ids between the two dfs? (shouldn't be, right?)
-test3 <- allfish_caught_fish_spp %>% filter(anem_table_id %in% allfish_seen_fish_spp)
-
-# This data frame 
-allfish_fish_spp_PA_distinct <- allfish_fish_spp_PA %>%
-  distinct(anem_table_id, fish_spp, year, site)
-
-allfish_fish_spp_PA %>%
-  filter(!anem_table_id %in% allfish_fish_spp_PA_distinct$anem_table_id)
-
-!where_case_travelled_1 %in%
-
-test2 <- as.data.frame(table(allfish_fish_spp_PA$anem_table_id))
-
-###################
-
-  
-allAPCL_fish <- leyte %>% 
+##### Pull all APCL caught or otherwise in the clownfish table
+allfish_fish <- leyte %>% 
   tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, notes) %>%
   collect() %>%
-  filter(fish_spp == "APCL")
+  filter(fish_spp == 'APCL') %>%
+  dplyr::rename(fish_notes = notes) %>%  # rename notes column so they are distinct when join with anems and dives
+  mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
 
-allAPCL_anems <- leyte %>%
+# and their corresponding anemones
+allfish_anems <- leyte %>%
   tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, notes) %>%
   collect() %>%
-  filter(anem_table_id %in% allAPCL_fish$anem_table_id)
+  filter(anem_table_id %in% allfish_fish$anem_table_id) %>%
+  dplyr::rename(anem_notes = notes)
 
-allAPCL_dives <- leyte %>%
+# and the corresponding dive info
+allfish_dives <- leyte %>%
   tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
+  select(dive_table_id, dive_type, date, site, gps, notes) %>%
   collect() %>%
-  filter(dive_table_id %in% allAPCL_anems$dive_table_id)
+  filter(dive_table_id %in% allfish_anems$dive_table_id) %>%
+  dplyr::rename(dive_notes = notes)
 
 # pull out just the year and put that in a separate column
-allAPCL_dives$year <- as.integer(substring(allAPCL_dives$date,1,4))
-allAPCL_dives$month <- as.integer(substring(allAPCL_dives$date,6,7))
-
+allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
+ 
 # join together
-allAPCL <- left_join(allAPCL_fish, allAPCL_anems, by="anem_table_id")
-allAPCL <- left_join(allAPCL, allAPCL_dives, by="dive_table_id")
-
-allAPCL$size <- as.numeric(allAPCL$size) #make size numeric (rather than a chr) so can do means and such
-
-#pull out just tagged fish
-taggedfish <- allAPCL %>% filter(!is.na(tag_id))
-
-# all anems that had APCL at some point (have a tag)
-anems_tagged <- anem_db %>%
-  filter(!is.na(anem_id) | !is.na(anem_obs)) %>%
-  mutate(anem_id_unq = if_else(is.na(anem_obs), paste('id',anem_id,sep=''), paste('obs',anem_obs,sep='')))
+allfish_caught <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
+allfish_caught <- left_join(allfish_caught, allfish_dives, by="dive_table_id")
 
 ##### Create list of sites and the years they were sampled
 # Summarize sites sampled each year
@@ -411,7 +339,119 @@ dives_processed <- dives_db %>%
 site_visits <- data.frame(site = rep(site_vec_NS, length(years_sampled)))
 site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_NS)), rep(2014, length(site_vec_NS)), rep(2015, length(site_vec_NS)),
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
-site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site')) # 1 if sampled in a particular year, NA if not
+site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site'))  # 1 if sampled in a particular year, NA if not
+
+#################### Save files ####################
+save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
+
+
+
+# ####### Attempts at joining together APCL seen and caught on the same anems from the two tables, for Hannah,... see Katrina's email about how she did this for Adriana
+# 
+# # joining dives + anems to all fish from clownfish database for Hannah
+# allfish_fishdb <- fish_db %>%
+#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
+#   
+# allfish_caught_anems <- anem_db %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp, anem_dia, anem_obs_time, notes) %>%
+#   filter(anem_table_id %in% allfish_fishdb$anem_table_id)
+# 
+# allfish_caught_dives <- dives_db %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   filter(dive_table_id %in% allfish_caught_anems$dive_table_id)
+# 
+# allfish_caught <- left_join(allfish_fishdb, allfish_caught_anems, by='anem_table_id')
+# allfish_caught <- left_join(allfish_caught, allfish_caught_dives, by='dive_table_id') %>%
+#   mutate(year = substring(date,1,4))
+# 
+# # joining dives + anems to all fish from clown_sighted database for Hannah
+# allfish_seendb <- fish_seen_db %>%
+#   select(est_table_id, anem_table_id, fish_spp, size, notes, collector) 
+# 
+# allfish_seen_anems <- anem_db %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_obs_time) %>%
+#   filter(anem_table_id %in% allfish_seendb$anem_table_id)
+# 
+# allfish_seen_dives <- dives_db %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   filter(dive_table_id %in% allfish_seen_anems$dive_table_id)
+# 
+# allfish_seen <- left_join(allfish_seendb, allfish_seen_anems, by='anem_table_id')
+# allfish_seen <- left_join(allfish_seen, allfish_seen_dives, by='dive_table_id') %>%
+#   mutate(year = substring(date,1,4))
+# 
+# 
+# # Try joining the two by anem_table_id - just presence/absence of fish spp
+# allfish_seen_fish_spp <- allfish_seen %>%
+#   dplyr::distinct(anem_table_id, fish_spp, .keep_all=TRUE)
+# 
+# allfish_caught_fish_spp <- allfish_caught %>%
+#   distinct(anem_table_id, fish_spp, .keep_all=TRUE)
+# 
+# allfish_fish_spp_PA <- rbind(allfish_seen_fish_spp %>% select(anem_table_id, fish_spp, year, site),
+#                             allfish_caught_fish_spp %>% select(anem_table_id, fish_spp, year, site))
+#       
+# 
+# # Keeping anem_ids in the mix (b/c otherwise, how can track anems through time?) - doesn't filter out any differently...
+# allfish_seen_fish_spp_anem_id <- allfish_seen %>%
+#   dplyr::distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
+# 
+# allfish_caught_fish_spp_anem_id <- allfish_caught %>%
+#   distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
+# 
+# # Are there any overlapping anem_table_ids between the two dfs? (shouldn't be, right?)
+# test3 <- allfish_caught_fish_spp %>% filter(anem_table_id %in% allfish_seen_fish_spp)
+# 
+# # This data frame 
+# allfish_fish_spp_PA_distinct <- allfish_fish_spp_PA %>%
+#   distinct(anem_table_id, fish_spp, year, site)
+# 
+# allfish_fish_spp_PA %>%
+#   filter(!anem_table_id %in% allfish_fish_spp_PA_distinct$anem_table_id)
+# 
+# !where_case_travelled_1 %in%
+# 
+# test2 <- as.data.frame(table(allfish_fish_spp_PA$anem_table_id))
+# 
+# ###################
+# 
+#   
+# allAPCL_fish <- leyte %>% 
+#   tbl("clownfish") %>%
+#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
+#   collect() %>%
+#   filter(fish_spp == "APCL")
+# 
+# allAPCL_anems <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+#   collect() %>%
+#   filter(anem_table_id %in% allAPCL_fish$anem_table_id)
+# 
+# allAPCL_dives <- leyte %>%
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   collect() %>%
+#   filter(dive_table_id %in% allAPCL_anems$dive_table_id)
+# 
+# # pull out just the year and put that in a separate column
+# allAPCL_dives$year <- as.integer(substring(allAPCL_dives$date,1,4))
+# allAPCL_dives$month <- as.integer(substring(allAPCL_dives$date,6,7))
+# 
+# # join together
+# allAPCL <- left_join(allAPCL_fish, allAPCL_anems, by="anem_table_id")
+# allAPCL <- left_join(allAPCL, allAPCL_dives, by="dive_table_id")
+# 
+# allAPCL$size <- as.numeric(allAPCL$size) #make size numeric (rather than a chr) so can do means and such
+# 
+# #pull out just tagged fish
+# taggedfish <- allAPCL %>% filter(!is.na(tag_id))
+# 
+# # all anems that had APCL at some point (have a tag)
+# anems_tagged <- anem_db %>%
+#   filter(!is.na(anem_id) | !is.na(anem_obs)) %>%
+#   mutate(anem_id_unq = if_else(is.na(anem_obs), paste('id',anem_id,sep=''), paste('obs',anem_obs,sep='')))
+# 
 
 # #################### Save files ####################
 # save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
