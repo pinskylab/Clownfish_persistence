@@ -299,27 +299,24 @@ gps_db <- leyte %>% tbl("GPX") %>% collect()
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- leyte %>% 
   tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, notes) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, fish_notes) %>%
   collect() %>%
   filter(fish_spp == 'APCL') %>%
-  dplyr::rename(fish_notes = notes) %>%  # rename notes column so they are distinct when join with anems and dives
   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
 
 # and their corresponding anemones
 allfish_anems <- leyte %>%
   tbl("anemones") %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, notes) %>%
+  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_notes) %>%
   collect() %>%
-  filter(anem_table_id %in% allfish_fish$anem_table_id) %>%
-  dplyr::rename(anem_notes = notes)
+  filter(anem_table_id %in% allfish_fish$anem_table_id)
 
 # and the corresponding dive info
 allfish_dives <- leyte %>%
   tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps, notes) %>%
+  select(dive_table_id, dive_type, date, site, gps, dive_notes) %>%
   collect() %>%
-  filter(dive_table_id %in% allfish_anems$dive_table_id) %>%
-  dplyr::rename(dive_notes = notes)
+  filter(dive_table_id %in% allfish_anems$dive_table_id) 
 
 # pull out just the year and put that in a separate column
 allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
