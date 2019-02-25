@@ -9,7 +9,7 @@ load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (fo
 
 #### Set-up parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
 # Number of runs
-n_runs = 100
+n_runs = 1000
 
 # Set params for IPM structure
 n_bins = 100
@@ -290,7 +290,7 @@ SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %
 
 ##### Plot the histograms of LEP, LEP_R, recruits_per_egg, and NP output
 # LEP
-pdf(file = here('Plots/PersistenceMetrics', 'LEP_histogram.pdf'))
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_histogram.pdf'))
 ggplot(data = LEP_out_df, aes(x=value)) +
   geom_histogram(bins=40) +
   xlab('LEP') + ggtitle('Histogram of LEP values') +
@@ -298,7 +298,7 @@ ggplot(data = LEP_out_df, aes(x=value)) +
 dev.off()
 
 # LEP_R (LEP in terms of recruits)
-pdf(file = here('Plots/PersistenceMetrics', 'LEP_R_histogram.pdf'))
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40) +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values') +
@@ -311,7 +311,7 @@ dev.off()
 # dev.off()
 
 # NP
-pdf(file = here('Plots/PersistenceMetrics', 'NP_histogram.pdf'))
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
 ggplot(data = NP_out_df, aes(x=value)) +
   geom_histogram(bins=25) +
   xlab('NP') + ggtitle('Histogram of NP values') +
@@ -326,7 +326,7 @@ dev.off()
 # hist(RperE_out_df$value, breaks=30)
 
 ##### SP at each site
-pdf(file = here('Plots/PersistenceMetrics','SP_histogram.pdf'))
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
 ggplot(data = SP_out_df, aes(x=value)) +
   geom_histogram(binwidth=0.0005) +
   facet_wrap(~site) +
@@ -337,7 +337,7 @@ dev.off()
 
 ##### Relationships between values
 # LEP_R and NP - do we expect these to be related perfectly linearly? I guess, when both connectivity and recruits-per-egg are static...
-pdf(file = here('Plots/PersistenceMetrics', 'LEP_R_NP_scatter.pdf'))
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_NP_scatter.pdf'))
 ggplot(data = metric_vals, aes(x=LEP_R, y=NP)) +
   geom_point(size=2) +
   xlab('LEP_R') + ylab('NP') + ggtitle('Scatter of LEP_R vs NP values') +
@@ -345,7 +345,7 @@ ggplot(data = metric_vals, aes(x=LEP_R, y=NP)) +
 dev.off()
 
 # Breeding size and LEP
-pdf(file =  here('Plots/PersistenceMetrics', 'Breedingsize_LEP_scatter.pdf'))
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breedingsize_LEP_scatter.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP)) +
   geom_point(size=2) +
   xlab('breeding size') + ylab('LEP') + ggtitle('Scatter of breeding size (female) vs LEP values') +
@@ -353,7 +353,7 @@ ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP)) +
 dev.off()
 
 # Linf and LEP
-pdf(file =  here('Plots/PersistenceMetrics', 'Linf_LEP_scatter.pdf'))
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_LEP_scatter.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
   geom_point(size=2) +
   #geom_line(aes(x=sss)),
@@ -362,7 +362,7 @@ ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
 dev.off()
 
 # k (connectivity) and NP
-pdf(file =  here('Plots/PersistenceMetrics', 'kConnectivity_NP_scatter.pdf'))
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'kConnectivity_NP_scatter.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
   geom_point(size=2) +
   #geom_line(aes(x=sss)),
@@ -379,6 +379,39 @@ dev.off()
 #   theme_bw() +
 #   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
 # dev.off()
+
+##### Histograms of data inputs
+# k_connectivity
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'k_connectivity_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=k_connectivity)) +
+  geom_histogram(bins=40) +
+  xlab('k_connectivity') + ggtitle('k_connectivity values') +
+  theme_bw()
+dev.off()
+
+# Linf
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=Linf)) +
+  geom_histogram(bins=40) +
+  xlab('Linf') + ggtitle('Linf values') +
+  theme_bw()
+dev.off()
+
+# Sint
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Sint_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=Sint)) +
+  geom_histogram(bins=40) +
+  xlab('Sint') + ggtitle('Sint values') +
+  theme_bw()
+dev.off()
+
+# Breeding size
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breeding_size_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
+  geom_histogram(bins=40) +
+  xlab('Breeding size') + ggtitle('Breeding size values') +
+  theme_bw()
+dev.off()
 
 #################### Saving things: ####################
 
