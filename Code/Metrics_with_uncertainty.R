@@ -1,8 +1,9 @@
 # Characterizing uncertainty in LEP, recruit survival, dispersal estimates
 
 #################### Set-up: ####################
-# source(here::here('Code', 'Constants_database_common_functions.R'))
+source(here::here('Code', 'Constants_database_common_functions.R'))
 
+load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
 load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
 load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 
@@ -29,8 +30,8 @@ Sint_se = eall.Phi.size.p.dist.results$se[1]  # for now using SE, should really 
 Sint_se = eall.Phi.size.p.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Breeding size (for LEP)
-breeding_size_mean = 8  # could actually find this by finding the mean and SD of size of breeding females...
-breeding_size_sd = 0.8
+breeding_size_mean = (size_by_color_metrics %>% filter(color == 'YP'))$mean  # originally guessed 8, this is 8.6
+breeding_size_sd = (size_by_color_metrics %>% filter(color == 'YP'))$sd  # originally guessed 0.8, this is 1.6
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
 recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
@@ -257,7 +258,7 @@ metric_vals_with_params <- metric_vals %>%
 # LEP
 pdf(file = here('Plots/PersistenceMetrics', 'LEP_histogram.pdf'))
 ggplot(data = LEP_out_df, aes(x=value)) +
-  geom_histogram(bins=25) +
+  geom_histogram(bins=40) +
   xlab('LEP') + ggtitle('Histogram of LEP values') +
   theme_bw()
 dev.off()
@@ -265,7 +266,7 @@ dev.off()
 # LEP_R (LEP in terms of recruits)
 pdf(file = here('Plots/PersistenceMetrics', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
-  geom_histogram(bins=30) +
+  geom_histogram(bins=40) +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values') +
   theme_bw()
 dev.off()
@@ -321,7 +322,7 @@ dev.off()
 pdf(file =  here('Plots/PersistenceMetrics', 'Linf_LEP_scatter.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
   geom_point(size=2) +
-  geom_line(aes(x=sss),
+  #geom_line(aes(x=sss)),
   xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
   theme_bw()
 dev.off()
