@@ -7,10 +7,27 @@ load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info
 load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
 load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 
-##### Set run info
+#### Set-up parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
+# Number of runs
 n_runs = 100
 
+# Set params for IPM structure
+n_bins = 100
+n_tsteps = 100
+start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
+start_recruit_sd = 0.1
+
+# Other size points
+min_size = 0
+max_size = 15 #should check this w/data...
+
 ##### Parameter info (candidates for uncertainty)
+# Connectivity  - estimates from Dec. 18 KC paper draft
+k_allyears = -1.36  # with 2012-2015 data
+theta_allyears = 0.5  # with 2012-2015 data
+k_allyears_CIh = -0.97  # upper 97.5% confidence interval of k (from KC email with screenshot)
+k_allyears_CIl = -1.94  # lower 97.5% confidence interval of k (these aren't symmetric, so not normal? Check with KC how CI were derived)
+
 # Growth (for LEP)
 s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from...
 k_growth_mean = 0.9447194  # lowest AIC model
@@ -35,23 +52,6 @@ breeding_size_sd = (size_by_color_metrics %>% filter(color == 'YP'))$sd  # origi
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
 recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
-
-
-##### Other parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
-# Set params for IPM structure
-n_bins = 100
-n_tsteps = 100
-start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
-start_recruit_sd = 0.1
-
-# Other size points
-min_size = 0
-max_size = 15 #should check this w/data...
-
-##### Generate sets of parameters
-Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd=Linf_growth_sd)
-Sint_set = rnorm(n_runs, mean = Sint_mean, sd= Sint_se)
-breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_sd) 
 
 ##### Other parameters that stay static
 
@@ -134,6 +134,19 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
 # Run through a metric calculation with one set of parameters
 calcMetrics <- function(param_set, Cmatrix, sites) {
   
+  # Define function with the right parameters
+  disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+    z = exp(param_set$k_connectivity)
+    disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
+    return(disp)
+  }
+  
+  # Create connectivity matrix
+  Cmat <- Cmatrix %>% select(org_site, dest_site, d1_km, d2_km, org_alpha_order, org_geo_order, dest_alpha_order, dest_geo_order)
+  for(i in 1:length(Cmat$org_site)) {
+    Cmat$prob_disp[i] <- integrate(disp_allyears, Cmat$d1_km[i], Cmat$d2_km[i])$value
+  }
+  
   # Find LEP (in terms of eggs) - COULD MAKE MORE OF THESE PARAMETERS PULLED FROM A DISTRIBUTION!
   LEP = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
                 param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, 
@@ -146,7 +159,13 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
   LEP_R = LEP*recruits_per_egg
   
   # Find connectivity matrix - EVENTUALLY, WILL USE CONFIDENCE INTERVALS AROUND DISPERSAL KERNELS TO DO THIS - FOR ALL-YEARS ONE? NOT SURE...
-  conn_matrix = Cmatrix
+  #conn_matrix = Cmatrix
+  conn_matrix <- matrix(NA,ncol=max(Cmat$org_geo_order, na.rm = TRUE), nrow=max(Cmat$org_geo_order, na.rm = TRUE))    
+  for(i in 1:length(Cmat$org_site)) {
+    column = Cmat$org_geo_order[i]  # column is origin 
+    row = Cmat$dest_geo_order[i]  # row is destination
+    conn_matrix[row, column] = Cmat$prob_disp[i]
+  }
   
   # Make realized connectivity matrix
   conn_matrixR = conn_matrix*LEP_R
@@ -167,6 +186,16 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
 }
 
 #################### Running things: ####################
+##### Generate sets of parameters
+# # Find k standard deviation - this is definitely not right - check with KC about her confidence intervals and how they were estimated
+# z_97.5 = 2.24  # z-score for 97.5% confidence interval
+# k_sdH = (sqrt(n_runs)/z_97.5)*(k_allyears_CIh - k_allyears)
+# k_sdL = -(sqrt(n_runs)/z_97.5)*(k_allyears_CIl - k_allyears)
+
+Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd=Linf_growth_sd)
+Sint_set = rnorm(n_runs, mean = Sint_mean, sd= Sint_se)
+breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_sd) 
+k_connectivity_set = runif(n_runs, min = k_allyears_CIl, max = k_allyears_CIh)  # for now, just selecting randomly from within the 97.5% confidence interval
 
 ##### Put static + pulled-from-distribution parameters together into one dataframe
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -175,20 +204,21 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = egg_slope, egg_size_intercept = egg_intercept,  # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
-         breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg)
+         breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg,
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
 site_list <- c_mat_allyears$dest_site[1:19]
 
-# Static connectivity matrix loaded from PersistenceMetrics.R
-Cmatrix <- matrix(NA,ncol=max(c_mat_allyears$org_geo_order, na.rm = TRUE), nrow=max(c_mat_allyears$org_geo_order, na.rm = TRUE))    
-for(i in 1:length(c_mat_allyears$org_site)) {
-  column = c_mat_allyears$org_geo_order[i]  # column is origin 
-  row = c_mat_allyears$dest_geo_order[i]  # row is destination
-  Cmatrix[row, column] = c_mat_allyears$prob_disp_allyears[i]
-}
+# # Static connectivity matrix loaded from PersistenceMetrics.R
+# Cmatrix <- matrix(NA,ncol=max(c_mat_allyears$org_geo_order, na.rm = TRUE), nrow=max(c_mat_allyears$org_geo_order, na.rm = TRUE))    
+# for(i in 1:length(c_mat_allyears$org_site)) {
+#   column = c_mat_allyears$org_geo_order[i]  # column is origin 
+#   row = c_mat_allyears$dest_geo_order[i]  # row is destination
+#   Cmatrix[row, column] = c_mat_allyears$prob_disp_allyears[i]
+# }
          
 # For testing calcMetrics function        
 param_set_1 <- param_set_full[1,]
-test_calcMetrics <- calcMetrics(param_set_1, Cmatrix, site_list)
+test_calcMetrics <- calcMetrics(param_set_1, c_mat_allyears, site_list)  # this doesn't look right...
 
 ##### Run the metrics for lots of parameters
 # Set output dataframes 
@@ -215,7 +245,7 @@ for(i in 1:n_runs) {
   params <- param_set_full[i,]
   
   # Do the run
-  metrics_output = calcMetrics(params, Cmatrix, site_list)
+  metrics_output = calcMetrics(params, c_mat_allyears, site_list)
   
   # Fill in the metrics
   LEP_out_df$value[i] = metrics_output$LEP
@@ -244,7 +274,11 @@ for(i in 1:n_runs) {
 metric_vals_with_params <- metric_vals %>%
   mutate(breeding_size = param_set_full$breeding_size,
          Linf = param_set_full$Linf,
-         Sint = param_set_full$Sint)
+         Sint = param_set_full$Sint,
+         k_connectivity = param_set_full$k_connectivity)
+
+SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %>%
+  dplyr::rename(SP = value)
 
 # Pull out the self-persistence values
 
@@ -326,6 +360,25 @@ ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
   xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
   theme_bw()
 dev.off()
+
+# k (connectivity) and NP
+pdf(file =  here('Plots/PersistenceMetrics', 'kConnectivity_NP_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
+  geom_point(size=2) +
+  #geom_line(aes(x=sss)),
+  xlab('k_connectivity') + ylab('NP') + ggtitle('Scatter of k_connectivity vs NP values') +
+  theme_bw()
+dev.off()
+
+# # k (connectivity) and SP
+# pdf(file = here('Plots/PersistenceMetrics','kConnectivity_SP_scatter.pdf'))
+# ggplot(data = SP_vals_with_params, aes(x=k_connectivity, y=SP)) +
+#   geom_point(size=2) +
+#   facet_wrap(~site) +
+#   xlab('k_connectivity') + ylab('SP') + ggtitle('Scatter of k_connectivity vs SP by site') +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
+# dev.off()
 
 #################### Saving things: ####################
 
