@@ -4,7 +4,8 @@
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
 load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
-load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
+#load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
+load(file=here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
 load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 
 #### Set-up parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
@@ -41,10 +42,16 @@ egg_intercept = -426.57
 egg_slope = 107  # eggs/cm size of F
 
 # Survival (for LEP)
-Sint_mean = eall.Phi.size.p.dist.results$estimate[1]  # survival intercept (on logit scale)
-Sl_mean = eall.Phi.size.p.dist.results$estimate[2]  # survival slope (on logit scale)
-Sint_se = eall.Phi.size.p.dist.results$se[1]  # for now using SE, should really use SD...
-Sint_se = eall.Phi.size.p.dist.results$se[2]  # for now using SE, should really use SD...
+eall_mean.Phi.size.p.size.plus.dist.results <- as.data.frame(eall_mean.Phi.size.p.size.plus.dist$results$beta)
+Sint_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1]  # survival intercept (on logit scale)
+Sl_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]  # survival slope (on logit scale)
+Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE, should really use SD...
+Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
+
+# Sint_mean = eall.Phi.size.p.dist.results$estimate[1]  # survival intercept (on logit scale)
+# Sl_mean = eall.Phi.size.p.dist.results$estimate[2]  # survival slope (on logit scale)
+# Sint_se = eall.Phi.size.p.dist.results$se[1]  # for now using SE, should really use SD...
+# Sint_se = eall.Phi.size.p.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Breeding size (for LEP)
 breeding_size_mean = (size_by_color_metrics %>% filter(color == 'YP'))$mean  # originally guessed 8, this is 8.6
@@ -328,7 +335,9 @@ dev.off()
 ##### SP at each site
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
 ggplot(data = SP_out_df, aes(x=value)) +
-  geom_histogram(binwidth=0.0005) +
+  #geom_histogram(binwidth=0.0005) +
+  geom_histogram(binwidth=0.005) +
+  ylim(0,300) +
   facet_wrap(~site) +
   xlab('SP') + ggtitle('Self-persistence histograms by site') +
   theme_bw() +
