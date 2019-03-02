@@ -3,10 +3,14 @@
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
+load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
+load(file=here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
+load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA
+load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
+k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+
 load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
 #load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
-load(file=here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
-load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 
 #### Set-up parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
 # Number of runs
@@ -23,7 +27,7 @@ min_size = 0
 max_size = 15 #should check this w/data...
 
 ##### Parameter info (candidates for uncertainty)
-# Connectivity  - estimates from Dec. 18 KC paper draft
+# Connectivity  - estimates from Dec. 18 KC paper draft - now pulling straight from distribution of values, rather than re-creating distribution
 k_allyears = -1.36  # with 2012-2015 data
 theta_allyears = 0.5  # with 2012-2015 data
 k_allyears_CIh = -0.97  # upper 97.5% confidence interval of k (from KC email with screenshot)
@@ -36,10 +40,15 @@ Linf_growth_mean = 10.50670  # lowest AIC model
 Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
 
 # Eggs (for LEP)
-eggs_per_clutch_mean = 514.11
+size_fecundity_model = length_count8llEA  # assign here, in case model input from Adam changes, both length and eggs on log scale
+eggs_intercept_log = size_fecundity_model$coefficients[1]  # on log-scale
+eggs_slope_log = size_fecundity_model$coefficients[2]
+eyed_effect = size_fecundity_model$coefficients[3]
+
+eggs_per_clutch_mean = 514.11  # need to rethink what this means with size-effect, how to do one weighted by size...
 clutches_per_year_mean = 11.9
-egg_intercept = -426.57
-egg_slope = 107  # eggs/cm size of F
+# egg_intercept = -426.57
+# egg_slope = 107  # eggs/cm size of F
 
 # Survival (for LEP)
 eall_mean.Phi.size.p.size.plus.dist.results <- as.data.frame(eall_mean.Phi.size.p.size.plus.dist$results$beta)
@@ -64,9 +73,16 @@ recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson met
 
 #################### Functions: ####################
 
+# Find eggs by fish size (eyed eggs) - should double check used log (ln) and not log10 (base 10 log)
+findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) {
+  count_logged = egg_size_intercept + egg_size_slope*log(fish_size) + eyed_effect
+  raw_eggs = exp(count_logged)
+  return(raw_eggs)
+}
+
 # Find LEP (SHOULD CHECK, UPDATE THIS!)
 findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, eggs_per_clutch, clutches_per_year, 
-                   breeding_size, start_recruit_size, start_recruit_sd, egg_size_slope, egg_size_intercept) {
+                   breeding_size, start_recruit_size, start_recruit_sd, egg_size_slope, egg_size_intercept, eyed_effect) {
   
   # Create vector of lengths
   lengths_vec = seq(min_size, max_size, length.out = n_bins)
@@ -107,9 +123,13 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   Fvec = rep(0,n_bins)  # start with 0 (so no reproduction) for all sizes
   Fvec[which(lengths_vec > breeding_size)] = 1
   
-  # Vector of eggs produced per clutch, dependent on female size
-  eggs_by_size_vec = egg_size_intercept + lengths_vec*egg_size_slope
-  eggs_by_size_vec[eggs_by_size_vec < 0] = 0  # make negative values of eggs 0 
+  # # Vector of eggs produced per clutch, dependent on female size - old, non-log-transformed version
+  # eggs_by_size_vec = egg_size_intercept + lengths_vec*egg_size_slope
+  # eggs_by_size_vec[eggs_by_size_vec < 0] = 0  # make negative values of eggs 0 
+  
+  # Vector of eyed eggs produced per clutch, dependent on female size - log-transformed version
+  eggs_by_size_vec = findEggs(lengths_vec, egg_size_intercept, egg_size_slope, eyed_effect)
+  eggs_by_size_vec[eggs_by_size_vec < 0] = 0  # make negative values of eggs 0
   
   # Multiply breeding-or-not vec by eggs fec to get eggs-per-clutch at each size, then multiply by clutches per year
   Fec_by_size = Fvec*eggs_by_size_vec*clutches_per_year
@@ -157,7 +177,8 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
   # Find LEP (in terms of eggs) - COULD MAKE MORE OF THESE PARAMETERS PULLED FROM A DISTRIBUTION!
   LEP = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
                 param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, 
-                param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd, param_set$egg_size_slope, param_set$egg_size_intercept)
+                param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd, 
+                param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
   
   # Find egg-recruit survival (recruits/egg) - RIGHT NOW, USING JOHNSON-LIKE ESTIMATE BUT COULD MAKE THIS A DISTRIBUTION TOO
   recruits_per_egg = param_set$recruits_per_egg
@@ -208,7 +229,7 @@ k_connectivity_set = runif(n_runs, min = k_allyears_CIl, max = k_allyears_CIh)  
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
          eggs_per_clutch = eggs_per_clutch_mean, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = egg_slope, egg_size_intercept = egg_intercept,  # size-dependent fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg,
@@ -365,6 +386,7 @@ dev.off()
 pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_LEP_scatter.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
   geom_point(size=2) +
+  #geom_line()
   #geom_line(aes(x=sss)),
   xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
   theme_bw()
