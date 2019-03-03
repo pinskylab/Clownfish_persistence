@@ -1,5 +1,9 @@
 # Characterizing uncertainty in LEP, recruit survival, dispersal estimates
 
+# To add: uncertainty in egg-recruit survival
+# fix uncertainty in growth and uncertainty in annual survival
+# uncertainty in egg-size relationship?
+
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
@@ -9,7 +13,7 @@ load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity outp
 load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
 
-load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
+#load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
 #load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
 
 #### Set-up parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
@@ -27,11 +31,11 @@ min_size = 0
 max_size = 15 #should check this w/data...
 
 ##### Parameter info (candidates for uncertainty)
-# Connectivity  - estimates from Dec. 18 KC paper draft - now pulling straight from distribution of values, rather than re-creating distribution
+# # Connectivity  - estimates from Dec. 18 KC paper draft - now pulling straight from distribution of values, rather than re-creating distribution
 k_allyears = -1.36  # with 2012-2015 data
 theta_allyears = 0.5  # with 2012-2015 data
-k_allyears_CIh = -0.97  # upper 97.5% confidence interval of k (from KC email with screenshot)
-k_allyears_CIl = -1.94  # lower 97.5% confidence interval of k (these aren't symmetric, so not normal? Check with KC how CI were derived)
+# k_allyears_CIh = -0.97  # upper 97.5% confidence interval of k (from KC email with screenshot)
+# k_allyears_CIl = -1.94  # lower 97.5% confidence interval of k (these aren't symmetric, so not normal? Check with KC how CI were derived)
 
 # Growth (for LEP)
 s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from...
@@ -62,9 +66,9 @@ Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE,
 # Sint_se = eall.Phi.size.p.dist.results$se[1]  # for now using SE, should really use SD...
 # Sint_se = eall.Phi.size.p.dist.results$se[2]  # for now using SE, should really use SD...
 
-# Breeding size (for LEP) - replacing with drawing from the actual data
-breeding_size_mean = (size_by_color_metrics %>% filter(color == 'YP'))$mean  # originally guessed 8, this is 8.6
-breeding_size_sd = (size_by_color_metrics %>% filter(color == 'YP'))$sd  # originally guessed 0.8, this is 1.6
+# # Breeding size (for LEP) - replacing with drawing from the actual data
+# breeding_size_mean = (size_by_color_metrics %>% filter(color == 'YP'))$mean  # originally guessed 8, this is 8.6
+# breeding_size_sd = (size_by_color_metrics %>% filter(color == 'YP'))$sd  # originally guessed 0.8, this is 1.6
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
 recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
@@ -222,11 +226,11 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
 
 Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd=Linf_growth_sd)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd= Sint_se)
-breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_sd) 
 k_connectivity_set = sample(k_connectivity_values, n_runs, replace=TRUE)  # replace should be true, right?
+breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # replace should be true, right?
 
-#breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # replace should be true, right?
 #k_connectivity_set = runif(n_runs, min = k_allyears_CIl, max = k_allyears_CIh)  # for now, just selecting randomly from within the 97.5% confidence interval
+#breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_sd) 
 
 ##### Put static + pulled-from-distribution parameters together into one dataframe
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
