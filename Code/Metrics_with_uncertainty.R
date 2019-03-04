@@ -13,6 +13,8 @@ load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity outp
 load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
 
+load(file=here('Data','surv_egg_recruit_est.RData'))
+
 #load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
 #load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
 
@@ -62,7 +64,8 @@ Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE,
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
-recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
+recruits_per_egg = surv_egg_recruit
+# recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
 
 ##### Other parameters that stay static
 
@@ -265,10 +268,6 @@ LEP_R_best_est <- best_est_metrics$LEP_R
 NP_best_est <- best_est_metrics$NP
 SP_best_est <- as.data.frame(best_est_metrics$SP)
 
-
-#param_set_1 <- param_set_full[1,]
-#test_calcMetrics <- calcMetrics(param_set_1, c_mat_allyears, site_list)  # this doesn't look right...
-
 ##### Run the metrics for lots of parameters
 # Set output dataframes 
 n_metrics = 4  # NP, LEP, LEP_R, recruits_per_egg
@@ -462,6 +461,9 @@ ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
   xlab('Breeding size') + ggtitle('Breeding size values') +
   theme_bw()
 dev.off()
+
+
+##### Prettier sub-figured plots for potential figures
 
 #################### Saving things: ####################
 save(best_est_metrics, file=here('Data', 'best_est_metrics.RData'))
