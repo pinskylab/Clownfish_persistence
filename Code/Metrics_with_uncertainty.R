@@ -61,15 +61,6 @@ Sl_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]  # survival sl
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE, should really use SD...
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
 
-# Sint_mean = eall.Phi.size.p.dist.results$estimate[1]  # survival intercept (on logit scale)
-# Sl_mean = eall.Phi.size.p.dist.results$estimate[2]  # survival slope (on logit scale)
-# Sint_se = eall.Phi.size.p.dist.results$se[1]  # for now using SE, should really use SD...
-# Sint_se = eall.Phi.size.p.dist.results$se[2]  # for now using SE, should really use SD...
-
-# # Breeding size (for LEP) - replacing with drawing from the actual data
-# breeding_size_mean = (size_by_color_metrics %>% filter(color == 'YP'))$mean  # originally guessed 8, this is 8.6
-# breeding_size_sd = (size_by_color_metrics %>% filter(color == 'YP'))$sd  # originally guessed 0.8, this is 1.6
-
 # Egg-recruit survival (for getting LEP in terms of recruits)
 recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
 
@@ -218,21 +209,16 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
 }
 
 #################### Running things: ####################
-##### Generate sets of parameters
-# # Find k standard deviation - this is definitely not right - check with KC about her confidence intervals and how they were estimated
-# z_97.5 = 2.24  # z-score for 97.5% confidence interval
-# k_sdH = (sqrt(n_runs)/z_97.5)*(k_allyears_CIh - k_allyears)
-# k_sdL = -(sqrt(n_runs)/z_97.5)*(k_allyears_CIl - k_allyears)
+##### Find 'best estimates' of some of the parameters
+breeding_size_mean <- mean(female_sizes$size, na.rm=TRUE)
 
+##### Generate sets of parameters
 Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd=Linf_growth_sd)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd= Sint_se)
 k_connectivity_set = sample(k_connectivity_values, n_runs, replace=TRUE)  # replace should be true, right?
 breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # replace should be true, right?
 
-#k_connectivity_set = runif(n_runs, min = k_allyears_CIl, max = k_allyears_CIh)  # for now, just selecting randomly from within the 97.5% confidence interval
-#breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_sd) 
-
-##### Put static + pulled-from-distribution parameters together into one dataframe
+# Put static + pulled-from-distribution parameters together into one dataframe
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
          eggs_per_clutch = eggs_per_clutch_mean, clutches_per_year = clutches_per_year_mean,  # fecundity info
@@ -243,17 +229,27 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
 site_list <- c_mat_allyears$dest_site[1:19]
 
-# # Static connectivity matrix loaded from PersistenceMetrics.R
-# Cmatrix <- matrix(NA,ncol=max(c_mat_allyears$org_geo_order, na.rm = TRUE), nrow=max(c_mat_allyears$org_geo_order, na.rm = TRUE))    
-# for(i in 1:length(c_mat_allyears$org_site)) {
-#   column = c_mat_allyears$org_geo_order[i]  # column is origin 
-#   row = c_mat_allyears$dest_geo_order[i]  # row is destination
-#   Cmatrix[row, column] = c_mat_allyears$prob_disp_allyears[i]
-# }
-         
-# For testing calcMetrics function        
-param_set_1 <- param_set_full[1,]
-test_calcMetrics <- calcMetrics(param_set_1, c_mat_allyears, site_list)  # this doesn't look right...
+# Put best-estimate parameters into one dataframe
+param_best_est <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = eggs_per_clutch_mean, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+##### Find the 'best-estimate' metrics
+best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)
+
+# Save as separate items, for plotting ease
+LEP_best_est <- best_est_metrics$LEP
+LEP_R_best_est <- best_est_metrics$LEP_R
+NP_best_est <- best_est_metrics$NP
+SP_best_est <- as.data.frame(best_est_metrics$SP)
+
+#param_set_1 <- param_set_full[1,]
+#test_calcMetrics <- calcMetrics(param_set_1, c_mat_allyears, site_list)  # this doesn't look right...
 
 ##### Run the metrics for lots of parameters
 # Set output dataframes 
@@ -327,7 +323,8 @@ SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %
 # LEP
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_histogram.pdf'))
 ggplot(data = LEP_out_df, aes(x=value)) +
-  geom_histogram(bins=40) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = LEP_best_est, color='black') +
   xlab('LEP') + ggtitle('Histogram of LEP values') +
   theme_bw()
 dev.off()
@@ -335,7 +332,8 @@ dev.off()
 # LEP_R (LEP in terms of recruits)
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
-  geom_histogram(bins=40) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = LEP_R_best_est, color = 'black') +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values') +
   theme_bw()
 dev.off()
@@ -348,7 +346,8 @@ dev.off()
 # NP
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
 ggplot(data = NP_out_df, aes(x=value)) +
-  geom_histogram(bins=25) +
+  geom_histogram(bins=25, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est, color='black') +
   xlab('NP') + ggtitle('Histogram of NP values') +
   theme_bw()
 dev.off()
@@ -364,7 +363,8 @@ dev.off()
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
 ggplot(data = SP_out_df, aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
-  geom_histogram(binwidth=0.005) +
+  geom_histogram(binwidth=0.005, color='gray', fill='gray') +
+  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +
   ylim(0,300) +
   facet_wrap(~site) +
   xlab('SP') + ggtitle('Self-persistence histograms by site') +
@@ -408,6 +408,65 @@ ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
   theme_bw()
 dev.off()
 
+##### Histograms of data inputs
+# k_connectivity
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'k_connectivity_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=k_connectivity)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = k_allyears, color='black') +
+  xlab('k_connectivity') + ggtitle('k_connectivity values') +
+  theme_bw()
+dev.off()
+
+# Linf
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=Linf)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = Linf_growth_mean, color='black') +
+  xlab('Linf') + ggtitle('Linf values') +
+  theme_bw()
+dev.off()
+
+# Sint
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Sint_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=Sint)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = Sint_mean, color = 'black') +
+  xlab('Sint') + ggtitle('Sint values') +
+  theme_bw()
+dev.off()
+
+# Breeding size
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breeding_size_histogram.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept=breeding_size_mean, color='black') +
+  xlab('Breeding size') + ggtitle('Breeding size values') +
+  theme_bw()
+dev.off()
+
+#################### Saving things: ####################
+save(best_est_metrics, file=here('Data', 'best_est_metrics.RData'))
+
+#################### Old code: ####################
+# Sint_mean = eall.Phi.size.p.dist.results$estimate[1]  # survival intercept (on logit scale)
+# Sl_mean = eall.Phi.size.p.dist.results$estimate[2]  # survival slope (on logit scale)
+# Sint_se = eall.Phi.size.p.dist.results$se[1]  # for now using SE, should really use SD...
+# Sint_se = eall.Phi.size.p.dist.results$se[2]  # for now using SE, should really use SD...
+
+# # Breeding size (for LEP) - replacing with drawing from the actual data
+# breeding_size_mean = (size_by_color_metrics %>% filter(color == 'YP'))$mean  # originally guessed 8, this is 8.6
+# breeding_size_sd = (size_by_color_metrics %>% filter(color == 'YP'))$sd  # originally guessed 0.8, this is 1.6
+
+
+# # Static connectivity matrix loaded from PersistenceMetrics.R
+# Cmatrix <- matrix(NA,ncol=max(c_mat_allyears$org_geo_order, na.rm = TRUE), nrow=max(c_mat_allyears$org_geo_order, na.rm = TRUE))    
+# for(i in 1:length(c_mat_allyears$org_site)) {
+#   column = c_mat_allyears$org_geo_order[i]  # column is origin 
+#   row = c_mat_allyears$dest_geo_order[i]  # row is destination
+#   Cmatrix[row, column] = c_mat_allyears$prob_disp_allyears[i]
+# }
+
 # # k (connectivity) and SP
 # pdf(file = here('Plots/PersistenceMetrics','kConnectivity_SP_scatter.pdf'))
 # ggplot(data = SP_vals_with_params, aes(x=k_connectivity, y=SP)) +
@@ -418,39 +477,12 @@ dev.off()
 #   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
 # dev.off()
 
-##### Histograms of data inputs
-# k_connectivity
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'k_connectivity_histogram.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=k_connectivity)) +
-  geom_histogram(bins=40) +
-  xlab('k_connectivity') + ggtitle('k_connectivity values') +
-  theme_bw()
-dev.off()
+# # Find k standard deviation - this is definitely not right - check with KC about her confidence intervals and how they were estimated
+# z_97.5 = 2.24  # z-score for 97.5% confidence interval
+# k_sdH = (sqrt(n_runs)/z_97.5)*(k_allyears_CIh - k_allyears)
+# k_sdL = -(sqrt(n_runs)/z_97.5)*(k_allyears_CIl - k_allyears)
 
-# Linf
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_histogram.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=Linf)) +
-  geom_histogram(bins=40) +
-  xlab('Linf') + ggtitle('Linf values') +
-  theme_bw()
-dev.off()
 
-# Sint
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Sint_histogram.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=Sint)) +
-  geom_histogram(bins=40) +
-  xlab('Sint') + ggtitle('Sint values') +
-  theme_bw()
-dev.off()
+#k_connectivity_set = runif(n_runs, min = k_allyears_CIl, max = k_allyears_CIh)  # for now, just selecting randomly from within the 97.5% confidence interval
+#breeding_size_set = rnorm(n_runs, mean = breeding_size_mean, sd = breeding_size_sd) 
 
-# Breeding size
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breeding_size_histogram.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
-  geom_histogram(bins=40) +
-  xlab('Breeding size') + ggtitle('Breeding size values') +
-  theme_bw()
-dev.off()
-
-#################### Saving things: ####################
-
-#################### Old code: ####################
