@@ -242,11 +242,29 @@ param_best_est <- data.frame(t_steps = n_tsteps) %>%
 ##### Find the 'best-estimate' metrics
 best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)
 
+# Find LEP for mean breeding size and for size 6.0
+LEP_breeding_size_mean <- findLEP(param_best_est$min_size, param_best_est$max_size, param_best_est$n_bins, 
+                                  param_best_est$t_steps, param_best_est$Sint, param_best_est$Sl,
+                                  param_best_est$s, param_best_est$Linf, param_best_est$k_growth, 
+                                  param_best_est$eggs_per_clutch, param_best_est$clutches_per_year, 
+                                  param_best_est$breeding_size, param_best_est$start_recruit_size, param_best_est$start_recruit_sd, 
+                                  param_best_est$egg_size_slope, param_best_est$egg_size_intercept, param_best_est$eyed_effect)
+
+LEP_6cm <- findLEP(param_best_est$min_size, param_best_est$max_size, param_best_est$n_bins, 
+                   param_best_est$t_steps, param_best_est$Sint, param_best_est$Sl,
+                   param_best_est$s, param_best_est$Linf, param_best_est$k_growth, 
+                   param_best_est$eggs_per_clutch, param_best_est$clutches_per_year, 
+                   6, param_best_est$start_recruit_size, param_best_est$start_recruit_sd, 
+                   param_best_est$egg_size_slope, param_best_est$egg_size_intercept, param_best_est$eyed_effect)
+
+LEP_ests <- list(LEP_breeding_size_mean = LEP_breeding_size_mean, LEP_6cm = LEP_6cm)
+
 # Save as separate items, for plotting ease
 LEP_best_est <- best_est_metrics$LEP
 LEP_R_best_est <- best_est_metrics$LEP_R
 NP_best_est <- best_est_metrics$NP
 SP_best_est <- as.data.frame(best_est_metrics$SP)
+
 
 #param_set_1 <- param_set_full[1,]
 #test_calcMetrics <- calcMetrics(param_set_1, c_mat_allyears, site_list)  # this doesn't look right...
@@ -447,6 +465,7 @@ dev.off()
 
 #################### Saving things: ####################
 save(best_est_metrics, file=here('Data', 'best_est_metrics.RData'))
+save(LEP_ests, file=here('Data', 'LEP_ests.RData'))
 
 #################### Old code: ####################
 # Sint_mean = eall.Phi.size.p.dist.results$estimate[1]  # survival intercept (on logit scale)
