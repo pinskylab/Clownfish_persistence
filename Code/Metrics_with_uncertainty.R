@@ -5,6 +5,9 @@
 # uncertainty in egg-size relationship?
 
 #################### Set-up: ####################
+library(grid)
+library(gridExtra)
+
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
 load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
@@ -186,29 +189,34 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
   
   # Find connectivity matrix - EVENTUALLY, WILL USE CONFIDENCE INTERVALS AROUND DISPERSAL KERNELS TO DO THIS - FOR ALL-YEARS ONE? NOT SURE...
   #conn_matrix = Cmatrix
-  conn_matrix <- matrix(NA,ncol=max(Cmat$org_geo_order, na.rm = TRUE), nrow=max(Cmat$org_geo_order, na.rm = TRUE))    
+  conn_matrix <- matrix(NA,ncol=max(Cmat$org_geo_order), nrow=max(Cmat$org_geo_order))    
   for(i in 1:length(Cmat$org_site)) {
     column = Cmat$org_geo_order[i]  # column is origin 
     row = Cmat$dest_geo_order[i]  # row is destination
     conn_matrix[row, column] = Cmat$prob_disp[i]
   }
   
-  # Make realized connectivity matrix
-  conn_matrixR = conn_matrix*LEP_R
+  # Make realized connectivity matrix, both in the matrix form and dataframe form
+  conn_matrixR = conn_matrix*LEP_R  # matrix form (for eigenvalues)
+  Cmat <- Cmat %>%  
+    mutate(prob_disp_R = prob_disp*LEP_R)  # dataframe form (for plotting)
   
   # Assess network persistence
   eig_cR = eigen(conn_matrixR)
   
   # Pull out self-persistence values (diagonals of realized connectivity matrix)
   SP_values = data.frame(site = site_list, stringsAsFactors = FALSE) %>%
-    mutate(SP_value = NA)
+    mutate(SP_value = NA, org_geo_order = NA)
   for(i in 1:length(site_list)) {
-    SP_values$SP_value[i] = conn_matrixR[i,i]  # pull out diagonal entries of realized connectivity matrix
+    # SP_values$SP_value[i] = conn_matrixR[i,i]  # pull out diagonal entries of realized connectivity matrix - I think something is going wrong here, since Poroc Rose is always 0 in SP but doesn't seem to be elsewhere
+    site_val = site_list[i]
+    SP_values$SP_value[i] = (Cmat %>% filter(org_site == site_val & dest_site == site_val))$prob_disp_R
+    SP_values$org_geo_order[i] = (Cmat %>% filter(org_site == site_val & dest_site == site_val))$org_geo_order
   }
   
   # Put outputs together into one list
   out = list(NP = eig_cR$values[1], SP = SP_values, LEP = LEP, LEP_R = LEP_R , recruits_per_egg = recruits_per_egg, 
-             conn_matrix = conn_matrix, conn_matrixR = conn_matrixR)
+             conn_matrix = conn_matrix, conn_matrixR = conn_matrixR, Cmat = Cmat)
 }
 
 #################### Running things: ####################
@@ -230,6 +238,7 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
 site_list <- c_mat_allyears$dest_site[1:19]
 
 # Put best-estimate parameters into one dataframe
@@ -381,7 +390,7 @@ pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.
 ggplot(data = SP_out_df, aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
   geom_histogram(binwidth=0.005, color='gray', fill='gray') +
-  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +
+  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
   ylim(0,300) +
   facet_wrap(~site) +
   xlab('SP') + ggtitle('Self-persistence histograms by site') +
@@ -454,7 +463,7 @@ ggplot(data = metric_vals_with_params, aes(x=Sint)) +
 dev.off()
 
 # Breeding size
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breeding_size_histogram.pdf'))
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breeding_size_histogram.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept=breeding_size_mean, color='black') +
@@ -464,6 +473,54 @@ dev.off()
 
 
 ##### Prettier sub-figured plots for potential figures
+# LEP and LEP_R histograms
+LEP_plot <- ggplot(data = LEP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = LEP_best_est, color='black') +
+  xlab('LEP') + ggtitle('a) Lifetime egg production') +
+  theme_bw()
+
+LEP_R_plot <- ggplot(data = LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = LEP_R_best_est, color = 'black') +
+  xlab('LRP') + ggtitle('b) Lifetime recruit production') +
+  theme_bw()
+
+pdf(file = here('Plots/FigureDrafts', 'LEP_and_LRP.pdf'), width=6, height=3)
+grid.arrange(LEP_plot, LEP_R_plot, nrow=1)
+dev.off()
+
+# NP and realized connectivity matrix
+NP_plot <- ggplot(data = NP_out_df, aes(x=value)) +
+  geom_histogram(bins=25, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est, color='black') +
+  xlab('NP') + ggtitle('a) Network persistence values') +
+  theme_bw()
+
+realized_C_plot <- ggplot(data = best_est_metrics$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_R)) +
+  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  xlab('origin') + ylab('destination') + ggtitle('b) Realized connectivity matrix') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+    
+pdf(file = here('Plots/FigureDrafts', 'NP_and_connMatrixR.pdf'), width = 9, height = 4)
+grid.arrange(NP_plot, realized_C_plot, nrow=1)
+dev.off()
+
+# SP by site
+pdf(file = here('Plots/FigureDrafts','SP_hists_by_site.pdf'))
+ggplot(data = SP_out_df, aes(x=value)) +
+  #geom_histogram(binwidth=0.0005) +
+  geom_histogram(binwidth=0.005, color='gray', fill='gray') +
+  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +
+  ylim(0,300) +
+  facet_wrap(~reorder(site) +
+  xlab('SP') + ggtitle('Self-persistence by site') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
+dev.off()
+# Input distributions of parameters
 
 #################### Saving things: ####################
 save(best_est_metrics, file=here('Data', 'best_est_metrics.RData'))
