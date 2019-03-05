@@ -271,17 +271,24 @@ LEP_breeding_size_mean <- findLEP(param_best_est$min_size, param_best_est$max_si
                                   param_best_est$t_steps, param_best_est$Sint, param_best_est$Sl,
                                   param_best_est$s, param_best_est$Linf, param_best_est$k_growth, 
                                   param_best_est$eggs_per_clutch, param_best_est$clutches_per_year, 
-                                  param_best_est$breeding_size, param_best_est$start_recruit_size, param_best_est$start_recruit_sd, 
+                                  param_best_est$breeding_size, breeding_size_mean, param_best_est$start_recruit_sd, 
                                   param_best_est$egg_size_slope, param_best_est$egg_size_intercept, param_best_est$eyed_effect)
 
 LEP_6cm <- findLEP(param_best_est$min_size, param_best_est$max_size, param_best_est$n_bins, 
                    param_best_est$t_steps, param_best_est$Sint, param_best_est$Sl,
                    param_best_est$s, param_best_est$Linf, param_best_est$k_growth, 
                    param_best_est$eggs_per_clutch, param_best_est$clutches_per_year, 
-                   6, param_best_est$start_recruit_size, param_best_est$start_recruit_sd, 
+                   param_best_est$breeding_size, 6, param_best_est$start_recruit_sd, 
                    param_best_est$egg_size_slope, param_best_est$egg_size_intercept, param_best_est$eyed_effect)
 
-LEP_ests <- list(LEP_breeding_size_mean = LEP_breeding_size_mean, LEP_6cm = LEP_6cm)
+LEP_3.5cm <- findLEP(param_best_est$min_size, param_best_est$max_size, param_best_est$n_bins, 
+                     param_best_est$t_steps, param_best_est$Sint, param_best_est$Sl,
+                     param_best_est$s, param_best_est$Linf, param_best_est$k_growth, 
+                     param_best_est$eggs_per_clutch, param_best_est$clutches_per_year, 
+                     param_best_est$breeding_size, 3.5, param_best_est$start_recruit_sd, 
+                     param_best_est$egg_size_slope, param_best_est$egg_size_intercept, param_best_est$eyed_effect)
+
+LEP_ests <- list(LEP_breeding_size_mean = LEP_breeding_size_mean, LEP_6cm = LEP_6cm, LEP_3.5cm = LEP_3.5cm)
 
 # Save as separate items, for plotting ease
 LEP_best_est <- best_est_metrics$LEP
@@ -558,9 +565,43 @@ growth_df <- data.frame(length1 = seq(min_size, max_size, length.out = n_bins*10
 
 growth_curve_plot <- ggplot(data=growth_df, aes(x=length1, y=length2)) +
   geom_point(color='black') +
-  xlab('length') + ylab('length next year') + ggtitle('Growth curve') +
+  xlab('size (cm)') + ylab('size next year') + ggtitle('b) Growth curve') +
   ylim(0,13) +
   theme_bw()
+
+# Breeding size distribution
+breeding_size_plot <- ggplot(data = female_sizes, aes(x=size)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept=breeding_size_mean, color='black') +
+  xlab('size (cm)') + ggtitle('d) Female size') +
+  theme_bw()
+
+# Survival plot
+min_size_plot = 0
+size.values <- min_size_plot+(0:30)*(max_size-min_size_plot)/30
+
+eall_mean.Phi.size.p.size.plus.dist.results = as.data.frame(eall_mean.Phi.size.p.size.plus.dist$results$beta)
+
+Phibysize_Phi.size.p.size.plus.dist_means <- data.frame(size = size.values) %>%
+  mutate(Phi_logit = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1] + eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]*size,
+         Phi_lcl_logit = eall_mean.Phi.size.p.size.plus.dist.results$lcl[1] + eall_mean.Phi.size.p.size.plus.dist.results$lcl[2]*size,
+         Phi_ucl_logit = eall_mean.Phi.size.p.size.plus.dist.results$ucl[1] + eall_mean.Phi.size.p.size.plus.dist.results$ucl[2]*size,
+         Phi = logit_recip(Phi_logit),
+         Phi_lcl = logit_recip(Phi_lcl_logit),
+         Phi_ucl = logit_recip(Phi_ucl_logit))
+
+survival_plot <- ggplot(data = Phibysize_Phi.size.p.size.plus.dist_means, aes(size, Phi)) +
+  geom_ribbon(aes(ymin=Phi_lcl,ymax=Phi_ucl),color="gray",fill="gray") +
+  geom_line(color="black") +
+  xlab("size (cm)") + ylab("probability of survival") + ggtitle("c) Annual survival") +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+
+pdf(file = here('Plots/FigureDrafts','Parameter_inputs.pdf'), width=6, height=6)
+grid.arrange(dispersal_kernel_plot, growth_curve_plot, survival_plot, breeding_size_plot, nrow=2)
+dev.off()
+
+
 
 
 #################### Saving things: ####################

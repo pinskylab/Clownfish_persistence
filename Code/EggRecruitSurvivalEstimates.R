@@ -87,9 +87,10 @@ total_prop_hab_sampled <- total_area_sampled/total_area_all_years
 
 # Estimate survival from adult-recruit
 prop_F_M <- 0.5  # saying 50% of the "adults" we clip are males that won't make it to females -- reasonable? could check this. But LEP takes that into account, right?
-tagged_offspring <- n_parents_parentage*LEP_ests$LEP_6cm
+tagged_offspring_3.5cm <- n_parents_parentage*LEP_ests$LEP_3.5cm
+tagged_offspring_6cm <- n_parents_parentage*LEP_ests$LEP_6cm
 recruited_offspring <- n_offspring_parentage/total_prop_hab_sampled
-surv_egg_recruit <- recruited_offspring/tagged_offspring
+surv_egg_recruit <- recruited_offspring/tagged_offspring_3.5cm
 
 
 ############ STOPPED EDITING/RUNNING HERE! ####################
@@ -102,7 +103,7 @@ surv_RfromE <- findRfromE(slope_mod1, 1, intercept_mod1)
 #################### Plots: ####################
 
 #################### Saving output: ####################
-save(surv_egg_recruit, file='surv_egg_recruit_est.RData')
+save(surv_egg_recruit, file=here('Data','surv_egg_recruit_est.RData'))
 
 #################### Old code: ####################
 
