@@ -73,6 +73,18 @@ recruits_per_egg = surv_egg_recruit
 ##### Other parameters that stay static
 
 #################### Functions: ####################
+# Find probability of dispersing distance d with all-years fit
+disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  z = exp(k)
+  disp = (z/2)*exp(-(z*d)^(theta))
+  return(disp)
+}
+
+# Growth 
+VBL_growth <- function(Linf, k_growth, length) {
+  Ls = Linf - (Linf - length)*exp(-k_growth)
+  return(Ls)
+}
 
 # Find eggs by fish size (eyed eggs) - should double check used log (ln) and not log10 (base 10 log)
 findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) {
@@ -294,7 +306,7 @@ for(i in 2:n_runs) {
 }                                 
            
 SP_out_df <- data.frame(value = rep(NA, length(site_list)*n_runs), metric = 'SP', run = NA,
-                        site = NA)
+                        site = NA, org_geo_order = NA)
 
 # Calculate the metrics for each parameter set, fill into the data frames
 for(i in 1:n_runs) {
@@ -322,6 +334,7 @@ for(i in 1:n_runs) {
   SP_out_df$site[start_index:end_index] = metrics_output$SP$site
   SP_out_df$value[start_index:end_index] = metrics_output$SP$SP_value
   SP_out_df$run[start_index:end_index] = rep(i, length(site_list))
+  SP_out_df$org_geo_order[start_index:end_index] = metrics_output$SP$org_geo_order
 }
 
 # Put the data frames together (easier to plot?)
@@ -389,7 +402,7 @@ dev.off()
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
 ggplot(data = SP_out_df, aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
-  geom_histogram(binwidth=0.005, color='gray', fill='gray') +
+  geom_histogram(binwidth=0.001, color='gray', fill='gray') +
   geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
   ylim(0,300) +
   facet_wrap(~site) +
@@ -473,7 +486,7 @@ dev.off()
 
 
 ##### Prettier sub-figured plots for potential figures
-# LEP and LEP_R histograms
+## LEP and LEP_R histograms
 LEP_plot <- ggplot(data = LEP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
   geom_vline(xintercept = LEP_best_est, color='black') +
@@ -490,7 +503,7 @@ pdf(file = here('Plots/FigureDrafts', 'LEP_and_LRP.pdf'), width=6, height=3)
 grid.arrange(LEP_plot, LEP_R_plot, nrow=1)
 dev.off()
 
-# NP and realized connectivity matrix
+## NP and realized connectivity matrix
 NP_plot <- ggplot(data = NP_out_df, aes(x=value)) +
   geom_histogram(bins=25, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est, color='black') +
@@ -508,19 +521,47 @@ pdf(file = here('Plots/FigureDrafts', 'NP_and_connMatrixR.pdf'), width = 9, heig
 grid.arrange(NP_plot, realized_C_plot, nrow=1)
 dev.off()
 
-# SP by site
-pdf(file = here('Plots/FigureDrafts','SP_hists_by_site.pdf'))
-ggplot(data = SP_out_df, aes(x=value)) +
+## SP by site
+pdf(file = here('Plots/FigureDrafts','SP_hists_by_site.pdf'), width=8, height=6)
+ggplot(data = (SP_out_df %>% filter(site != 'Sitio Lonas')), aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
-  geom_histogram(binwidth=0.005, color='gray', fill='gray') +
-  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +
+  geom_histogram(binwidth=0.001, color='gray', fill='gray') +
+  geom_vline(data=(SP_best_est %>% filter(site != 'Sitio Lonas')), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
   ylim(0,300) +
-  facet_wrap(~reorder(site) +
-  xlab('SP') + ggtitle('Self-persistence by site') +
+  facet_wrap(~reorder(site, org_geo_order)) +
+  xlab('SP') + ggtitle('Self-persistence estimates by site') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
 dev.off()
-# Input distributions of parameters
+
+## Input distributions, parameter estimates (breeding size, growth curve, survival curve, dispersal kernel?)
+distance_vec <- seq(from=0, to=50, by=0.01)
+connectivity_est_vec <- disp_kernel_all_years(distance_vec, k_allyears, theta_allyears)  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+connectivity_lowest_k <- disp_kernel_all_years(distance_vec, min(k_connectivity_values), theta_allyears)  # minimum k in the 95% CI
+connectivity_highest_k <- disp_kernel_all_years(distance_vec, max(k_connectivity_values), theta_allyears)  # maximum k in the 95% CI
+dispersal_df <- data.frame(distance = distance_vec, kernel_bestfit = connectivity_est_vec, kernel_CI1 = connectivity_lowest_k, kernel_CI2 = connectivity_highest_k) %>%
+  mutate(low_bound = case_when(kernel_CI1 <= kernel_CI2 ~ kernel_CI1,
+                               kernel_CI1 > kernel_CI2 ~ kernel_CI2),
+         upper_bound = case_when(kernel_CI1 > kernel_CI1 ~ kernel_CI1,
+                                 kernel_CI1 <= kernel_CI2 ~ kernel_CI2))
+
+# Dispersal kernel
+dispersal_kernel_plot <- ggplot(data=dispersal_df, aes(x=distance, y=kernel_bestfit, ymin=kernel_CI1, ymax=kernel_CI2)) +
+  geom_line(color='black') +
+  geom_ribbon(alpha=0.5, color='gray') +
+  xlab('distance (km)') + ylab('dispersal probability') + ggtitle('a) Dispersal kernel') +
+  theme_bw()
+  
+# Growth curve
+growth_df <- data.frame(length1 = seq(min_size, max_size, length.out = n_bins*10)) %>%
+  mutate(length2 = VBL_growth(Linf_growth_mean, k_growth_mean, length1))
+
+growth_curve_plot <- ggplot(data=growth_df, aes(x=length1, y=length2)) +
+  geom_point(color='black') +
+  xlab('length') + ylab('length next year') + ggtitle('Growth curve') +
+  ylim(0,13) +
+  theme_bw()
+
 
 #################### Saving things: ####################
 save(best_est_metrics, file=here('Data', 'best_est_metrics.RData'))
