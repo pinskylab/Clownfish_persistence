@@ -22,6 +22,11 @@ parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears
 parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
 parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
+# Raw mean egg counts
+egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 655, 414, 352, 1102, 265, 1886, 904,
+                        851, 160, 648, 766, 1060, 670, 351, 557)  # from egg_data2018f.csv in Adam's repository
+mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
+
 #################### Functions: ####################
 
 #################### Running things: ####################
@@ -89,8 +94,9 @@ total_prop_hab_sampled <- total_area_sampled/total_area_all_years
 prop_F_M <- 0.5  # saying 50% of the "adults" we clip are males that won't make it to females -- reasonable? could check this. But LEP takes that into account, right?
 tagged_offspring_3.5cm <- n_parents_parentage*LEP_ests$LEP_3.5cm
 tagged_offspring_6cm <- n_parents_parentage*LEP_ests$LEP_6cm
-recruited_offspring <- n_offspring_parentage/total_prop_hab_sampled
+recruited_offspring <- n_offspring_parentage/(total_prop_hab_sampled*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 surv_egg_recruit <- recruited_offspring/tagged_offspring_3.5cm
+
 
 
 ############ STOPPED EDITING/RUNNING HERE! ####################
