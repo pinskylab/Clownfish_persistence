@@ -99,6 +99,7 @@ CaridadCemetery_S <- 292
 CaridadCemetery_mid <- 289
 CaridadProper_N <- 291
 CaridadProper_S <- 290
+CaridadProper_mid <- NA
 ElementarySchool_N <- 2303
 ElementarySchool_mid <- 1306
 ElementarySchool_S <- 702
@@ -138,8 +139,10 @@ SitioBaybayon_mid <- 538
 SitioBaybayon_S <- 2747 #outside hull (maybe KC sites?), #805, 2148 w/in hull
 SitioLonas_N <- 48
 SitioLonas_S <- 48
+SitioLonas_mid <- 48
 SitioTugas_N <- 54
 SitioTugas_S <- 59
+SitioTugas_mid <- NA
 TamakinDacot_N <- 2554
 TamakinDacot_mid <- 2861
 TamakinDacot_S <- 2270 #2147
@@ -149,6 +152,24 @@ Visca_S <- 2314
 Wangag_N <- 2985
 Wangag_mid <- 2734
 Wangag_S <- 2063 #1034 also a good end point
+
+# Put north, south, mid anems at each site into a dataframe
+site_edge_anems <- data.frame(site = site_vec_NS, site_geo_order = c(5, 6, 7, 10, 16, 18, 8, 3, 4, 1, 14, 13, 12, 19, 11, 9, 17, 15, 2),
+                              north_anem = c(Palanas_N, Wangag_N, Magbangon_N_N, Magbangon_S_N, Cabatoan_N, CaridadCemetery_N, CaridadProper_N,
+                                             HicgopSouth_N, SitioTugas_N, ElementarySchool_N, SitioLonas_N, SanAgustin_N, PorocSanFlower_N,
+                                             PorocRose_N, Visca_N, Gabas_N, TamakinDacot_N, Haina_W, SitioBaybayon_N),
+                              south_anem = c(Palanas_S, Wangag_S, Magbangon_N_S, Magbangon_S_S, Cabatoan_S, CaridadCemetery_S, CaridadProper_S,
+                                             HicgopSouth_S, SitioTugas_S, ElementarySchool_S, SitioLonas_S, SanAgustin_S, PorocSanFlower_S,
+                                             PorocRose_S, Visca_S, Gabas_S, TamakinDacot_S, Haina_E, SitioBaybayon_S),
+                              mid_anem = c(Palanas_mid, Wangag_mid, Magbangon_N_mid, Magbangon_S_mid, Cabatoan_mid, CaridadCemetery_mid, CaridadProper_mid,
+                                HicgopSouth_mid, SitioTugas_mid, ElementarySchool_mid, SitioLonas_mid, SanAgustin_mid, PorocSanFlower_mid,
+                                PorocRose_mid, Visca_mid, Gabas_mid, TamakinDacot_mid, Haina_mid, SitioBaybayon_mid))
+
+# Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
+prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
+            0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
+            0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
+
 
 #################### Functions: ####################
 # Functions from Michelle's GitHub helpers script
@@ -287,6 +308,16 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   
 }
 
+# Function with myconfig file info in it, for some reason new version of R/RStudio can't find the database...
+read_db <- function(x) {
+  db <- src_mysql(dbname = x,
+                  port = 3306,
+                  create = F,
+                  host = "amphiprion.deenr.rutgers.edu",
+                  user = "allisond",
+                  password = "fish!NM?717")
+  return(db)
+}
 #################### Pull out database info ####################
 leyte <- read_db("Leyte") 
 
