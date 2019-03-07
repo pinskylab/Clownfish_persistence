@@ -117,8 +117,8 @@ Magbangon_mid <- 680
 Magbangon_S <- 213
 Magbangon_N_N <- 2079
 Magbangon_N_mid <- #2257 is mid of northern-most chunk; 475 or 2952 N of mid-chunk
-  #Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
-  Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value?
+#Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
+Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value?
 Magbangon_S_N <- 1113 #209 is another option
 Magbangon_S_mid <- 2437
 Magbangon_S_S <- 213 #214, 215 other options 
@@ -155,15 +155,14 @@ Wangag_S <- 2063 #1034 also a good end point
 
 # Put north, south, mid anems at each site into a dataframe
 site_edge_anems <- data.frame(site = site_vec_NS, site_geo_order = c(5, 6, 7, 10, 16, 18, 8, 3, 4, 1, 14, 13, 12, 19, 11, 9, 17, 15, 2),
-                              north_anem = c(Palanas_N, Wangag_N, Magbangon_N_N, Magbangon_S_N, Cabatoan_N, CaridadCemetery_N, CaridadProper_N,
-                                             HicgopSouth_N, SitioTugas_N, ElementarySchool_N, SitioLonas_N, SanAgustin_N, PorocSanFlower_N,
-                                             PorocRose_N, Visca_N, Gabas_N, TamakinDacot_N, Haina_W, SitioBaybayon_N),
-                              south_anem = c(Palanas_S, Wangag_S, Magbangon_N_S, Magbangon_S_S, Cabatoan_S, CaridadCemetery_S, CaridadProper_S,
-                                             HicgopSouth_S, SitioTugas_S, ElementarySchool_S, SitioLonas_S, SanAgustin_S, PorocSanFlower_S,
-                                             PorocRose_S, Visca_S, Gabas_S, TamakinDacot_S, Haina_E, SitioBaybayon_S),
-                              mid_anem = c(Palanas_mid, Wangag_mid, Magbangon_N_mid, Magbangon_S_mid, Cabatoan_mid, CaridadCemetery_mid, CaridadProper_mid,
-                                HicgopSouth_mid, SitioTugas_mid, ElementarySchool_mid, SitioLonas_mid, SanAgustin_mid, PorocSanFlower_mid,
-                                PorocRose_mid, Visca_mid, Gabas_mid, TamakinDacot_mid, Haina_mid, SitioBaybayon_mid))
+                              anem_id = c(Palanas_N, Wangag_N, Magbangon_N_N, Magbangon_S_N, Cabatoan_N, CaridadCemetery_N, CaridadProper_N,
+                                          HicgopSouth_N, SitioTugas_N, ElementarySchool_N, SitioLonas_N, SanAgustin_N, PorocSanFlower_N,
+                                          PorocRose_N, Visca_N, Gabas_N, TamakinDacot_N, Haina_W, SitioBaybayon_N, Palanas_S, Wangag_S, Magbangon_N_S, Magbangon_S_S, Cabatoan_S, CaridadCemetery_S, CaridadProper_S,
+                                          HicgopSouth_S, SitioTugas_S, ElementarySchool_S, SitioLonas_S, SanAgustin_S, PorocSanFlower_S,
+                                          PorocRose_S, Visca_S, Gabas_S, TamakinDacot_S, Haina_E, SitioBaybayon_S, Palanas_mid, Wangag_mid, Magbangon_N_mid, Magbangon_S_mid, Cabatoan_mid, CaridadCemetery_mid, CaridadProper_mid,
+                                          HicgopSouth_mid, SitioTugas_mid, ElementarySchool_mid, SitioLonas_mid, SanAgustin_mid, PorocSanFlower_mid,
+                                          PorocRose_mid, Visca_mid, Gabas_mid, TamakinDacot_mid, Haina_mid, SitioBaybayon_mid),
+                              anem_loc = c(rep('north',length(site_vec_NS)), rep('south',length(site_vec_NS)), rep('mid', length(site_vec_NS))))
 
 # Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
@@ -201,79 +200,6 @@ logit_recip <- function(logitval) {
   return(recip)
 }
 
-# Function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to all of them), from AnemLocations.R script originally, this version from TotalAnemsAtSite.R script
-attach2018anems <- function(anemdf) {
-  
-  #make anem_id numeric, create anem_id_unq
-  anemdf <- anemdf %>%
-    mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
-    mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep="")))  #add unique anem id so can track anems easier (has obs or id in front of whichever number it is reporting: eg. obs192)
-  
-  #filter out anems that might be repeat visits (2018, tag_id less than the new tags for 2018 or new tag and old tag present) and don't already have an anem_obs
-  anems2018 <- anemdf %>% #646
-    filter(year == 2018) %>%
-    filter(anem_id < tag1_2018 | (anem_id >= tag1_2018 & !is.na(old_anem_id))) %>% #filter out the ones that could could have other anem_ids (sighting of existing anem_id tag or new tag with old_anem_id filled in), checked this (below) and think it is filtering out correctly...
-    filter(is.na(anem_obs)) #some anem_obs already filled in so take those out... 
-    
-  #other 2018 anems that aren't candidates for repeat obs (so can add back in later)
-  anems2018_2 <- anemdf %>% #270
-    filter(year == 2018) %>%
-    filter(anem_id >= tag1_2018 & is.na(old_anem_id))
-  
-  #other 2018 anems that already have an anem_obs (so can add back in later) - checked (once...) that anems2018, anems2018_2, and anems2018_3 covers all 2018 anems
-  anems2018_3 <- anemdf %>%
-    filter(year == 2018) %>%
-    filter(!is.na(anem_obs))
-  
-  #filter out anems that are candidates for revisits (just anything from before 2018...), and that will get added back into final df later
-  otheranems <- anemdf %>% #4068
-    filter(year != 2018)
-  
-  #the filtering above covers all anems except anem_table_id 10473 with anem_id 2535, which has no year associated with it
-  #test <- anemdf %>% filter(!year %in% c(2012,2013,2014,2015,2016,2017,2018)) #this is how I found that anem
-  
-  #go through anems2018 that might be revisits and see if there are anems from previous years that match
-  for (i in 1:length(anems2018$anem_id)) {
-    
-    testid <- anems2018$anem_id[i] #pull out anem_id to compare
-    testoldid <- anems2018$old_anem_id[i] #pull out old_anem_id
-    
-    matchanem <- filter(otheranems, anem_id == testid)  #does the anem_id match an anem_id record from the past?
-    matcholdanem <- filter(otheranems, anem_id == testoldid) #does the old_anem_id match an anem_id from the past?
-    
-    # does the anem_id match an anem_id from the past? 
-    if (length(matchanem$anem_id) > 0) { #if the anem_id matches an old one
-      # if so, does the site match?
-      if (matchanem$site[1] == anems2018$site[i]) { #make sure the site matches
-        anems2018$anem_id_unq[i] = matchanem$anem_id_unq[1] #if there are multiple records from the past that match, take the first one
-      } else {
-        print(paste("Site does not match for anem_id", testid)) #print message if site doesn't match
-      }
-      # if not, does an old_anem_id match an anem_id from the past?
-    } else if (length(matcholdanem$anem_id) > 0) { #if the old_anem_id matches one from the past
-      # if so, does the site match?
-      if (matcholdanem$site[1] == anems2018$site[i]) { #check site
-        anems2018$anem_id_unq[i] = matcholdanem$anem_id_unq[1]
-      } else {
-        print(paste("Site does not match for old_anem_id", testoldid, "and anem_id", testid))
-      }
-    } else {
-      anems2018$anem_id_unq[i] = anems2018$anem_id_unq[i]
-      print(paste("No past anem matches found for testid", testid, "and testoldid", testoldid))
-    }
-  }
-  out <- rbind(anems2018, anems2018_2, anems2018_3, otheranems)
-  
-  if(length(out$anem_table_id) == (length(anemdf$anem_table_id)-1)) { #1 anem (anem_table_id 10473, anem_id 2535 has no year listed - investigate further later) (maybe one of those 3 anems I sighted that used to get lost in the filtering b/c not have a year associated with them (NA)?)
-    print("All anems accounted for.")
-  } else {
-    print("Some anems missing or double-counted.")
-    print(length(out$anem_table_id))
-    print(length(anemdf$anem_table_id))
-  }
-  return(out)
-}
-
 # Function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function) - copied from AnemLocations.R
 anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
@@ -305,7 +231,6 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   }
   
   return(anem)
-  
 }
 
 # Function with myconfig file info in it, for some reason new version of R/RStudio can't find the database...
@@ -326,6 +251,25 @@ fish_db <- leyte %>% tbl("clownfish") %>% collect()
 fish_seen_db <- leyte %>% tbl('clown_sightings') %>% collect()
 dives_db <- leyte %>% tbl("diveinfo") %>% collect()
 gps_db <- leyte %>% tbl("GPX") %>% collect()
+
+# Rename the corrections-related columns 
+fish_db <- fish_db %>%
+  dplyr::rename(fish_correction = correction,
+                fish_corr_date = corr_date,
+                fish_corr_editor = corr_editor,
+                fish_corr_message = corr_message)
+
+anem_db <- anem_db %>%
+  dplyr::rename(anem_correction = correction,
+                anem_corr_date = corr_date,
+                anem_corr_editor = corr_editor,
+                anem_corr_message = corr_message)
+
+dives_db <- dives_db %>%
+  dplyr::rename(dive_correction = correction,
+                dive_corr_date = corr_date,
+                dive_corr_editor = corr_editor,
+                dive_corr_message = corr_message)
 
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- leyte %>% 
@@ -356,6 +300,10 @@ allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
 allfish_caught <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish_caught <- left_join(allfish_caught, allfish_dives, by="dive_table_id")
 
+##### Match anems with dives
+# dive_anem_info <- dives_db %>%
+#   filter()
+
 ##### Create list of sites and the years they were sampled
 # Summarize sites sampled each year
 dives_processed <- dives_db %>%
@@ -369,6 +317,29 @@ site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
 site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site'))  # 1 if sampled in a particular year, NA if not
 
+
+##### Process anems to merge with dive info, get times in same time zone as gps, and make a unique identifier for each anem (as known by anem_id or anem_obs)
+# Merge with dive info
+anems_Processed <- left_join(anem_db, dives_db, by="dive_table_id") %>%  
+  mutate(year = as.numeric(substring(date,1,4)))
+
+anems_Processed <- anems_Processed %>%
+  filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>%  # filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (4193 as of 3/2019) (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
+  filter(is.null(anem_spp) == FALSE) %>%  # to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
+  filter(is.na(anem_spp) == FALSE) %>%  # or anem_spp that is NA
+  mutate(anem_id = as.numeric(anem_id)) %>%  # make anem_id numeric to make future joins/merges easier
+  mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>%  # add unique anem id (obs + anem_obs if there is one, otherwise id + anem_id) so can track anems through time
+  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>%  # add in placeholder columns for lat and lon info 
+  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
+  mutate(anem_obs_time = force_tz(ymd_hms(str_c(date, anem_obs_time, sep = " ")), tzone = "Asia/Manila")) %>%  # tell it that it is currently in Asia/Manila time zone
+  mutate(anem_obs_time = with_tz(anem_obs_time, tzone = "UTC")) %>%  # convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+  mutate(month = month(anem_obs_time),  # and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+         day = day(anem_obs_time), 
+         hour = hour(anem_obs_time), 
+         min = minute(anem_obs_time), 
+         sec = second(anem_obs_time))
+# When run the above, get a warning that two failed to parse - assume those are the two that don't have anem_obs_times
+  
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
 
@@ -502,3 +473,76 @@ save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all c
 # load(file = here("Data", "fish_db.RData"))
 # load(file = here("Data", "dives_db.RData"))
 # load(file = here("Data", "gps_db.RData"))
+
+# # Function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to all of them), from AnemLocations.R script originally, this version from TotalAnemsAtSite.R script
+# attach2018anems <- function(anemdf) {
+#   
+#   #make anem_id numeric, create anem_id_unq
+#   anemdf <- anemdf %>%
+#     mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
+#     mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep="")))  #add unique anem id so can track anems easier (has obs or id in front of whichever number it is reporting: eg. obs192)
+#   
+#   #filter out anems that might be repeat visits (2018, tag_id less than the new tags for 2018 or new tag and old tag present) and don't already have an anem_obs
+#   anems2018 <- anemdf %>% #646
+#     filter(year == 2018) %>%
+#     filter(anem_id < tag1_2018 | (anem_id >= tag1_2018 & !is.na(old_anem_id))) %>% #filter out the ones that could could have other anem_ids (sighting of existing anem_id tag or new tag with old_anem_id filled in), checked this (below) and think it is filtering out correctly...
+#     filter(is.na(anem_obs)) #some anem_obs already filled in so take those out... 
+#     
+#   #other 2018 anems that aren't candidates for repeat obs (so can add back in later)
+#   anems2018_2 <- anemdf %>% #270
+#     filter(year == 2018) %>%
+#     filter(anem_id >= tag1_2018 & is.na(old_anem_id))
+#   
+#   #other 2018 anems that already have an anem_obs (so can add back in later) - checked (once...) that anems2018, anems2018_2, and anems2018_3 covers all 2018 anems
+#   anems2018_3 <- anemdf %>%
+#     filter(year == 2018) %>%
+#     filter(!is.na(anem_obs))
+#   
+#   #filter out anems that are candidates for revisits (just anything from before 2018...), and that will get added back into final df later
+#   otheranems <- anemdf %>% #4068
+#     filter(year != 2018)
+#   
+#   #the filtering above covers all anems except anem_table_id 10473 with anem_id 2535, which has no year associated with it
+#   #test <- anemdf %>% filter(!year %in% c(2012,2013,2014,2015,2016,2017,2018)) #this is how I found that anem
+#   
+#   #go through anems2018 that might be revisits and see if there are anems from previous years that match
+#   for (i in 1:length(anems2018$anem_id)) {
+#     
+#     testid <- anems2018$anem_id[i] #pull out anem_id to compare
+#     testoldid <- anems2018$old_anem_id[i] #pull out old_anem_id
+#     
+#     matchanem <- filter(otheranems, anem_id == testid)  #does the anem_id match an anem_id record from the past?
+#     matcholdanem <- filter(otheranems, anem_id == testoldid) #does the old_anem_id match an anem_id from the past?
+#     
+#     # does the anem_id match an anem_id from the past? 
+#     if (length(matchanem$anem_id) > 0) { #if the anem_id matches an old one
+#       # if so, does the site match?
+#       if (matchanem$site[1] == anems2018$site[i]) { #make sure the site matches
+#         anems2018$anem_id_unq[i] = matchanem$anem_id_unq[1] #if there are multiple records from the past that match, take the first one
+#       } else {
+#         print(paste("Site does not match for anem_id", testid)) #print message if site doesn't match
+#       }
+#       # if not, does an old_anem_id match an anem_id from the past?
+#     } else if (length(matcholdanem$anem_id) > 0) { #if the old_anem_id matches one from the past
+#       # if so, does the site match?
+#       if (matcholdanem$site[1] == anems2018$site[i]) { #check site
+#         anems2018$anem_id_unq[i] = matcholdanem$anem_id_unq[1]
+#       } else {
+#         print(paste("Site does not match for old_anem_id", testoldid, "and anem_id", testid))
+#       }
+#     } else {
+#       anems2018$anem_id_unq[i] = anems2018$anem_id_unq[i]
+#       print(paste("No past anem matches found for testid", testid, "and testoldid", testoldid))
+#     }
+#   }
+#   out <- rbind(anems2018, anems2018_2, anems2018_3, otheranems)
+#   
+#   if(length(out$anem_table_id) == (length(anemdf$anem_table_id)-1)) { #1 anem (anem_table_id 10473, anem_id 2535 has no year listed - investigate further later) (maybe one of those 3 anems I sighted that used to get lost in the filtering b/c not have a year associated with them (NA)?)
+#     print("All anems accounted for.")
+#   } else {
+#     print("Some anems missing or double-counted.")
+#     print(length(out$anem_table_id))
+#     print(length(anemdf$anem_table_id))
+#   }
+#   return(out)
+# }
