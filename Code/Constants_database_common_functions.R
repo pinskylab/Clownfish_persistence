@@ -331,14 +331,22 @@ anems_Processed <- anems_Processed %>%
   mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>%  # add unique anem id (obs + anem_obs if there is one, otherwise id + anem_id) so can track anems through time
   mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>%  # add in placeholder columns for lat and lon info 
   mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
-  mutate(anem_obs_time = force_tz(ymd_hms(str_c(date, anem_obs_time, sep = " ")), tzone = "Asia/Manila")) %>%  # tell it that it is currently in Asia/Manila time zone
-  mutate(anem_obs_time = with_tz(anem_obs_time, tzone = "UTC")) %>%  # convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
-  mutate(month = month(anem_obs_time),  # and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
-         day = day(anem_obs_time), 
-         hour = hour(anem_obs_time), 
-         min = minute(anem_obs_time), 
-         sec = second(anem_obs_time))
+  mutate(obs_time = force_tz(ymd_hms(str_c(date, anem_obs_time, sep = " ")), tzone = "Asia/Manila")) %>%  # tell it that it is currently in Asia/Manila time zone
+  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>%  # convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+  mutate(anem_month = month(obs_time),  # and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+         anem_day = day(obs_time), 
+         anem_hour = hour(obs_time), 
+         anem_min = minute(obs_time), 
+         anem_sec = second(obs_time))
 # When run the above, get a warning that two failed to parse - assume those are the two that don't have anem_obs_times
+
+##### Process gps data so date and time is on there and more accessible for comparison
+gps_Info <- gps_db %>%
+  mutate(gps_date = date(time),
+         gps_day = day(time),
+         gps_hour = hour(time),
+         gps_min = minute(time),
+         gps_sec = second(time))
   
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
