@@ -1,53 +1,60 @@
-#Useful functions and constants for clownfish work - copied from Common_constants_and_functions.R in Clownfish_data_analysis 10/15/18
-#Database pulls, constants, functions I use throughout the scripts in this repository
+# Functions and constants used throughout clownfish persistence scripts 
 
-#################### Install packages ####################
-library(RCurl) #allows running R scripts from GitHub
-library(RMySQL) #might need to load this to connect to the database?
+#################### Install packages: ####################
+#library(RCurl) #allows running R scripts from GitHub
+#library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
 library(lubridate)
 library(stringr)
-library(ggplot2)
-library(RColorBrewer)
-library(geosphere)
-library(varhandle)
-library(reshape)
+#library(ggplot2)
+#library(RColorBrewer)
+#library(geosphere)
+#library(varhandle)
+#library(reshape)
 library(here)
 
+#################### Load saved data from database: ####################
+load(file = here::here("Data/Data_from_database", "anem_db.RData"))
+load(file = here::here("Data/Data_from_database", "fish_db.RData"))
+load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
+load(file = here::here("Data/Data_from_database", "dives_db.RData"))
+load(file = here::here("Data/Data_from_database", "gps_db.RData"))
+
+#################### Data from other analyses: ####################
+# Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
+prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
+            0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
+            0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
+
+
 #################### Constants, indices, etc. ####################
-##### Vector and indices to reference sites easily in plots and filtering and such (can call things like site_vec[Cabatoan] or site_vec[1]))
+########## Site information ##########
+# vector of sites, in alphabetical order, for referencing sites easily in plots and filtering and such (does not include Sitio Hicgop, which has no fish)
 site_vec <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas", "Haina", "Hicgop South",
               "N. Magbangon", "S. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", "San Agustin", "Sitio Baybayon", "Sitio Lonas", 
               "Sitio Tugas", "Tamakin Dacot", "Visca", "Wangag")
-Cabatoan <- 1
-CaridadCemetery <- 2
-CaridadProper <- 3
-ElementarySchool <- 4
-Gabas <- 5
-Haina <- 6
-HicgopSouth <- 7
-N_Magbangon <- 8
-S_Magbangon <- 9
-Palanas <- 10
-PorocRose <- 11
-PorocSanFlower <- 12
-SanAgustin <- 13
-SitioBaybayon <- 14
-SitioLonas <- 15
-SitioTugas <- 16
-TamakinDacot <- 17
-Visca <- 18
-Wangag <- 19
+# Cabatoan <- 1
+# CaridadCemetery <- 2
+# CaridadProper <- 3
+# ElementarySchool <- 4
+# Gabas <- 5
+# Haina <- 6
+# HicgopSouth <- 7
+# N_Magbangon <- 8
+# S_Magbangon <- 9
+# Palanas <- 10
+# PorocRose <- 11
+# PorocSanFlower <- 12
+# SanAgustin <- 13
+# SitioBaybayon <- 14
+# SitioLonas <- 15
+# SitioTugas <- 16
+# TamakinDacot <- 17
+# Visca <- 18
+# Wangag <- 19
 
-#vector of sites from north to south
-# this one has Sitio Hicgop in in, which as far as I can tell doesn't have any fish associated to it in the db
-# site_vec_NS <- c('Palanas', 'Wangag', 'N. Magbangon', 'S. Magbangon' , 'Cabatoan',
-#                  'Caridad Cemetery', 'Caridad Proper', 'Sitio Hicgop', 'Hicgop South',
-#                  'Sitio Tugas', 'Elementary School', 'Sitio Lonas', 'San Agustin',
-#                  'Poroc San Flower', 'Poroc Rose', 'Visca', 'Gabas', 'Tamakin Dacot',
-#                  'Haina', 'Sitio Baybayon')
-
+# vector of sites from north to south (does not include Sitio Hicgop, which has no fish)
 site_vec_NS <- c('Palanas', 'Wangag', 'N. Magbangon', 'S. Magbangon' , 'Cabatoan',
                  'Caridad Cemetery', 'Caridad Proper', 'Hicgop South',
                  'Sitio Tugas', 'Elementary School', 'Sitio Lonas', 'San Agustin',
@@ -59,35 +66,28 @@ site_vec_order <- data.frame(site_name = site_vec)
 site_vec_order$alpha_order <- seq(1:length(site_vec))
 site_vec_order$geo_order <- c(5, 6, 7, 10, 16, 18, 8, 3, 4, 1, 14, 13, 12, 19, 11, 9, 17, 15, 2)
   
-#tagging and fin-clipping thresholds
-min_tag_size <- 6.0 #minimum size for tagging   
-min_clip_size <- 3.5 #minimum size for fin-clip
+########## Fish information ##########
+# tagging and fin-clipping thresholds
+min_tag_size <- 6.0  # minimum size for tagging   
+min_clip_size <- 3.5  # minimum size for fin-clip
 
+# Maybe move this to another script? Like a data characteristics script? 
 #size thresholds for determining stage (just made up based on gut for now) - update based on data - Michelle has a boxplot somewhere?
 min_breeding_F_size <- 6
 min_breeding_M_size <- 6
 breeding_F_YR_cutoff <- 9 #for now, saying if a fish is greater than 9cm but marked YR, probably a female
 female_size_cutoff <- 10 #for now, saying if a fish is >10cm but we don't know anything about the color, probably a female
 
-#first anemone tag in 2018
-tag1_2018 <- 2938
+# #recaptured fish known to be caught at two or more sites (been checked for typos) - I think at least one of these turned out to be a PIT-tag typo...
+# multiple_site_recaps <- data.frame(tag_id = c('982000411818588', '982000411818610', '985153000401241'),
+#                                    gen_id = c(NA, NA, NA))
 
-#first metal anemone tag number (started using in May 2015)
+########## Anemone information ##########
+# first metal anemone tag number (started using metal tags in May 2015)
 first_metal_tag <- 2001 
 
-#number of years sampled
-years_sampled <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)
-
-#years with tagging
-tag_sample_years = c(2015,2016,2017,2018)
-
-#winter months
-winter_months <- c(1,2) #to pull out winter 2015 surveys - check that they didn't go into March too
-spring_months <- c(3,4,5,6,7,8) #to pull out non-winter 2015 surveys
-
-#recaptured fish known to be caught at two or more sites (been checked for typos)
-multiple_site_recaps <- data.frame(tag_id = c('982000411818588', '982000411818610', '985153000401241'),
-                                   gen_id = c(NA, NA, NA))
+# first anemone tag in 2018
+tag1_2018 <- 2938
 
 #anems at N and S ends of sites (visually from QGIS, in particular mid anems totally eyeballed)
 Cabatoan_N <- 198 # 3195, 951 other options, 2502
@@ -116,9 +116,8 @@ Magbangon_N <- 2079
 Magbangon_mid <- 680
 Magbangon_S <- 213
 Magbangon_N_N <- 2079
-Magbangon_N_mid <- #2257 is mid of northern-most chunk; 475 or 2952 N of mid-chunk
-#Magbangon_N_S <- 680 #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
-Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value?
+Magbangon_N_mid <- 2257 #is mid of northern-most chunk; 475 or 2952 N of mid-chunk - this (2257) number was commented out? not sure why?
+Magbangon_N_S <- 1114 #680 doesn't seem to have a lon value? #680 is S of hull, 1114 is another option; 212 is S end of northern-most chunk, 1391 is another option
 Magbangon_S_N <- 1113 #209 is another option
 Magbangon_S_mid <- 2437
 Magbangon_S_S <- 213 #214, 215 other options 
@@ -164,17 +163,22 @@ site_edge_anems <- data.frame(site = site_vec_NS, site_geo_order = c(5, 6, 7, 10
                                           PorocRose_mid, Visca_mid, Gabas_mid, TamakinDacot_mid, Haina_mid, SitioBaybayon_mid),
                               anem_loc = c(rep('north',length(site_vec_NS)), rep('south',length(site_vec_NS)), rep('mid', length(site_vec_NS))))
 
-# Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
-prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
-            0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
-            0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
+########## Sampling information ##########
+# years sampled
+years_sampled <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)
 
+# years with tagging
+tag_sample_years = c(2015,2016,2017,2018)
+
+# months by season
+winter_months <- c(1,2)  # to pull out winter 2015 surveys - check that they didn't go into March too
+spring_months <- c(3,4,5,6,7,8)  # to pull out non-winter 2015 surveys
 
 #################### Functions: ####################
-# Functions from Michelle's GitHub helpers script
-#field_helpers (similar idea to helpers, in field repository) - this might be the newer version of the helpers collection?
-script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
+# # Functions from Michelle's GitHub helpers script
+# #field_helpers (similar idea to helpers, in field repository) - this might be the newer version of the helpers collection?
+# script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
+# eval(parse(text = script))
 
 #function to make vector of strings for column names for something done each year (like columns for sampling each year or minimum distance sampled to each anem each year, etc.)
 makeYearlyColNames <- function(start.Year, end.Year, descriptor) { #start.Year is first year of sampling, end.Year is final year of sampling, descriptor is string to go before year in column name (like "min_dist_" if want columns like "min_dist_2012")
@@ -207,11 +211,11 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   anem <- anem.df %>% 
     filter(anem_table_id == anem.table.id) %>% #get the relevant dive, time, site, etc. info for this anem_table_id
     distinct(anem_table_id, .keep_all = TRUE) #added this in to get remove multiple entries that exist for some 2018 anem_table_ids
-  
-  # find the lat long for this anem observation
+ 
+  # Problem early when wasn't pulling anything: gps_date was structure Date, anem$date was chr
   latloninfo <- latlondata %>%
-    filter(date %in% anem$date & unit == anem$gps) %>% #filter out just the GPS unit associated with this anem observation (added since previous time)
-    filter(hour == anem$hour & min == anem$min) %>%
+    filter(as.character(gps_date) %in% anem$date & unit == anem$gps) %>%  # filter out just the GPS unit associated with this anem observation and on the right date
+    filter(gps_hour == anem$anem_hour & gps_min == anem$anem_min) %>%
     mutate(lat = as.numeric(lat)) %>%
     mutate(lon = as.numeric(lon))
   
@@ -231,34 +235,22 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   }
   
   return(anem)
+
 }
 
 # Function with myconfig file info in it, for some reason new version of R/RStudio can't find the database...
-read_db <- function(x) {
-  db <- src_mysql(dbname = x,
-                  port = 3306,
-                  create = F,
-                  host = "amphiprion.deenr.rutgers.edu",
-                  user = "allisond",
-                  password = "fish!NM?717")
-  return(db)
-}
-#################### Pull out database info ####################
-leyte <- read_db("Leyte") 
+# read_db <- function(x) {
+#   db <- src_mysql(dbname = x,
+#                   port = 3306,
+#                   create = F,
+#                   host = "amphiprion.deenr.rutgers.edu",
+#                   user = "allisond",
+#                   password = "fish!NM?717")
+#   return(db)
+# }
 
-anem_db <- leyte %>% tbl("anemones") %>% collect()
-fish_db <- leyte %>% tbl("clownfish") %>% collect()
-fish_seen_db <- leyte %>% tbl('clown_sightings') %>% collect()
-dives_db <- leyte %>% tbl("diveinfo") %>% collect()
-gps_db <- leyte %>% tbl("GPX") %>% collect()
-
-# Rename the corrections-related columns 
-fish_db <- fish_db %>%
-  dplyr::rename(fish_correction = correction,
-                fish_corr_date = corr_date,
-                fish_corr_editor = corr_editor,
-                fish_corr_message = corr_message)
-
+#################### Process database info: ####################
+##### Rename the corrections-related columns (should be unnecessary soon)
 anem_db <- anem_db %>%
   dplyr::rename(anem_correction = correction,
                 anem_corr_date = corr_date,
@@ -271,47 +263,41 @@ dives_db <- dives_db %>%
                 dive_corr_editor = corr_editor,
                 dive_corr_message = corr_message)
 
+##### Pull out year into a separate column in dives_db
+dives_db <- dives_db %>%
+  mutate(year = as.integer(substring(date,1,4)))
+
 ##### Pull all APCL caught or otherwise in the clownfish table
-allfish_fish <- leyte %>% 
-  tbl("clownfish") %>%
+allfish_fish <- fish_db %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, fish_notes) %>%
-  collect() %>%
   filter(fish_spp == 'APCL') %>%
   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
 
 # and their corresponding anemones
-allfish_anems <- leyte %>%
-  tbl("anemones") %>%
+allfish_anems <- anem_db %>%
   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_notes) %>%
-  collect() %>%
   filter(anem_table_id %in% allfish_fish$anem_table_id)
 
 # and the corresponding dive info
-allfish_dives <- leyte %>%
-  tbl("diveinfo") %>%
+allfish_dives <- dives_db %>%
   select(dive_table_id, dive_type, date, site, gps, dive_notes) %>%
-  collect() %>%
   filter(dive_table_id %in% allfish_anems$dive_table_id) 
 
-# pull out just the year and put that in a separate column
-allfish_dives$year <- as.integer(substring(allfish_dives$date,1,4))
- 
 # join together
 allfish_caught <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish_caught <- left_join(allfish_caught, allfish_dives, by="dive_table_id")
 
-##### Match anems with dives
-# dive_anem_info <- dives_db %>%
-#   filter()
+# remove intermediate dataframes, just to keep things tidy
+rm(allfish_fish, allfish_anems, allfish_dives) 
 
 ##### Create list of sites and the years they were sampled
 # Summarize sites sampled each year
 dives_processed <- dives_db %>%
-  mutate(year = as.integer(substring(date,1,4))) %>%
   group_by(year, site) %>% 
   summarize(ndives = n()) %>%
   mutate(sampled = ifelse(ndives > 0, 1, 0)) # 1 if sampled (all 1 here b/c no entries for sites not sampled a particular year...)
 
+# Put sampling indicator into dataframe with sites
 site_visits <- data.frame(site = rep(site_vec_NS, length(years_sampled)))
 site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_NS)), rep(2014, length(site_vec_NS)), rep(2015, length(site_vec_NS)),
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
@@ -320,8 +306,7 @@ site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sam
 
 ##### Process anems to merge with dive info, get times in same time zone as gps, and make a unique identifier for each anem (as known by anem_id or anem_obs)
 # Merge with dive info
-anems_Processed <- left_join(anem_db, dives_db, by="dive_table_id") %>%  
-  mutate(year = as.numeric(substring(date,1,4)))
+anems_Processed <- left_join(anem_db, dives_db, by="dive_table_id")
 
 anems_Processed <- anems_Processed %>%
   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>%  # filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (4193 as of 3/2019) (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
@@ -329,8 +314,8 @@ anems_Processed <- anems_Processed %>%
   filter(is.na(anem_spp) == FALSE) %>%  # or anem_spp that is NA
   mutate(anem_id = as.numeric(anem_id)) %>%  # make anem_id numeric to make future joins/merges easier
   mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep=""))) %>%  # add unique anem id (obs + anem_obs if there is one, otherwise id + anem_id) so can track anems through time
-  mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>%  # add in placeholder columns for lat and lon info 
-  mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
+  #mutate(lat = as.numeric(rep(NA, length(anem_table_id)))) %>%  # add in placeholder columns for lat and lon info 
+  #mutate(lon = as.numeric(rep(NA, length(anem_table_id)))) %>%
   mutate(obs_time = force_tz(ymd_hms(str_c(date, anem_obs_time, sep = " ")), tzone = "Asia/Manila")) %>%  # tell it that it is currently in Asia/Manila time zone
   mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>%  # convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
   mutate(anem_month = month(obs_time),  # and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
@@ -347,7 +332,7 @@ gps_Info <- gps_db %>%
          gps_hour = hour(time),
          gps_min = minute(time),
          gps_sec = second(time))
-  
+
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
 
@@ -554,3 +539,27 @@ save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all c
 #   }
 #   return(out)
 # }
+
+# ##### Pull all APCL caught or otherwise in the clownfish table (back when doing it directly from database)
+# allfish_fish <- leyte %>% 
+#   tbl("clownfish") %>%
+#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, fish_notes) %>%
+#   collect() %>%
+#   filter(fish_spp == 'APCL') %>%
+#   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
+# 
+# # and their corresponding anemones
+# allfish_anems <- leyte %>%
+#   tbl("anemones") %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_notes) %>%
+#   collect() %>%
+#   filter(anem_table_id %in% allfish_fish$anem_table_id)
+# 
+# # and the corresponding dive info
+# allfish_dives <- leyte %>%
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, dive_type, date, site, gps, dive_notes) %>%
+#   collect() %>%
+#   filter(dive_table_id %in% allfish_anems$dive_table_id) 
+
+
