@@ -22,10 +22,31 @@ load(file = here::here("Data/Data_from_database", "dives_db.RData"))
 load(file = here::here("Data/Data_from_database", "gps_db.RData"))
 
 #################### Data from other analyses: ####################
+# Should I make either prob r or site_areas calcs as part of this repo rather than sourcing from KC?
 # Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
             0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
             0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
+
+# Load in site_areas
+load(file=here::here('Data','site_areas.RData'))
+
+# Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
+k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
+theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
+k_2012 = -2.67
+theta_2012 = 3
+k_2013 = -3.27
+theta_2013 = 3
+k_2014 = -2.38
+theta_2014 = 2
+k_2015 = -2.73
+theta_2015 = 2
+
+# Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
+parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
+parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
+parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
 
 #################### Constants, indices, etc. ####################
@@ -174,6 +195,9 @@ tag_sample_years = c(2015,2016,2017,2018)
 winter_months <- c(1,2)  # to pull out winter 2015 surveys - check that they didn't go into March too
 spring_months <- c(3,4,5,6,7,8)  # to pull out non-winter 2015 surveys
 
+# dive types where clownfish were sampled (check this with Michelle and Malin)
+clown_sample_dive_types <- c("0","A","C","D","E","F","M")  # everything but R
+
 #################### Functions: ####################
 # # Functions from Michelle's GitHub helpers script
 # #field_helpers (similar idea to helpers, in field repository) - this might be the newer version of the helpers collection?
@@ -263,9 +287,10 @@ dives_db <- dives_db %>%
                 dive_corr_editor = corr_editor,
                 dive_corr_message = corr_message)
 
-##### Pull out year into a separate column in dives_db
+##### Pull out year and month into a separate column in dives_db
 dives_db <- dives_db %>%
-  mutate(year = as.integer(substring(date,1,4)))
+  mutate(year = as.integer(substring(date,1,4))) %>%
+  mutate(month = as.integer(substring(date,6,7)))
 
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- fish_db %>%
