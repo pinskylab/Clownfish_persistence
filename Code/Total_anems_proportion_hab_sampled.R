@@ -1,5 +1,8 @@
 # Calculate total number of anemones at each site and proportion of habitat sampled each year based on anemone numbers
 
+#### LOOKS LIKE PLOTS DON'T QUITE MATCH PREVIOUS ESTIMATES - WHY NOT?
+#### WRITE UP AS AN ISSUE ON CLOWNFISH_DECISIONS GITHUB TO HAVE A RECORD OF HOW WE DECIDED TO CALCULATE THIS!
+
 #################### Set-up: ####################
 # Load packages
 library(ggplot2)
