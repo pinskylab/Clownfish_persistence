@@ -3,6 +3,8 @@
 # To add: uncertainty in egg-recruit survival
 # fix uncertainty in growth and uncertainty in annual survival
 # uncertainty in egg-size relationship?
+# uncertainty in prop_r?
+# uncertainty in prop_hab_sampled?
 
 #################### Set-up: ####################
 library(grid)
@@ -10,6 +12,7 @@ library(gridExtra)
 
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
+# Should have two options: source the files that create these outputs or load them from Data folder
 load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
 load(file=here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
 load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA
@@ -17,6 +20,7 @@ load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (fo
 k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
 
 load(file=here('Data','surv_egg_recruit_est.RData'))
+load(file=here('Data','anems_visited_by_year.RData'))
 
 #load(file=here('Data', 'size_by_color_metrics.RData'))  # size distribution info by tail color
 #load(file=here("Data", "eall_Phi_size_p_dist_results.RData")) #MARK output 
@@ -67,8 +71,8 @@ Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE,
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
-recruits_per_egg = surv_egg_recruit
-# recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R
+#recruits_per_egg = surv_egg_recruit  # right now using Johnson method where have size cutoff or YP or O for parents, multiply by LEP for 3.5cm recruit - should think about this more, talk to MP/KC
+recruits_per_egg = 8.367276e-05  # surv_egg_recruit estimating using Johnson method in PersistenceMetrics.R - going to go back to this for the minute b/c think exponential egg relationship combined with high egg production is making egg output skyrocket..
 
 ##### Other parameters that stay static
 
@@ -234,12 +238,14 @@ calcMetrics <- function(param_set, Cmatrix, sites) {
 #################### Running things: ####################
 ##### Find 'best estimates' of some of the parameters
 breeding_size_mean <- mean(female_sizes$size, na.rm=TRUE)
+prob_r_mean <- mean(prob_r)  # average value of prob r from each recap dive  -- WHERE DOES THIS COME IN? OTHER SCRIPTS?
 
 ##### Generate sets of parameters
 Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd=Linf_growth_sd)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd= Sint_se)
 k_connectivity_set = sample(k_connectivity_values, n_runs, replace=TRUE)  # replace should be true, right?
 breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # replace should be true, right?
+prob_r_set = rnorm(n_runs, mean = prob_r_mean, sd=sd(prob_r))  
 
 # Put static + pulled-from-distribution parameters together into one dataframe
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -265,6 +271,20 @@ param_best_est <- data.frame(t_steps = n_tsteps) %>%
 
 ##### Find the 'best-estimate' metrics
 best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)
+
+# Create connectivity matrix in matrix form
+c_mat_allyears_matrix <- c_mat_allyears %>% select(org_site, dest_site, d1_km, d2_km, org_alpha_order, org_geo_order, dest_alpha_order, dest_geo_order)
+for(i in 1:length(c_mat_allyears$org_site)) {
+  c_mat_allyears_matrix$prob_disp[i] <- integrate(disp_allyears, c_mat_allyears_matrix$d1_km[i], c_mat_allyears_matrix$d2_km[i])$value
+}
+
+conn_matrix <- matrix(NA,ncol=max(Cmat$org_geo_order), nrow=max(Cmat$org_geo_order))    
+for(i in 1:length(Cmat$org_site)) {
+  column = Cmat$org_geo_order[i]  # column is origin 
+  row = Cmat$dest_geo_order[i]  # row is destination
+  conn_matrix[row, column] = Cmat$prob_disp[i]
+}
+
 
 # Find LEP for mean breeding size and for size 6.0
 LEP_breeding_size_mean <- findLEP(param_best_est$min_size, param_best_est$max_size, param_best_est$n_bins, 
@@ -498,7 +518,8 @@ LEP_plot <- ggplot(data = LEP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
   geom_vline(xintercept = LEP_best_est, color='black') +
   xlab('LEP') + ggtitle('a) Lifetime egg production') +
-  theme_bw()
+  theme_bw() 
+  #theme(axis.text.x=element_text(angle=45,hjust=1,vjust=0))
 
 LEP_R_plot <- ggplot(data = LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
@@ -506,7 +527,7 @@ LEP_R_plot <- ggplot(data = LEP_R_out_df, aes(x=value)) +
   xlab('LRP') + ggtitle('b) Lifetime recruit production') +
   theme_bw()
 
-pdf(file = here('Plots/FigureDrafts', 'LEP_and_LRP.pdf'), width=6, height=3)
+pdf(file = here('Plots/FigureDrafts', 'LEP_and_LRP.pdf'), width=7, height=3)
 grid.arrange(LEP_plot, LEP_R_plot, nrow=1)
 dev.off()
 
@@ -534,7 +555,7 @@ ggplot(data = (SP_out_df %>% filter(site != 'Sitio Lonas')), aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
   geom_histogram(binwidth=0.001, color='gray', fill='gray') +
   geom_vline(data=(SP_best_est %>% filter(site != 'Sitio Lonas')), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
-  ylim(0,300) +
+  ylim(0,150) +
   facet_wrap(~reorder(site, org_geo_order)) +
   xlab('SP') + ggtitle('Self-persistence estimates by site') +
   theme_bw() +
