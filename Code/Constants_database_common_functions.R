@@ -48,6 +48,11 @@ parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears
 parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
 parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
+# Raw mean egg counts
+egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 655, 414, 352, 1102, 265, 1886, 904,
+                        851, 160, 648, 766, 1060, 670, 351, 557)  # from egg_data2018f.csv in Adam's repository
+mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
+
 
 #################### Constants, indices, etc. ####################
 ########## Site information ##########
