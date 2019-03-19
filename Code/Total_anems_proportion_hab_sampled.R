@@ -10,6 +10,12 @@ library(ggplot2)
 # Pull data, functions, constants 
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
+# Set sites to include for total possible sampling area (all site areas times all years sampled) - excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this because they disappeared partway through (check with Michelle on that) (should I exclude the Sitio Lonas match too?)
+sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
+                           'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
+                           'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
+                           'Visca', 'Wangag', 'S. Magbangon')  
+
 #################### Functions: ####################
 # Find the number of tagged anemones visited by each site, each year 
 pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, survey_months, dive_types) {  # anemsdf is processed anems (anems_Processed), allanems are anems associated with APCL - regardless if tagged, divesdf is all dives, year_i is year of interest, site_i is site, survey_months is list of months when clownfish were sampled
@@ -70,7 +76,10 @@ all_APCL_anems <- left_join(APCL_anems, APCL_dives, by="dive_table_id")  # this 
 # Remove intermediate data frames for neatness
 rm(APCL_caught, APCL_anems, APCL_dives)
 
-##### Create data frames to store the output for various methods of assessing total anemones
+##### Find total habitat at, as indicated by anemones, via four methods
+# Create data frames to store the output for various methods of assessing total anemones
+methods = c("metal tags", "all tags", "seen twice", "2015 survey")
+
 total_anems_by_site_metal <- data.frame(site = site_vec_order$site_name) %>%
   mutate(method = "metal tags",
          n_total_anems = NA)
@@ -132,7 +141,7 @@ total_anems_by_site <- rbind(total_anems_by_site_metal, total_anems_by_site_allt
 # Remove the individual method data frames, for neatness
 rm(total_anems_by_site_metal, total_anems_by_site_alltags, total_anems_by_site_seen2x, total_anems_by_site_2015W)
 
-##### Find the number of anems visited each year in each site
+##### Find the amount of the site visited, as estimated by number of anems visited each year in each site
 # Set up data frames for each year
 anems_visited_2012 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
   mutate(year = 2012,
@@ -224,13 +233,37 @@ rm(anems_visited_2012, anems_visited_2013, anems_visited_2014, anems_visited_201
 # Add in total anems per site
 anems_visited_by_year <- left_join(anems_visited_by_year, total_anems_by_site, by = "site")
 
-# and calculate proportion habitat sampled
+##### Calculate proportion habitat sampled and create a tidied version where NaN, Inf, and values >1 are edited
 anems_visited_by_year <- anems_visited_by_year %>%
   mutate(prop_hab_sampled = n_anems/n_total_anems) %>%  # for all methods of determining total number of tags, calculate prop_hab_sampled
   mutate(prop_hab_sampled_tidied = case_when(prop_hab_sampled <= 1 ~ prop_hab_sampled,  # if it's a real number and less than one, stick with original prop_hab_sampled
                                             prop_hab_sampled == Inf | is.na(prop_hab_sampled) ~ 0,  # if it's infinite or otherwise not a number (b/c total anems is 0), use 0
                                             prop_hab_sampled > 1 ~ 1))  # if it's bigger than 1, round down to 1 
 
+
+##### Calculate the total amount of habitat visited over time (used in estimating egg-recruit survival)
+# Sum up total site area (all site areas times all years sampled) - total possible sampling area 
+site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)  # Pull just the area from those sites
+
+total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
+
+# Find amount of habitat sampled overall - sum of area sampled in each year
+sampled_area_each_year <- left_join(site_areas_modified, anems_visited_by_year, by = 'site') %>%  # join with total area
+  mutate(area_sampled = prop_hab_sampled_tidied*kmsq_area)  # for each method, site, and year, find area sampled in kmsq, using tidied-up prop hab sampled
+
+total_area_sampled <- data.frame(method = methods) %>%
+  mutate(total_area_sampled = NA,
+         total_prop_hab_sampled = NA)
+
+# Using each method of determining number of anemones at a site, go through and find total area sampled in each year
+# (Is this the best way of doing it? Total area sampled doesn't change within a year and should be some way of determing that like from tracks or something... but total area of site would...))
+for(i in 1:length(methods)) {
+  total_area_sampled$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == methods[i]))$area_sampled)
+  total_area_sampled$total_prop_hab_sampled[i] = total_area_sampled$total_area_sampled[i]/total_area_all_years
+}
+
+# Remove intermediate data frames for neatness
+rm(site_areas_modified, sampled_area_each_year)
 
 #################### Plots: #################### (already have versions of these in this folder from the other script but now can compare)
 # Look at proportion sampled, using metal tags as total anemones
@@ -360,7 +393,8 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2018), aes(x=site, y=prop
 dev.off()
 
 #################### Saving output: ####################
-save(anems_visited_by_year, file=here::here("Data", "anems_visited_by_year.RData"))
+save(anems_visited_by_year, file=here::here("Data", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
+save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
 
 
 # # # Load helpful functions from other scripts
