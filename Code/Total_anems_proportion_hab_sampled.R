@@ -247,19 +247,28 @@ site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)  #
 
 total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
 
+total_area_2012to2015 <- sum(site_areas_modified$kmsq_area)*length(years_parentage)  # until all genetic data is in parentage, only act as if we sampled in 2012-2015 (for egg-recruit survival estimate)
+
 # Find amount of habitat sampled overall - sum of area sampled in each year
 sampled_area_each_year <- left_join(site_areas_modified, anems_visited_by_year, by = 'site') %>%  # join with total area
   mutate(area_sampled = prop_hab_sampled_tidied*kmsq_area)  # for each method, site, and year, find area sampled in kmsq, using tidied-up prop hab sampled
 
 total_area_sampled <- data.frame(method = methods) %>%
   mutate(total_area_sampled = NA,
-         total_prop_hab_sampled = NA)
+         total_prop_hab_sampled = NA,
+         total_area_sampled_2012to2015 = NA,
+         total_prop_hab_sampled_2012to2015 = NA)
 
 # Using each method of determining number of anemones at a site, go through and find total area sampled in each year
 # (Is this the best way of doing it? Total area sampled doesn't change within a year and should be some way of determing that like from tracks or something... but total area of site would...))
 for(i in 1:length(methods)) {
+  # for all sampling years (2012-2018)
   total_area_sampled$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == methods[i]))$area_sampled)
   total_area_sampled$total_prop_hab_sampled[i] = total_area_sampled$total_area_sampled[i]/total_area_all_years
+  
+  # for early sampling years (2012-2015), currently the ones in parentage analysis and kernel estimates
+  total_area_sampled$total_area_sampled_2012to2015[i] = sum((sampled_area_each_year %>% filter(method == methods[i]) %>% filter(year %in% years_parentage))$area_sampled)
+  total_area_sampled$total_prop_hab_sampled_2012to2015[i] = total_area_sampled$total_area_sampled_2012to2015[i]/total_area_2012to2015
 }
 
 # Remove intermediate data frames for neatness
