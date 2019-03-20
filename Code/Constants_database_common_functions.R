@@ -48,6 +48,9 @@ parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears
 parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
 parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
+# years included in parentage analyses
+years_parentage <- c(2012, 2013, 2014, 2015)  # not all field seasons included in parentage and dispersal kernel analyses yet
+
 # Raw mean egg counts
 egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 655, 414, 352, 1102, 265, 1886, 904,
                         851, 160, 648, 766, 1060, 670, 351, 557)  # from egg_data2018f.csv in Adam's repository
@@ -310,7 +313,7 @@ allfish_anems <- anem_db %>%
 
 # and the corresponding dive info
 allfish_dives <- dives_db %>%
-  select(dive_table_id, dive_type, date, site, gps, dive_notes) %>%
+  select(dive_table_id, dive_type, date, year, month, site, gps, dive_notes) %>%
   filter(dive_table_id %in% allfish_anems$dive_table_id) 
 
 # join together
