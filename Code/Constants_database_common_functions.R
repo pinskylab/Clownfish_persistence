@@ -43,15 +43,27 @@ theta_2014 = 2
 k_2015 = -2.73
 theta_2015 = 2
 
+k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+
 # Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
 parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
 parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
 parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
+# number of parents in parent file
+parents_2012to2015 = 913  # number of parents in parentage file KC is running for 2012-2015
+offspring_2012to2015 = NA  # number of offspring in parentage runs KC is running for 2012-2015
+parents_parentage_file = parents_2012to2015  # setting a new value here so can change easily between years in included in parentage and kernel analysis without dealing with other scripts
+offspring_parentage_file = offspring_2012to2015
+
 # years included in parentage analyses
 years_parentage <- c(2012, 2013, 2014, 2015)  # not all field seasons included in parentage and dispersal kernel analyses yet
 
-# Raw mean egg counts
+##### Fecundity info from Adam
+# Size-fecundity model
+load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA
+
+# Raw egg counts from photos
 egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 655, 414, 352, 1102, 265, 1886, 904,
                         851, 160, 648, 766, 1060, 670, 351, 557)  # from egg_data2018f.csv in Adam's repository
 mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
@@ -91,7 +103,7 @@ site_vec_NS <- c('Palanas', 'Wangag', 'N. Magbangon', 'S. Magbangon' , 'Cabatoan
                  'Haina', 'Sitio Baybayon')
 
 # data frame with site names and order alphabetically and geographically (N-S)
-site_vec_order <- data.frame(site_name = site_vec)
+site_vec_order <- data.frame(site_name = site_vec, stringsAsFactors = FALSE)
 site_vec_order$alpha_order <- seq(1:length(site_vec))
 site_vec_order$geo_order <- c(5, 6, 7, 10, 16, 18, 8, 3, 4, 1, 14, 13, 12, 19, 11, 9, 17, 15, 2)
   
