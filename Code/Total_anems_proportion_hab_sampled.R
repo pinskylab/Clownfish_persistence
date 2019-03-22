@@ -1,10 +1,10 @@
 # Calculate total number of anemones at each site and proportion of habitat sampled each year based on anemone numbers
 
 #### LOOKS LIKE PLOTS DON'T QUITE MATCH PREVIOUS ESTIMATES - WHY NOT?
-#### WRITE UP AS AN ISSUE ON CLOWNFISH_DECISIONS GITHUB TO HAVE A RECORD OF HOW WE DECIDED TO CALCULATE THIS!
 
 #################### Set-up: ####################
 # Load packages
+library(stringr)
 library(ggplot2)
 
 # Pull data, functions, constants 
@@ -245,19 +245,45 @@ anems_visited_by_year <- anems_visited_by_year %>%
 # Sum up total site area (all site areas times all years sampled) - total possible sampling area 
 site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)  # Pull just the area from those sites
 
-total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
-
-total_area_2012to2015 <- sum(site_areas_modified$kmsq_area)*length(years_parentage)  # until all genetic data is in parentage, only act as if we sampled in 2012-2015 (for egg-recruit survival estimate)
-
 # Find amount of habitat sampled overall - sum of area sampled in each year
 sampled_area_each_year <- left_join(site_areas_modified, anems_visited_by_year, by = 'site') %>%  # join with total area
   mutate(area_sampled = prop_hab_sampled_tidied*kmsq_area)  # for each method, site, and year, find area sampled in kmsq, using tidied-up prop hab sampled
 
-total_area_sampled <- data.frame(method = methods) %>%
-  mutate(total_area_sampled = NA,
+time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
+
+# Set up a data frame for collecting total area sampled across different time frames
+time_frame_list <- rep(time_frames[1], length(methods))
+for (i in 2:length(time_frames)) {
+  time_frame_list <- c(time_frame_list, rep(time_frames[i], length(methods)))
+}
+
+total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_frames)),
+                                              time_frame = time_frame_list, stringsAsFactors = FALSE) %>%
+  mutate(total_possible_sample_area_km2 = NA,
+         total_area_sampled_km2 = NA,
          total_prop_hab_sampled = NA,
-         total_area_sampled_2012to2015 = NA,
-         total_prop_hab_sampled_2012to2015 = NA)
+         end_year = str_sub(time_frame, -4, -1))
+
+# total_area_sampled <- data.frame(method = methods) %>%
+#   mutate(total_area_sampled = NA,
+#          total_prop_hab_sampled = NA,
+#          total_area_sampled_2012to2015 = NA,
+#          total_prop_hab_sampled_2012to2015 = NA)
+
+# Find total area that could have been sampled, adding a sample year each time (for parentage)
+for (i in 1:length(total_area_sampled_through_time$method)) {
+  end_year <- as.integer(total_area_sampled_through_time$end_year[i])
+  years_to_include <- seq(2012, end_year, by=1)
+  total_area_sampled_through_time$total_possible_sample_area_km2[i] = sum(site_areas_modified$kmsq_area*(length(years_to_include)))
+  total_area_sampled_through_time$total_area_sampled_km2[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$area_sampled)
+  #total_area_sampled_through_time$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == total_area_sampled_through_time$methods[i], year %in% years_to_include))$area_sampled)
+  total_area_sampled_through_time$total_prop_hab_sampled[i] = total_area_sampled_through_time$total_area_sampled_km2[i]/total_area_sampled_through_time$total_possible_sample_area_km2[i]
+}
+
+total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
+
+total_area_2012to2015 <- sum(site_areas_modified$kmsq_area)*length(years_parentage)  # until all genetic data is in parentage, only act as if we sampled in 2012-2015 (for egg-recruit survival estimate)
+
 
 # Using each method of determining number of anemones at a site, go through and find total area sampled in each year
 # (Is this the best way of doing it? Total area sampled doesn't change within a year and should be some way of determing that like from tracks or something... but total area of site would...))
@@ -402,9 +428,10 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2018), aes(x=site, y=prop
 dev.off()
 
 #################### Saving output: ####################
-save(anems_visited_by_year, file=here::here("Data", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
-save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
-
+save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
+save(sampled_area_each_year, file=here::here("Data/Script_outputs", "sampled_area_each_year.RData"))
+#save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
+save(total_area_sampled_through_time, file=here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))
 
 # # # Load helpful functions from other scripts
 # # script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R", ssl.verifypeer = FALSE)
