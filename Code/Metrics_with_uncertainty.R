@@ -106,6 +106,15 @@ disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(
   return(disp)
 }
 
+# Find beta distribution parameters from mean and variance (mostly for prob_r uncertainty)
+findBetaDistParams <- function(mu, var) {
+  alpha = (((1-mu)/var) - (1/mu))*mu^2
+  beta = alpha*(1/mu -1)
+  
+  out = list(alpha = alpha, beta = beta)
+  return(out)
+}
+
 # Growth 
 VBL_growth <- function(Linf, k_growth, length) {
   Ls = Linf - (Linf - length)*exp(-k_growth)
@@ -350,7 +359,7 @@ tagged_eggs_3.5cm <- n_parents_parentage*LEP_3.5cm
 #surv_egg_recruit_best_est <- recruited_offspring/tagged_offspring_6cm
 recruits_per_egg_best_est <- recruited_tagged_offspring/tagged_eggs_6cm
 
-# How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015
+# How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 - update this so it pulls using size and sex, rather than tail color
 n_offspring_genotypes_df <- allfish_caught %>%
   filter(year %in% years_parentage) %>%
   filter(!is.na(gen_id)) %>%  # NEED TO ALSO FILTER OUT THOSE WITH ISSUES THAT DIDN'T GO INTO PARENTAGE!
@@ -399,20 +408,32 @@ Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival
 k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # dispersal kernel k (replace should be true, right?)
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
-prob_r_set = rnorm(n_runs, mean = prob_r_mean, sd = sd(prob_r))  # not sure where this is coming in right now... would be in scaling up pops...
 
-# Some prob r values are negative (b/c pulling from a normal distribution... should think through a better way to do this...). For now, make those that are <- 0 0.01 and those > 1 1
-for (i in 1:length(prob_r_set)){
-  prob_r_val <- prob_r_set[i]
-  if (prob_r_val <= 0) {
-    prob_r_set[i] <- 0.01
-  } else if (prob_r_val > 1) {
-    prob_r_set[i] <- 1
-  } 
-}
+prob_r_beta_params = findBetaDistParams(mean(prob_r), var(prob_r))  # find beta distribution parameters for prob r distrubtion from normal mean and variance
+prob_r_set = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # should the non-centrality parameter be 0?
 
-# Another way of doing prob r - pull from within a uniform distribution between min-max observed values
-# prob_r_set = runif(n_runs, min =  min(prob_r), max = max(prob_r))
+prob_r_set_normal = rnorm(n_runs, mean = prob_r_mean, sd = sd(prob_r))  # not sure where this is coming in right now... would be in scaling up pops...
+prob_r_set_fromdata = sample(prob_r, n_runs, replace = TRUE)  # just sample from the 14 calculated prob_r values
+
+# Compare the two versions (plot down in plot section)
+prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("normal", n_runs), rep("sample from data", n_runs)),
+                          values = c(prob_r_set, prob_r_set_normal, prob_r_set_fromdata))
+
+# # Some prob r values are negative (b/c pulling from a normal distribution... should think through a better way to do this...). For now, make those that are <- 0 0.01 and those > 1 1
+# for (i in 1:length(prob_r_set_1)){
+#   prob_r_val <- prob_r_set_1[i]
+#   if (prob_r_val < min(prob_r)) {
+#     prob_r_set_1[i] <- min(prob_r)  # no values lower than the minimum recap we had
+#   } else if (prob_r_val > 1) {
+#     prob_r_set_1[i] <- 1  # or the maximum (which was 1)
+#   }
+# }
+
+# # NEED TO LOOK UP HOW TO REALLY DO THIS.... but what if just take the values in prob_r_set_1 that are within the reasonable bounds (0-1 or something else), then pull from that?
+# prob_r_set_1_fodder_trunc <- subset
+# prob_r_set_1 <- sample((prob_r_set_1_fodder))
+# # Another way of doing prob r - pull from within a uniform distribution between min-max observed values
+# prob_r_set_2 = runif(n_runs, min =  min(prob_r), max = max(prob_r))
 
 # Uncertainty in recruits-per-egg - two ways
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
@@ -543,7 +564,7 @@ ggplot(data = LEP_out_df, aes(x=value)) +
   theme_bw()
 dev.off()
 
-# LEP_R (LEP in terms of recruits)
+# LEP_R (LEP in terms of recruits) -- WHY ARE THESE ALMOST ALL GREATER THAN 1??? GO BACK THROUGH CALCS AND SEE WHAT IS HAPPENING...
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
@@ -551,7 +572,55 @@ ggplot(data = LEP_R_out_df, aes(x=value)) +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values') +
   theme_bw()
 dev.off()
+
+# NP
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
+ggplot(data = NP_out_df, aes(x=value)) +
+  geom_histogram(bins=25, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est, color='black') +
+  xlab('NP') + ggtitle('Histogram of NP values') +
+  theme_bw()
+dev.off()
+
+# Recruits-per-egg
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
+ggplot(data = NP_out_df, aes(x=value)) +
+  geom_histogram(bins=25, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est, color='black') +
+  xlab('NP') + ggtitle('Histogram of NP values') +
+  theme_bw()
+dev.off()
+
+##### SP at each site
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
+ggplot(data = SP_out_df, aes(x=value)) +
+  #geom_histogram(binwidth=0.0005) +
+  geom_histogram(binwidth=0.001, color='gray', fill='gray') +
+  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
+  ylim(0,300) +
+  facet_wrap(~site) +
+  xlab('SP') + ggtitle('Self-persistence histograms by site') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
+dev.off()
+
 ########## Plotting inputs ##########
+
+# Prob of catching a fish, made into a distribution two ways and sampling from data
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison_with_data.pdf"))
+ggplot(data = prob_r_comp, aes(x = values, fill = distribution)) +
+  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.6) +
+  xlab("prob r") + ggtitle("Distributions of prob r") +
+  theme_bw()
+dev.off()
+
+# Prob of catching a fish, made into a distribution two ways, without the data in there too
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison.pdf"))
+ggplot(data = prob_r_comp %>% filter(distribution %in% c("beta", "normal")), aes(x = values, fill = distribution)) +
+  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.6) +
+  xlab("prob r") + ggtitle("Distributions of prob r") +
+  theme_bw()
+dev.off()
 
 
 ############# STOPPED EDITING HERE 
@@ -567,14 +636,7 @@ dev.off()
 # hist(LEP_R_out_df$value, breaks=30)
 # dev.off()
 
-# NP
-pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
-ggplot(data = NP_out_df, aes(x=value)) +
-  geom_histogram(bins=25, color='gray', fill='gray') +
-  geom_vline(xintercept = NP_best_est, color='black') +
-  xlab('NP') + ggtitle('Histogram of NP values') +
-  theme_bw()
-dev.off()
+
 
 # recruits_per_egg (but right now this is static)
   
@@ -583,18 +645,6 @@ dev.off()
 # hist(NP_out_df$value, breaks=30)
 # hist(RperE_out_df$value, breaks=30)
 
-##### SP at each site
-pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
-ggplot(data = SP_out_df, aes(x=value)) +
-  #geom_histogram(binwidth=0.0005) +
-  geom_histogram(binwidth=0.001, color='gray', fill='gray') +
-  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
-  ylim(0,300) +
-  facet_wrap(~site) +
-  xlab('SP') + ggtitle('Self-persistence histograms by site') +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
-dev.off()
 
 ##### Relationships between values
 # LEP_R and NP - do we expect these to be related perfectly linearly? I guess, when both connectivity and recruits-per-egg are static...
