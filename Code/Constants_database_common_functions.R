@@ -14,6 +14,8 @@ library(stringr)
 #library(reshape)
 library(here)
 
+# source(here::here("Code", "Pull_data_from_database.R"))
+
 #################### Load saved data from database: ####################
 load(file = here::here("Data/Data_from_database", "anem_db.RData"))
 load(file = here::here("Data/Data_from_database", "fish_db.RData"))
@@ -67,6 +69,8 @@ load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity outp
 egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 655, 414, 352, 1102, 265, 1886, 904,
                         851, 160, 648, 766, 1060, 670, 351, 557)  # from egg_data2018f.csv in Adam's repository
 mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
+
+clutches_per_year_mean = 11.9
 
 
 #################### Constants, indices, etc. ####################
@@ -294,18 +298,18 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
 # }
 
 #################### Process database info: ####################
-##### Rename the corrections-related columns (should be unnecessary soon)
-anem_db <- anem_db %>%
-  dplyr::rename(anem_correction = correction,
-                anem_corr_date = corr_date,
-                anem_corr_editor = corr_editor,
-                anem_corr_message = corr_message)
-
-dives_db <- dives_db %>%
-  dplyr::rename(dive_correction = correction,
-                dive_corr_date = corr_date,
-                dive_corr_editor = corr_editor,
-                dive_corr_message = corr_message)
+# ##### Rename the corrections-related columns (should be unnecessary soon)
+# anem_db <- anem_db %>%
+#   dplyr::rename(anem_correction = correction,
+#                 anem_corr_date = corr_date,
+#                 anem_corr_editor = corr_editor,
+#                 anem_corr_message = corr_message)
+# 
+# dives_db <- dives_db %>%
+#   dplyr::rename(dive_correction = correction,
+#                 dive_corr_date = corr_date,
+#                 dive_corr_editor = corr_editor,
+#                 dive_corr_message = corr_message)
 
 ##### Pull out year and month into a separate column in dives_db
 dives_db <- dives_db %>%
@@ -314,7 +318,7 @@ dives_db <- dives_db %>%
 
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- fish_db %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, fish_notes) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, sex, size, fish_obs_time, fish_notes) %>%
   filter(fish_spp == 'APCL') %>%
   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
 
