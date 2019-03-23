@@ -2,6 +2,8 @@
 
 #### LOOKS LIKE PLOTS DON'T QUITE MATCH PREVIOUS ESTIMATES - WHY NOT?
 
+##### What if instead of doing total area across years, do total anemones across years (like we do for within-year prop hab sampled)
+
 #################### Set-up: ####################
 # Load packages
 library(stringr)
@@ -261,8 +263,11 @@ total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_
                                               time_frame = time_frame_list, stringsAsFactors = FALSE) %>%
   mutate(total_possible_sample_area_km2 = NA,
          total_area_sampled_km2 = NA,
-         total_prop_hab_sampled = NA,
-         end_year = str_sub(time_frame, -4, -1))
+         total_prop_hab_sampled_area = NA,
+         end_year = str_sub(time_frame, -4, -1),
+         total_possible_sample_anems = NA,
+         total_anems_sampled = NA,
+         total_prop_hab_sampled_anems = NA)
 
 # total_area_sampled <- data.frame(method = methods) %>%
 #   mutate(total_area_sampled = NA,
@@ -274,28 +279,40 @@ total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_
 for (i in 1:length(total_area_sampled_through_time$method)) {
   end_year <- as.integer(total_area_sampled_through_time$end_year[i])
   years_to_include <- seq(2012, end_year, by=1)
+  
+  # Find possible area to sample, area sampled, and prop_hab sampled using area
   total_area_sampled_through_time$total_possible_sample_area_km2[i] = sum(site_areas_modified$kmsq_area*(length(years_to_include)))
   total_area_sampled_through_time$total_area_sampled_km2[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$area_sampled)
   #total_area_sampled_through_time$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == total_area_sampled_through_time$methods[i], year %in% years_to_include))$area_sampled)
-  total_area_sampled_through_time$total_prop_hab_sampled[i] = total_area_sampled_through_time$total_area_sampled_km2[i]/total_area_sampled_through_time$total_possible_sample_area_km2[i]
+  total_area_sampled_through_time$total_prop_hab_sampled_area[i] = total_area_sampled_through_time$total_area_sampled_km2[i]/total_area_sampled_through_time$total_possible_sample_area_km2[i]
+
+  # Find possible area to sample, area sampled, and prob_hab sampled using anems and proportion of anems, rather than converting to area (like do for within-year proportion hab sampled)
+  total_area_sampled_through_time$total_possible_sample_anems[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_total_anems)
+  total_area_sampled_through_time$total_anems_sampled[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems)
+  total_area_sampled_through_time$total_prop_hab_sampled_anems[i] = total_area_sampled_through_time$total_anems_sampled[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
 }
 
-total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
+# Make into a data frame for easier comparison plotting
+total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sampled_through_time$method, 2),
+                                          time_frame = rep(total_area_sampled_through_time$time_frame, 2),
+                                          total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems),
+                                          total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method))))
 
-total_area_2012to2015 <- sum(site_areas_modified$kmsq_area)*length(years_parentage)  # until all genetic data is in parentage, only act as if we sampled in 2012-2015 (for egg-recruit survival estimate)
-
-
-# Using each method of determining number of anemones at a site, go through and find total area sampled in each year
-# (Is this the best way of doing it? Total area sampled doesn't change within a year and should be some way of determing that like from tracks or something... but total area of site would...))
-for(i in 1:length(methods)) {
-  # for all sampling years (2012-2018)
-  total_area_sampled$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == methods[i]))$area_sampled)
-  total_area_sampled$total_prop_hab_sampled[i] = total_area_sampled$total_area_sampled[i]/total_area_all_years
-  
-  # for early sampling years (2012-2015), currently the ones in parentage analysis and kernel estimates
-  total_area_sampled$total_area_sampled_2012to2015[i] = sum((sampled_area_each_year %>% filter(method == methods[i]) %>% filter(year %in% years_parentage))$area_sampled)
-  total_area_sampled$total_prop_hab_sampled_2012to2015[i] = total_area_sampled$total_area_sampled_2012to2015[i]/total_area_2012to2015
-}
+# total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
+# 
+# total_area_2012to2015 <- sum(site_areas_modified$kmsq_area)*length(years_parentage)  # until all genetic data is in parentage, only act as if we sampled in 2012-2015 (for egg-recruit survival estimate)
+# 
+# # Using each method of determining number of anemones at a site, go through and find total area sampled in each year
+# # (Is this the best way of doing it? Total area sampled doesn't change within a year and should be some way of determing that like from tracks or something... but total area of site would...))
+# for(i in 1:length(methods)) {
+#   # for all sampling years (2012-2018)
+#   total_area_sampled$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == methods[i]))$area_sampled)
+#   total_area_sampled$total_prop_hab_sampled[i] = total_area_sampled$total_area_sampled[i]/total_area_all_years
+#   
+#   # for early sampling years (2012-2015), currently the ones in parentage analysis and kernel estimates
+#   total_area_sampled$total_area_sampled_2012to2015[i] = sum((sampled_area_each_year %>% filter(method == methods[i]) %>% filter(year %in% years_parentage))$area_sampled)
+#   total_area_sampled$total_prop_hab_sampled_2012to2015[i] = total_area_sampled$total_area_sampled_2012to2015[i]/total_area_2012to2015
+# }
 
 # Remove intermediate data frames for neatness
 rm(site_areas_modified, sampled_area_each_year)
@@ -337,7 +354,7 @@ ggplot(data = anems_visited_by_year, aes(x=site, y=prop_hab_sampled, fill=method
 dev.off()
 
 # Compare different estimates of proportion habitat sampled, but with edited values (to get rid of NaN, Inf, and > 1)
-pdf(file = here:here("Plots/TotalAnemsandPropHabSampled", "Method_comparison_edited_prop_hab_sampled_across_sites_and_years.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Method_comparison_edited_prop_hab_sampled_across_sites_and_years.pdf"))
 ggplot(data = anems_visited_by_year, aes(x=site, y=prop_hab_sampled_tidied, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -351,7 +368,7 @@ dev.off()
 
 # And looking at each year individually
 # 2012
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2012_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2012_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2012), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -362,7 +379,7 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2012), aes(x=site, y=prop
 dev.off()
 
 # 2013
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2013_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2013_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2013), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -373,7 +390,7 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2013), aes(x=site, y=prop
 dev.off()
 
 # 2014
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2014_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2014_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2014), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -384,7 +401,7 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2014), aes(x=site, y=prop
 dev.off()
 
 # 2015
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2015_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2015_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2015), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -395,7 +412,7 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2015), aes(x=site, y=prop
 dev.off()
 
 # 2016
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2016_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2016_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2016), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -406,7 +423,7 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2016), aes(x=site, y=prop
 dev.off()
 
 # 2017
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2017_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2017_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2017), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -417,7 +434,7 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2017), aes(x=site, y=prop
 dev.off()
 
 # 2018
-pdf(file = here("Plots/TotalAnemsandPropHabSampled", "2018_prop_hab_sampled.pdf"))
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "2018_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(year == 2018), aes(x=site, y=prop_hab_sampled, fill=method)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_hline(yintercept = 1) +
@@ -427,9 +444,23 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2018), aes(x=site, y=prop
   ggtitle("Estimates of proportion habitat sampled - 2018")
 dev.off()
 
+# Look at overall proportion sampled, using metal tags as total anemones, by time frame, area vs. anems method
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_through_time_area_vs_anems.pdf"))
+ggplot(data = total_sampling_across_years %>% filter(total_anems_method=="metal tags"), aes(x=time_frame, y=total_prop_hab_sampled, fill=total_area_method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  #geom_bar(aes(x=time_frame, y=total_prop_hab_sampled_anems), position = "dodge", stat = "identity", fill = "dark blue") +
+  geom_hline(yintercept = 1) +
+  xlab("sampling years") + ylab("total prop habitat sampled") +
+  #facet_wrap(~year) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(text = element_text(size=12)) +
+  ggtitle("Estimates of proportion habitat sampled, anems vs area method")
+dev.off()
+
 #################### Saving output: ####################
 save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
-save(sampled_area_each_year, file=here::here("Data/Script_outputs", "sampled_area_each_year.RData"))
+#save(sampled_area_each_year, file=here::here("Data/Script_outputs", "sampled_area_each_year.RData"))
 #save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
 save(total_area_sampled_through_time, file=here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))
 
