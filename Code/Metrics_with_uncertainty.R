@@ -16,8 +16,8 @@ library(gridExtra)
 ##### Load files from other scripts within this repository or source those scripts (below, commented out)
 
 # Load file with proportion habitat sampled estimates
-load(file = here::here("Data", "anems_visited_by_year.RData"))  # has total anems at each site and proportion habitat sampled at each site in each year
-load(file = here::here("Data", "total_area_sampled.RData"))  # has total area sampled across time (for egg-recruit survival estimate)
+load(file = here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # has total anems at each site and proportion habitat sampled at each site in each year
+load(file = here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))  # has total area sampled across time (for egg-recruit survival estimate)
 # source(here::here("Code", "Total_anems_proportion_hab_sampled.R"))
 
 # # Load file with proportion habitat sampled estimates (from TotalAnemsAtSite.R) - replaced by new script, should check if output is the same?
@@ -44,7 +44,8 @@ load(file=here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK out
 # #  - now pulling straight from distribution of values, rather than re-creating distribution
 #k_allyears = -1.36  # with 2012-2015 data
 #theta_allyears = 0.5  # with 2012-2015 data
-load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
+
+#load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 
 # Size transition info (Michelle analysis in genomics repo)
 recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))
@@ -349,7 +350,7 @@ n_parents_parentage = parents_parentage_file  # for now, just using the 2012-201
 n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring identified via parentage (for 2012-2015) - make sure not double-counting those ided by both mom and dad
 
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
-recruited_tagged_offspring <- n_offspring_parentage/((total_area_sampled %>% filter(method == "metal tags"))$total_prop_hab_sampled_2012to2015*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
+recruited_tagged_offspring <- n_offspring_parentage/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 
 # How many potential offspring (eggs) were produced by tagged adults (parents)
 tagged_eggs_6cm <- n_parents_parentage*LEP_6cm  # Use LEP from what size here? How to avoid double-counting if those parents mated together?
@@ -363,12 +364,14 @@ recruits_per_egg_best_est <- recruited_tagged_offspring/tagged_eggs_6cm
 n_offspring_genotypes_df <- allfish_caught %>%
   filter(year %in% years_parentage) %>%
   filter(!is.na(gen_id)) %>%  # NEED TO ALSO FILTER OUT THOSE WITH ISSUES THAT DIDN'T GO INTO PARENTAGE!
-  filter(size <- min_breeding_M_size & color != "YP" & color != "O") %>%  # any genotyped individuals that didn't meet the parent criteria
+  filter(size < min_breeding_M_size & color != "YP" & color != "O") %>%  # any genotyped individuals that didn't meet the parent criteria
   distinct(gen_id, .keep_all = TRUE)
 
-n_offspring_genotypes = length(n_offspring_genotypes_df$gen_id)  # saying 767 for 2012-2015
+n_offspring_genotypes = length(n_offspring_genotypes_df$gen_id)  # saying 767 for 2012-2015 (now 548 - accidentally had size <- min_breeding, rather than size <)
 
 assignment_rate = n_offspring_parentage/n_offspring_genotypes  # proportion of genotyped offspring that were assigned to parents in parentage analysis
+
+mean_sampled_offspring_size <- mean(n_offspring_genotypes_df$size, rm.na = TRUE)  # this is just one of the obs of each of these fish... not sure how many duplicates there are, should really check...
 
 # # Estimate survival from adult-recruit
 # prop_F_M <- 0.5  # saying 50% of the "adults" we clip are males that won't make it to females -- reasonable? could check this. But LEP takes that into account, right?
@@ -382,7 +385,9 @@ assignment_rate = n_offspring_parentage/n_offspring_genotypes  # proportion of g
 
 #################### Find metrics for "best estimate" of the various parameters: ####################
 # Put best-estimate parameters into one dataframe
-param_best_est <- data.frame(t_steps = n_tsteps) %>%
+# "offspring" are 3.5-6.0, what if start at different places?
+# start at 3.5cm
+param_best_est_3.5 <- data.frame(t_steps = n_tsteps) %>%
   mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
@@ -391,15 +396,59 @@ param_best_est <- data.frame(t_steps = n_tsteps) %>%
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
 
+# start at 4.75cm 
+param_best_est_4.75 <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = 4.75, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+# start at 6.0cm
+param_best_est_6.0 <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = 6.0, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+# start at mean size of actual offspring collected (about 4.45)
+param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
 # Calculate the metrics for the best estimates
 # best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)  # site_list <- c_mat_allyears$dest_site[1:19]
-best_est_metrics <- calcMetrics(param_best_est, site_dist_info, site_vec_order$site_name)
+best_est_metrics_3.5cm <- calcMetrics(param_best_est_3.5, site_dist_info, site_vec_order$site_name)
+best_est_metrics_4.75cm <- calcMetrics(param_best_est_4.75, site_dist_info, site_vec_order$site_name)
+best_est_metrics_6.0cm <- calcMetrics(param_best_est_6.0, site_dist_info, site_vec_order$site_name)
+best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name)
 
 # Save as separate items, for plotting ease
-LEP_best_est <- best_est_metrics$LEP
-LEP_R_best_est <- best_est_metrics$LEP_R
-NP_best_est <- best_est_metrics$NP
-SP_best_est <- as.data.frame(best_est_metrics$SP)
+LEP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+                           LEP = c(best_est_metrics_3.5cm$LEP, best_est_metrics_4.75cm$LEP, best_est_metrics_6.0cm$LEP, best_est_metrics_mean_offspring$LEP), stringsAsFactors = FALSE)
+LEP__R_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+                           LEP_R = c(best_est_metrics_3.5cm$LEP_R, best_est_metrics_4.75cm$LEP_R, best_est_metrics_6.0cm$LEP_R, best_est_metrics_mean_offspring$LEP_R), stringsAsFactors = FALSE)
+NP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+                           NP = c(best_est_metrics_3.5cm$NP, best_est_metrics_4.75cm$NP, best_est_metrics_6.0cm$NP, best_est_metrics_mean_offspring$NP), stringsAsFactors = FALSE)
+SP_best_est <- rbind(best_est_metrics_3.5cm$SP %>% mutate(recruit_size = "3.5cm"),
+                     best_est_metrics_4.75cm$SP %>% mutate(recruit_size = "4.75cm"),
+                     best_est_metrics_6.0cm$SP %>% mutate(recruit_size = "6.0cm"),
+                     best_est_metrics_mean_offspring$SP %>% mutate(recruit_size = "mean offspring"))
+
+# LEP_best_est <- best_est_metrics$LEP
+# LEP_R_best_est <- best_est_metrics$LEP_R
+# NP_best_est <- best_est_metrics$NP
+# SP_best_est <- as.data.frame(best_est_metrics$SP)
 
 #################### Run the metrics for uncertainty in the parameter estimates: ####################
 ### Generate sets of parameters for uncertainty
