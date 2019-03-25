@@ -278,6 +278,74 @@ calcMetrics <- function(param_set, sites_and_dists, sites) {
              conn_matrix = conn_matrix, conn_matrixR = conn_matrixR, Cmat = Cmat)
 }
 
+# Calculate metrics across many runs (this is slow, if have time, should really try to write this without a for loop....)
+calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_order, set_name) {
+  
+  LEP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  RperE_out_df <- data.frame(value = rep(NA, n_runs), metric = 'recruits per egg', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  NP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'NP', inout = 'output', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+ 
+  metric_vals <- data.frame(run = seq(1:n_runs), LEP = NA, LEP_R = NA, recruits_per_egg = NA, NP = NA, uncertainty_type = set_name, stringsAsFactors = FALSE)
+  
+  # Create vector of sites for SP dataframe      
+  runsrepped = rep(1, length(site_vec_order$site_name))                                                         
+  for(i in 2:n_runs) {
+    runsrepped = c(runsrepped, rep(i, length(site_vec_order$site_name)))
+  }                                 
+  
+  SP_out_df <- data.frame(value = rep(NA, length(site_vec_order$site_name)*n_runs), metric = 'SP', run = NA,
+                          site = NA, org_geo_order = NA, uncertainty_type = set_name)
+  
+  # Calculate the metrics for each parameter set, fill into the data frames - would be faster if this wasn't a for loop (and doesn't need to be, since the runs don't depend on each other at all...)
+  for(i in 1:n_runs) {
+    
+    # Select parameter set
+    params <- param_sets[i,]
+    
+    # Do the run
+    metrics_output = calcMetrics(params, site_dist_info, site_vec_order$site_name)
+    
+    # Fill in the metrics
+    LEP_out_df$value[i] = metrics_output$LEP
+    LEP_R_out_df$value[i] = metrics_output$LEP_R
+    RperE_out_df$value[i] = metrics_output$recruits_per_egg
+    NP_out_df$value[i] = metrics_output$NP
+    
+    metric_vals$LEP[i] = metrics_output$LEP
+    metric_vals$LEP_R[i] = metrics_output$LEP_R
+    metric_vals$recruits_per_egg[i] = metrics_output$recruits_per_egg
+    metric_vals$NP[i] = metrics_output$NP
+    
+    # Pull out the SP metrics
+    start_index = (i-1)*length(site_vec_order$site_name)+1
+    end_index = i*length(site_vec_order$site_name)
+    
+    SP_out_df$site[start_index:end_index] = metrics_output$SP$site
+    SP_out_df$value[start_index:end_index] = metrics_output$SP$SP_value
+    SP_out_df$run[start_index:end_index] = rep(i, length(site_vec_order$site_name))
+    SP_out_df$org_geo_order[start_index:end_index] = metrics_output$SP$org_geo_order
+  }
+  
+  # Add some of the changing parameters in, so can look at in plots
+  metric_vals_with_params <- metric_vals %>%
+    mutate(breeding_size = param_sets$breeding_size,
+           Linf = param_sets$Linf,
+           Sint = param_sets$Sint,
+           k_connectivity = param_sets$k_connectivity,
+           recruits_per_egg = param_sets$recruits_per_egg,
+           prob_r = param_sets$prob_r)
+  
+  SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %>%
+    dplyr::rename(SP = value)
+  
+  out = list(LEP_out_df = LEP_out_df, LEP_R_out_df = LEP_R_out_df, RperE_out_df = RperE_out_df, NP_out_df = NP_out_df,
+            metric_vals_with_params = metric_vals_with_params, SP_vals_with_params = SP_vals_with_params, params_in = param_sets,
+            uncertainty_type = set_name)
+  
+  return(out)
+}
+
 #################### Running things: ####################
 # Consider moving this to the Constants_database_common_functions script?
 # Combine parentage files (mums, dads, trios) - first rename columns so they match across the files, add a column for match type, then rbind
@@ -398,7 +466,8 @@ param_best_est_3.5 <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 # start at 4.75cm 
 param_best_est_4.75 <- data.frame(t_steps = n_tsteps) %>%
@@ -408,7 +477,8 @@ param_best_est_4.75 <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = 4.75, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 # start at 6.0cm
 param_best_est_6.0 <- data.frame(t_steps = n_tsteps) %>%
@@ -418,7 +488,8 @@ param_best_est_6.0 <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = 6.0, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 # start at mean size of actual offspring collected (about 4.45)
 param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -428,7 +499,8 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set) 
 
 # Calculate the metrics for the best estimates
 # best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)  # site_list <- c_mat_allyears$dest_site[1:19]
@@ -482,8 +554,6 @@ prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("truncated b
 # Still occassionally get super low prob_r values.... get rid of those...
 #prob_r_set[which(prob_r_set < min)] <- 0.1  # make 0.1 the minimum value prob_r can be
 
-
-
 # # Some prob r values are negative (b/c pulling from a normal distribution... should think through a better way to do this...). For now, make those that are <- 0 0.01 and those > 1 1
 # for (i in 1:length(prob_r_set_1)){
 #   prob_r_val <- prob_r_set_1[i]
@@ -499,6 +569,9 @@ prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("truncated b
 # prob_r_set_1 <- sample((prob_r_set_1_fodder))
 # # Another way of doing prob r - pull from within a uniform distribution between min-max observed values
 # prob_r_set_2 = runif(n_runs, min =  min(prob_r), max = max(prob_r))
+
+# Uncertainty in how big a "recruit" is
+start_recruit_size_set <- runif(n_runs, min = 3.5, max = 6.0)  # just adding some uncertainty in the size of a recruit too...
 
 # Uncertainty in recruits-per-egg - two ways
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
@@ -534,7 +607,8 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_set,
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 # Without uncertainty in survival, growth for now
 param_set_full_no_surv_no_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -544,7 +618,19 @@ param_set_full_no_surv_no_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) 
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = rep(Linf_growth_mean, n_runs), Sint = rep(Sint_mean, n_runs),
          breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_set,
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
+
+# With uncertainty in start size of a recruit
+param_set_full_start_size_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
+         breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_set,
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 
 # Run the metrics for lots of parameters
@@ -570,6 +656,7 @@ SP_out_df <- data.frame(value = rep(NA, length(site_vec_order$site_name)*n_runs)
 for(i in 1:n_runs) {
   # Select parameter set
   params <- param_set_full[i,]
+  #params <- param_set_full_start_size_recruit[i,]
   
   # Do the run
   metrics_output = calcMetrics(params, site_dist_info, site_vec_order$site_name)
@@ -610,6 +697,9 @@ metric_vals_with_params <- metric_vals %>%
 SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %>%
   dplyr::rename(SP = value)
 
+# Check to see if the new function works
+test_function <- calcMetricsAcrossRuns(n_runs, param_set_full, site_dist_info, site_vec_order, "all")
+
 #################### What-if calculations: ####################
 ##### What-if calculation 1) what if all genotyped offspring came from the population?
 # How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 (did this above)
@@ -625,7 +715,8 @@ param_best_est_3.5_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 # start at 4.75cm 
 param_best_est_4.75_all_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -635,7 +726,8 @@ param_best_est_4.75_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = 4.75, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set) 
 
 # start at 6.0cm
 param_best_est_6.0_all_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -645,7 +737,8 @@ param_best_est_6.0_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          start_recruit_size = 6.0, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set)  
 
 # # start at mean size of actual offspring collected (about 4.45)
 # param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
