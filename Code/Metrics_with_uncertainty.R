@@ -129,6 +129,7 @@ findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) 
   return(raw_eggs)
 }
 
+##### SHOULD FIND RperE WITHIN THE CALC METRICS FUNCTION B/C THEN BREEDING SIZE CAN INFLUENCE THE EGGS PARENTS PRODUCE!!
 # Find scaled number of tagged recruits we would expect to have found if we sampled the whole area and caught all the fish
 scaleTaggedRecruits = function(offspring_assigned_to_parents, total_prop_hab_sampled, prob_capture) {
   recruited_tagged_offspring_total = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)
@@ -958,6 +959,81 @@ ggplot(data = SP_out_df, aes(x=value)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
 
+########## Plotting the metrics with different kinds of uncertainty ##########
+
+# LEP
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty.pdf"))
+ggplot(data = LEP_uncert, aes(x = value)) +
+  geom_histogram(bins = 50, color = "gray", fill = "gray") +
+  geom_vline(data = LEP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP)) +
+  facet_wrap(~uncertainty_type) +
+  xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
+  theme_bw()
+dev.off()
+
+# LEP zoomed 
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty_zoomed.pdf"))
+ggplot(data = LEP_uncert, aes(x = value)) +
+  geom_histogram(bins = 50, color = "gray", fill = "gray") +
+  geom_vline(data = LEP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP)) +
+  ylim(0,500) +
+  facet_wrap(~uncertainty_type) +
+  xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
+  theme_bw()
+dev.off()
+
+# LEP_R
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty.pdf"))
+ggplot(data = LEP_R_uncert, aes(x=value)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP_R)) +
+  facet_wrap(~uncertainty_type) +
+  xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
+  theme_bw()
+dev.off()
+
+# LEP_R zoomed
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty_zoomed.pdf"))
+ggplot(data = LEP_R_uncert, aes(x=value)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP_R)) +
+  ylim(0,500) +
+  facet_wrap(~uncertainty_type) +
+  xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
+  theme_bw()
+dev.off()
+
+# NP
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty.pdf"))
+ggplot(data = NP_uncert, aes(x=value)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(data = NP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept =NP)) +
+  facet_wrap(~uncertainty_type) +
+  xlab("NP") + ggtitle("NP with different types of uncertainty") +
+  theme_bw()
+dev.off()
+
+# NP zoomed
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty_zoomed.pdf"))
+ggplot(data = NP_uncert, aes(x=value)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(data = NP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept =NP)) +
+  ylim(0,500) +
+  facet_wrap(~uncertainty_type) +
+  xlab("NP") + ggtitle("NP with different types of uncertainty") +
+  theme_bw()
+dev.off()
+
+# Recruits-per-egg - why is all different than recruits-per-egg here?
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty.pdf"))
+ggplot(data = RperE_uncert, aes(x=value)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = recruits_per_egg_best_est) +
+  facet_wrap(~uncertainty_type) +
+  xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
+  theme_bw()
+dev.off()
+
 ########## Plotting inputs (histograms of data inputs) ##########
 
 # start recruit size (what size we think a "recruit" is)
@@ -1130,6 +1206,11 @@ ggplot(data = recruits_per_egg_uncertainty, aes(x=recruits_per_egg, fill=method)
   #coord_cartesian(xlim=c(0, 0.3)) +
   theme_bw()
 dev.off()
+
+########## Sub-figured plots to be able to look at things together ##########
+
+##### The four metrics all together
+
 
 ############# STOPPED EDITING HERE 
 
