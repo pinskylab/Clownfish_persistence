@@ -31,7 +31,7 @@ load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
 # Figure out where these outputs came from so can source those scripts too!
 # Should have two options: source the files that create these outputs or load them from Data folder
 #load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
-load(file=here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
+load(file=here::here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
 # load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA - moved to Constants common functions script
 
 # load(file=here('Data','surv_egg_recruit_est.RData'))  # now doing this within this script rather than in external script
@@ -693,7 +693,8 @@ SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% m
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_histogram.pdf'))
 ggplot(data = LEP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "3.5cm"))$LEP, color='black') +
+  geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "3.5cm"))$LEP, color='black') +
   xlab('LEP') + ggtitle('Histogram of LEP values') +
   theme_bw()
 dev.off()
@@ -702,26 +703,28 @@ dev.off()
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
+  geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values') +
   theme_bw()
 dev.off()
 
-# Zoomed in LEP_R (since sometimes there are some really high values)
-pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram_zoomed.pdf'))
-ggplot(data = LEP_R_out_df, aes(x=value)) +
-  geom_histogram(binwidth=1, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
-  xlim(c(0,100)) +
-  xlab('LEP_R') + ggtitle('Histogram of LEP_R values, zoomed') +
-  theme_bw()
-dev.off()
+# # Zoomed in LEP_R (since sometimes there are some really high values)
+# pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram_zoomed.pdf'))
+# ggplot(data = LEP_R_out_df, aes(x=value)) +
+#   geom_histogram(binwidth=1, color = 'gray', fill = 'gray') +
+#   geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
+#   xlim(c(0,100)) +
+#   xlab('LEP_R') + ggtitle('Histogram of LEP_R values, zoomed') +
+#   theme_bw()
+# dev.off()
 
 # NP
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
 ggplot(data = NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
-  geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "3.5cm"))$NP, color='black') +
+  geom_vline(data = NP_best_est, aes(xintercept = NP, color = recruit_size)) +
+  #geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "3.5cm"))$NP, color='black') +
   xlab('NP') + ggtitle('Histogram of NP values') +
   theme_bw()
 dev.off()
