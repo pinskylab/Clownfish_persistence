@@ -435,11 +435,14 @@ best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_off
 
 # Save as separate items, for plotting ease
 LEP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-                           LEP = c(best_est_metrics_3.5cm$LEP, best_est_metrics_4.75cm$LEP, best_est_metrics_6.0cm$LEP, best_est_metrics_mean_offspring$LEP), stringsAsFactors = FALSE)
+                           LEP = c(best_est_metrics_3.5cm$LEP, best_est_metrics_4.75cm$LEP, best_est_metrics_6.0cm$LEP, best_est_metrics_mean_offspring$LEP), 
+                           stringsAsFactors = FALSE)
 LEP_R_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-                           LEP_R = c(best_est_metrics_3.5cm$LEP_R, best_est_metrics_4.75cm$LEP_R, best_est_metrics_6.0cm$LEP_R, best_est_metrics_mean_offspring$LEP_R), stringsAsFactors = FALSE)
+                             LEP_R = c(best_est_metrics_3.5cm$LEP_R, best_est_metrics_4.75cm$LEP_R, best_est_metrics_6.0cm$LEP_R, best_est_metrics_mean_offspring$LEP_R), 
+                             stringsAsFactors = FALSE)
 NP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-                           NP = c(best_est_metrics_3.5cm$NP, best_est_metrics_4.75cm$NP, best_est_metrics_6.0cm$NP, best_est_metrics_mean_offspring$NP), stringsAsFactors = FALSE)
+                          NP = c(best_est_metrics_3.5cm$NP, best_est_metrics_4.75cm$NP, best_est_metrics_6.0cm$NP, best_est_metrics_mean_offspring$NP), 
+                          stringsAsFactors = FALSE)
 SP_best_est <- rbind(best_est_metrics_3.5cm$SP %>% mutate(recruit_size = "3.5cm"),
                      best_est_metrics_4.75cm$SP %>% mutate(recruit_size = "4.75cm"),
                      best_est_metrics_6.0cm$SP %>% mutate(recruit_size = "6.0cm"),
@@ -470,6 +473,8 @@ prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("normal", n_
 
 # Still occassionally get super low prob_r values.... get rid of those...
 prob_r_set[which(prob_r_set <= 0.1)] <- 0.1  # make 0.1 the minimum value prob_r can be
+
+# what I should do is get rid of any values lower than the observed value, then re-sample from that truncated vector...
 
 # # Some prob r values are negative (b/c pulling from a normal distribution... should think through a better way to do this...). For now, make those that are <- 0 0.01 and those > 1 1
 # for (i in 1:length(prob_r_set_1)){
@@ -597,10 +602,65 @@ SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %
 # How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 (did this above)
 
 # Find egg-recruit survival if all offspring we genotyped are included (say they all came from this pop)
-recruits_per_egg_all_offspring <- n_offpsring_genotypes/tagged_eggs_6cm
+recruits_per_egg_all_offspring <- n_offspring_genotypes/tagged_eggs_6cm
 
 # Make a new parameter set with that as the best estimate
+param_best_est_3.5_all_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
 
+# start at 4.75cm 
+param_best_est_4.75_all_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = 4.75, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+# start at 6.0cm
+param_best_est_6.0_all_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = 6.0, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+# # start at mean size of actual offspring collected (about 4.45)
+# param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
+#   mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+#          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+#          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+#          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+#          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+#          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+#          k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+# Calculate the metrics for the best estimates
+# best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)  # site_list <- c_mat_allyears$dest_site[1:19]
+best_est_metrics_3.5cm_all_offspring <- calcMetrics(param_best_est_3.5_all_offspring, site_dist_info, site_vec_order$site_name)
+best_est_metrics_4.75cm_all_offspring <- calcMetrics(param_best_est_4.75_all_offspring, site_dist_info, site_vec_order$site_name)
+best_est_metrics_6.0cm_all_offspring <- calcMetrics(param_best_est_6.0_all_offspring, site_dist_info, site_vec_order$site_name)
+#best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name)
+
+# Save as separate items, for plotting ease
+LEP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm"),
+                           LEP = c(best_est_metrics_3.5cm_all_offspring$LEP, best_est_metrics_4.75cm_all_offspring$LEP, best_est_metrics_6.0cm_all_offspring$LEP), stringsAsFactors = FALSE)
+LEP_R_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm"),
+                             LEP_R = c(best_est_metrics_3.5cm_all_offspring$LEP_R, best_est_metrics_4.75cm_all_offspring$LEP_R, best_est_metrics_6.0cm_all_offspring$LEP_R), stringsAsFactors = FALSE)
+NP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm"),
+                          NP = c(best_est_metrics_3.5cm_all_offspring$NP, best_est_metrics_4.75cm_all_offspring$NP, best_est_metrics_6.0cm_all_offspring$NP), stringsAsFactors = FALSE)
+SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% mutate(recruit_size = "3.5cm"),
+                                   best_est_metrics_4.75cm_all_offspring$SP %>% mutate(recruit_size = "4.75cm"),
+                                   best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"))
 
 ##### What-if calculation 2) What would egg-recruit survival need to be for NP to be 1? 
 
