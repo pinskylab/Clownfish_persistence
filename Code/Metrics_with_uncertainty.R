@@ -352,6 +352,8 @@ n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring id
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
 recruited_tagged_offspring <- n_offspring_parentage/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 
+# rto <- scaleTaggedRecruits(n_offspring_parentage, (total_area_sampled_through_time %>% filter(method == "metal tags" & time_frame == "2012-2015"))$total_prop_hab_sampled_area, mean(prob_r))  # not this function causing best est recruits-per-egg to be way lower (2 orders of magnitude) than the lowest in the uncertainty dist either
+
 # How many potential offspring (eggs) were produced by tagged adults (parents)
 tagged_eggs_6cm <- n_parents_parentage*LEP_6cm  # Use LEP from what size here? How to avoid double-counting if those parents mated together?
 tagged_eggs_3.5cm <- n_parents_parentage*LEP_3.5cm
@@ -359,6 +361,8 @@ tagged_eggs_3.5cm <- n_parents_parentage*LEP_3.5cm
 # Estimate survival from eggs-recruits by seeing how many "tagged" offspring we found out of eggs "tagged" parents produced
 #surv_egg_recruit_best_est <- recruited_offspring/tagged_offspring_6cm
 recruits_per_egg_best_est <- recruited_tagged_offspring/tagged_eggs_6cm
+
+#rpere <- findRecruitsPerTaggedEgg(recruited_tagged_offspring, tagged_eggs_6cm)  # checking that it's not the function that's the issue...
 
 # How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 - update this so it pulls using size and sex, rather than tail color
 n_offspring_genotypes_df <- allfish_caught %>%
@@ -500,19 +504,23 @@ prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("truncated b
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
 n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotypes, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
 scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_mean)
-recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)
+# recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)  # this was the problem!! Accidentally put that those tagged recruits came from one tagged parent's egg output, not all the tagged parents
+recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, tagged_eggs_6cm)
 
 # Way two: uncertainty in probability of capturing a fish (so number of offspring we find from the tagged parents) - is this worth it?
 scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_parentage, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_set)
-recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, LEP_6cm)
+# recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, LEP_6cm)
+recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, tagged_eggs_6cm)
 
 # Way three: both together
 scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_set)
-recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, LEP_6cm)
+# recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, LEP_6cm)
+recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, tagged_eggs_6cm)
 
 # Compare the uncertainty in recruits-per-egg (rbinom for assigned offspring, prob_r, both), for plot later
 recruits_per_egg_uncertainty <- data.frame(recruits_per_egg = c(recruits_per_egg_set1, recruits_per_egg_set2, recruits_per_egg_set3),
-                                           method = c(rep("n assigned offspring", n_runs), rep("prob r", n_runs), rep("both", n_runs)))
+                                           method = c(rep("n assigned offspring", n_runs), rep("prob r", n_runs), rep("both", n_runs)),
+                                           stringsAsFactors = FALSE)
 
 # Pick a recruits_per_egg_set to use
 recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
@@ -596,7 +604,8 @@ metric_vals_with_params <- metric_vals %>%
          Linf = param_set_full$Linf,
          Sint = param_set_full$Sint,
          k_connectivity = param_set_full$k_connectivity,
-         recruits_per_egg = param_set_full$recruits_per_egg)
+         recruits_per_egg = param_set_full$recruits_per_egg,
+         prob_r = prob_r_set)
 
 SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %>%
   dplyr::rename(SP = value)
@@ -689,7 +698,7 @@ ggplot(data = LEP_out_df, aes(x=value)) +
   theme_bw()
 dev.off()
 
-# LEP_R (LEP in terms of recruits) -- WHY ARE THESE ALMOST ALL GREATER THAN 1??? GO BACK THROUGH CALCS AND SEE WHAT IS HAPPENING...
+# LEP_R (LEP in terms of recruits) 
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
@@ -711,113 +720,50 @@ dev.off()
 # NP
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
 ggplot(data = NP_out_df, aes(x=value)) +
-  geom_histogram(bins=25, color='gray', fill='gray') +
+  geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "3.5cm"))$NP, color='black') +
   xlab('NP') + ggtitle('Histogram of NP values') +
   theme_bw()
 dev.off()
 
-# Recruits-per-egg -- something is weird here... the lowest uncertainty value is orders of mag above "best est" - WHAT IS GOING ON??
+# Recruits-per-egg 
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'RperE_histogram.pdf'))
 ggplot(data = data.frame(value = recruits_per_egg_set), aes(x=value)) +
-  geom_histogram(bins=25, color='gray', fill='gray') +
+  geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = recruits_per_egg_best_est, color='black') +
   xlab('recruits-per-egg') + ggtitle('Histogram of recruits-per-egg values') +
   theme_bw()
 dev.off()
 
-##### SP at each site - this plot was taking forever to make, seemed to break R....
+##### SP at each site - this plot takes a few seconds to make
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
 ggplot(data = SP_out_df, aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
   geom_histogram(binwidth=0.001, color='gray', fill='gray') +
-  geom_vline(data=(SP_best_est %>% filter(recruit_size == "3.5cm")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
+  geom_vline(data=(SP_best_est %>% filter(recruit_size == "3.5cm")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites? -- not anymore...
+  #ylim(0,300) +
+  facet_wrap(~site) +
+  xlab('SP') + ggtitle('Self-persistence histograms by site') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+dev.off()
+
+# SP at each site - zoomed in
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram_zoomed.pdf'))
+ggplot(data = SP_out_df, aes(x=value)) +
+  #geom_histogram(binwidth=0.0005) +
+  geom_histogram(binwidth=0.001, color='gray', fill='gray') +
+  geom_vline(data=(SP_best_est %>% filter(recruit_size == "3.5cm")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites? -- not anymore...
+  xlim(0,0.05) +
   ylim(0,300) +
   facet_wrap(~site) +
   xlab('SP') + ggtitle('Self-persistence histograms by site') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  #not sure why this isn't working right now...
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
 
-########## Plotting inputs ##########
+########## Plotting inputs (histograms of data inputs) ##########
 
-# Prob of catching a fish, made into a distribution two ways and sampling from data
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison_with_data.pdf"))
-ggplot(data = prob_r_comp, aes(x = values, fill = distribution)) +
-  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.6) +
-  xlab("prob r") + ggtitle("Distributions of prob r") +
-  theme_bw()
-dev.off()
-
-# Prob of catching a fish, made into a distribution two ways, without the data in there too
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison.pdf"))
-ggplot(data = prob_r_comp %>% filter(distribution %in% c("beta", "normal", "truncated beta")), aes(x = values, fill = distribution)) +
-  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.5) +
-  xlab("prob r") + ggtitle("Distributions of prob r") +
-  theme_bw()
-dev.off()
-
-
-############# STOPPED EDITING HERE 
-
-
-
-#################### Plots: ####################
-
-
-
-# # Doing it this way looks a bit different... seems like there are more breaks, even though I also tried to ask for 30?
-# pdf(file = here('Plots/PersistenceMetrics', 'LEP_R_histv2.pdf'))
-# hist(LEP_R_out_df$value, breaks=30)
-# dev.off()
-
-
-
-# recruits_per_egg (but right now this is static)
-  
-# hist(LEP_out_df$value, breaks=30)
-# hist(LEP_R_out$value, breaks=30)
-# hist(NP_out_df$value, breaks=30)
-# hist(RperE_out_df$value, breaks=30)
-
-
-##### Relationships between values
-# LEP_R and NP - do we expect these to be related perfectly linearly? I guess, when both connectivity and recruits-per-egg are static...
-pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_NP_scatter.pdf'))
-ggplot(data = metric_vals, aes(x=LEP_R, y=NP)) +
-  geom_point(size=2) +
-  xlab('LEP_R') + ylab('NP') + ggtitle('Scatter of LEP_R vs NP values') +
-  theme_bw()
-dev.off()
-
-# Breeding size and LEP
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breedingsize_LEP_scatter.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP)) +
-  geom_point(size=2) +
-  xlab('breeding size') + ylab('LEP') + ggtitle('Scatter of breeding size (female) vs LEP values') +
-  theme_bw()
-dev.off()
-
-# Linf and LEP
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_LEP_scatter.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
-  geom_point(size=2) +
-  #geom_line()
-  #geom_line(aes(x=sss)),
-  xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
-  theme_bw()
-dev.off()
-
-# k (connectivity) and NP
-pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'kConnectivity_NP_scatter.pdf'))
-ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
-  geom_point(size=2) +
-  #geom_line(aes(x=sss)),
-  xlab('k_connectivity') + ylab('NP') + ggtitle('Scatter of k_connectivity vs NP values') +
-  theme_bw()
-dev.off()
-
-##### Histograms of data inputs
 # k_connectivity
 pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'k_connectivity_histogram.pdf'))
 ggplot(data = metric_vals_with_params, aes(x=k_connectivity)) +
@@ -854,10 +800,125 @@ ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
   theme_bw()
 dev.off()
 
+# Prob r (prob of catching a fish)
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_histogram.pdf"))
+ggplot(data = metric_vals_with_params, aes(x = prob_r)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  xlab("prob r") + ggtitle("Prob r values") +
+  theme_bw()
+dev.off()
+
+########## Relationships between values ##########
+
+# LEP_R and NP - do we expect these to be related perfectly linearly? I guess, when both connectivity and recruits-per-egg are static...
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_NP_scatter.pdf'))
+ggplot(data = metric_vals, aes(x=LEP_R, y=NP)) +
+  geom_point(size=2) +
+  xlab('LEP_R') + ylab('NP') + ggtitle('Scatter of LEP_R vs NP values') +
+  theme_bw()
+dev.off()
+
+# Breeding size and LEP
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breedingsize_LEP_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP)) +
+  geom_point(size=2) +
+  xlab('breeding size') + ylab('LEP') + ggtitle('Scatter of breeding size (female) vs LEP values') +
+  theme_bw()
+dev.off()
+
+# Breeding size and LEP and survival
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breedingsize_LEP_Sint_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP, color = Sint)) +
+  geom_point(size=2, alpha = 0.6) +
+  xlab('breeding size') + ylab('LEP') + ggtitle('Breeding size (female) vs LEP values, Sint') +
+  theme_bw()
+dev.off()
+
+# Breeding size and LEP and growth
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breedingsize_LEP_Linf_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP, color = Linf)) +
+  geom_point(size=2, alpha = 0.7) +
+  xlab('breeding size') + ylab('LEP') + ggtitle('Breeding size (female) vs LEP values, Linf') +
+  theme_bw()
+dev.off()
+
+# Linf and LEP
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_LEP_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
+  geom_point(size=2) +
+  #geom_line()
+  #geom_line(aes(x=sss)),
+  xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
+  theme_bw()
+dev.off()
+
+# Linf and LEP and Sint
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_LEP_Sint_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP, color = Sint)) +
+  geom_point(size=2) +
+  #geom_line()
+  #geom_line(aes(x=sss)),
+  xlab('Linf') + ylab('LEP') + ggtitle('Linf vs LEP vs Sint values') +
+  theme_bw()
+dev.off()
+
+# k (connectivity) and NP
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'kConnectivity_NP_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
+  geom_point(size=2) +
+  #geom_line(aes(x=sss)),
+  xlab('k_connectivity') + ylab('NP') + ggtitle('Scatter of k_connectivity vs NP values') +
+  theme_bw()
+dev.off()
+
+# k (connectivity) and NP - zoomed 
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'kConnectivity_NP_scatter_zoomed.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
+  geom_point(size=2) +
+  #geom_line(aes(x=sss)),
+  ylim(0, 0.075) +
+  xlab('k_connectivity') + ylab('NP') + ggtitle('Scatter of k_connectivity vs NP values') +
+  theme_bw()
+dev.off()
+
+# Prob r and recruits-per-egg
+pdf(file =  here::here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'prob_r_recruits_per_egg_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=prob_r, y=recruits_per_egg)) +
+  geom_point(size=2) +
+  xlab('prob r') + ylab('recruits-per-egg') + ggtitle('Prob r vs. recruits-per-egg') +
+  theme_bw()
+dev.off()
+
+# Prob r and NP
+pdf(file =  here::here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'prob_r_NP_scatter.pdf'))
+ggplot(data = metric_vals_with_params, aes(x=prob_r, y=NP)) +
+  geom_point(size=2) +
+  xlab('prob r') + ylab('NP') + ggtitle('Prob r vs. NP') +
+  theme_bw()
+dev.off()
+
+########## Comparing different ways of estimating different values ##########
+
+# Prob of catching a fish, made into a distribution two ways and sampling from data
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison_with_data.pdf"))
+ggplot(data = prob_r_comp, aes(x = values, fill = distribution)) +
+  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.6) +
+  xlab("prob r") + ggtitle("Distributions of prob r") +
+  theme_bw()
+dev.off()
+
+# Prob of catching a fish, made into a distribution two ways, without the data in there too
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison.pdf"))
+ggplot(data = prob_r_comp %>% filter(distribution %in% c("beta", "normal", "truncated beta")), aes(x = values, fill = distribution)) +
+  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.5) +
+  xlab("prob r") + ggtitle("Distributions of prob r") +
+  theme_bw()
+dev.off()
+
 # Recruits-per-egg in different ways
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Recruits_per_egg_3kinds_uncertainty.pdf"))
 ggplot(data = recruits_per_egg_uncertainty, aes(x=recruits_per_egg, fill=method)) +
-  geom_histogram(binwidth = 0.001) +
+  geom_histogram(binwidth = 0.000001, position = "identity", alpha = 0.7) +
   xlab("Recruits-per-egg") + ggtitle("Comparing recruits-per-egg uncertainty methods") +
   theme_bw()
 dev.off()
@@ -865,13 +926,13 @@ dev.off()
 # Recruits-per-egg in different ways, zoomed in - this isn't working for some reason...
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Recruits_per_egg_3kinds_uncertainty_zoomed.pdf"))
 ggplot(data = recruits_per_egg_uncertainty, aes(x=recruits_per_egg, fill=method)) +
-  geom_histogram(binwidth = 0.001) +
+  geom_histogram(binwidth = 0.000001, position = "identity", alpha = 0.7) +
   xlab("Recruits-per-egg") + ggtitle("Comparing recruits-per-egg uncert. meth. zoomed") +
-  coord_cartesian(xlim=c(0, 0.3)) +
+  #coord_cartesian(xlim=c(0, 0.3)) +
   theme_bw()
 dev.off()
 
-
+############# STOPPED EDITING HERE 
 
 
 ##### Prettier sub-figured plots for potential figures
@@ -1472,4 +1533,119 @@ dev.off()
 #################### Saving things: ####################
 save(best_est_metrics, file=here('Data', 'best_est_metrics.RData'))
 save(LEP_ests, file=here('Data', 'LEP_ests.RData'))
+
+
+
+
+#################### Plots: ####################
+# 
+# 
+# 
+# # # Doing it this way looks a bit different... seems like there are more breaks, even though I also tried to ask for 30?
+# # pdf(file = here('Plots/PersistenceMetrics', 'LEP_R_histv2.pdf'))
+# # hist(LEP_R_out_df$value, breaks=30)
+# # dev.off()
+# 
+# 
+# 
+# # recruits_per_egg (but right now this is static)
+#   
+# # hist(LEP_out_df$value, breaks=30)
+# # hist(LEP_R_out$value, breaks=30)
+# # hist(NP_out_df$value, breaks=30)
+# # hist(RperE_out_df$value, breaks=30)
+# 
+# 
+# ##### Relationships between values
+# # LEP_R and NP - do we expect these to be related perfectly linearly? I guess, when both connectivity and recruits-per-egg are static...
+# pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_NP_scatter.pdf'))
+# ggplot(data = metric_vals, aes(x=LEP_R, y=NP)) +
+#   geom_point(size=2) +
+#   xlab('LEP_R') + ylab('NP') + ggtitle('Scatter of LEP_R vs NP values') +
+#   theme_bw()
+# dev.off()
+# 
+# # Breeding size and LEP
+# pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breedingsize_LEP_scatter.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=breeding_size, y=LEP)) +
+#   geom_point(size=2) +
+#   xlab('breeding size') + ylab('LEP') + ggtitle('Scatter of breeding size (female) vs LEP values') +
+#   theme_bw()
+# dev.off()
+# 
+# # Linf and LEP
+# pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_LEP_scatter.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=Linf, y=LEP)) +
+#   geom_point(size=2) +
+#   #geom_line()
+#   #geom_line(aes(x=sss)),
+#   xlab('Linf') + ylab('LEP') + ggtitle('Scatter of Linf vs LEP values') +
+#   theme_bw()
+# dev.off()
+# 
+# # k (connectivity) and NP
+# pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'kConnectivity_NP_scatter.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=k_connectivity, y=NP)) +
+#   geom_point(size=2) +
+#   #geom_line(aes(x=sss)),
+#   xlab('k_connectivity') + ylab('NP') + ggtitle('Scatter of k_connectivity vs NP values') +
+#   theme_bw()
+# dev.off()
+# 
+# ##### Histograms of data inputs
+# # k_connectivity
+# pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'k_connectivity_histogram.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=k_connectivity)) +
+#   geom_histogram(bins=40, color='gray', fill='gray') +
+#   geom_vline(xintercept = k_allyears, color='black') +
+#   xlab('k_connectivity') + ggtitle('k_connectivity values') +
+#   theme_bw()
+# dev.off()
+# 
+# # Linf
+# pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Linf_histogram.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=Linf)) +
+#   geom_histogram(bins=40, color='gray', fill='gray') +
+#   geom_vline(xintercept = Linf_growth_mean, color='black') +
+#   xlab('Linf') + ggtitle('Linf values') +
+#   theme_bw()
+# dev.off()
+# 
+# # Sint
+# pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Sint_histogram.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=Sint)) +
+#   geom_histogram(bins=40, color='gray', fill='gray') +
+#   geom_vline(xintercept = Sint_mean, color = 'black') +
+#   xlab('Sint') + ggtitle('Sint values') +
+#   theme_bw()
+# dev.off()
+# 
+# # Breeding size
+# pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Breeding_size_histogram.pdf'))
+# ggplot(data = metric_vals_with_params, aes(x=breeding_size)) +
+#   geom_histogram(bins=40, color='gray', fill='gray') +
+#   geom_vline(xintercept=breeding_size_mean, color='black') +
+#   xlab('Breeding size') + ggtitle('Breeding size values') +
+#   theme_bw()
+# dev.off()
+# 
+# # Recruits-per-egg in different ways
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Recruits_per_egg_3kinds_uncertainty.pdf"))
+# ggplot(data = recruits_per_egg_uncertainty, aes(x=recruits_per_egg, fill=method)) +
+#   geom_histogram(binwidth = 0.001) +
+#   xlab("Recruits-per-egg") + ggtitle("Comparing recruits-per-egg uncertainty methods") +
+#   theme_bw()
+# dev.off()
+# 
+# # Recruits-per-egg in different ways, zoomed in - this isn't working for some reason...
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Recruits_per_egg_3kinds_uncertainty_zoomed.pdf"))
+# ggplot(data = recruits_per_egg_uncertainty, aes(x=recruits_per_egg, fill=method)) +
+#   geom_histogram(binwidth = 0.001) +
+#   xlab("Recruits-per-egg") + ggtitle("Comparing recruits-per-egg uncert. meth. zoomed") +
+#   coord_cartesian(xlim=c(0, 0.3)) +
+#   theme_bw()
+# dev.off()
+# 
+# 
+
 
