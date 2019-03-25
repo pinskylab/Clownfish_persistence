@@ -462,19 +462,23 @@ k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # di
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
 
 prob_r_beta_params = findBetaDistParams(mean(prob_r), var(prob_r))  # find beta distribution parameters for prob r distrubtion from normal mean and variance
-prob_r_set = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # should the non-centrality parameter be 0?
+prob_r_set_fodder = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # should the non-centrality parameter be 0?
 
 prob_r_set_normal = rnorm(n_runs, mean = prob_r_mean, sd = sd(prob_r))  # not sure where this is coming in right now... would be in scaling up pops...
 prob_r_set_fromdata = sample(prob_r, n_runs, replace = TRUE)  # just sample from the 14 calculated prob_r values
 
+# Get rid of any values lower than the observed value, then re-sample from that truncated vector...
+prob_r_set_truncated = prob_r_set_fodder[prob_r_set_fodder >= min(prob_r)]  # removes about 100 obs (down to 898 in one case)
+prob_r_set = sample(prob_r_set_truncated, n_runs, replace = TRUE)
+
 # Compare the two versions (plot down in plot section)
-prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("normal", n_runs), rep("sample from data", n_runs)),
-                          values = c(prob_r_set, prob_r_set_normal, prob_r_set_fromdata))
+prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("truncated beta", n_runs), rep("normal", n_runs), rep("sample from data", n_runs)),
+                                           values = c(prob_r_set_fodder, prob_r_set, prob_r_set_normal, prob_r_set_fromdata), stringsAsFactor = FALSE)
 
 # Still occassionally get super low prob_r values.... get rid of those...
-prob_r_set[which(prob_r_set <= 0.1)] <- 0.1  # make 0.1 the minimum value prob_r can be
+#prob_r_set[which(prob_r_set < min)] <- 0.1  # make 0.1 the minimum value prob_r can be
 
-# what I should do is get rid of any values lower than the observed value, then re-sample from that truncated vector...
+
 
 # # Some prob r values are negative (b/c pulling from a normal distribution... should think through a better way to do this...). For now, make those that are <- 0 0.01 and those > 1 1
 # for (i in 1:length(prob_r_set_1)){
@@ -697,9 +701,9 @@ dev.off()
 # Zoomed in LEP_R (since sometimes there are some really high values)
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram_zoomed.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
-  geom_histogram(binwidth=0.5, color = 'gray', fill = 'gray') +
+  geom_histogram(binwidth=1, color = 'gray', fill = 'gray') +
   geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
-  xlim(c(0,20)) +
+  xlim(c(0,100)) +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values, zoomed') +
   theme_bw()
 dev.off()
@@ -747,8 +751,8 @@ dev.off()
 
 # Prob of catching a fish, made into a distribution two ways, without the data in there too
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Prob_r_set_comparison.pdf"))
-ggplot(data = prob_r_comp %>% filter(distribution %in% c("beta", "normal")), aes(x = values, fill = distribution)) +
-  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.6) +
+ggplot(data = prob_r_comp %>% filter(distribution %in% c("beta", "normal", "truncated beta")), aes(x = values, fill = distribution)) +
+  geom_histogram(binwidth = 0.01, position = "identity", alpha = 0.5) +
   xlab("prob r") + ggtitle("Distributions of prob r") +
   theme_bw()
 dev.off()
