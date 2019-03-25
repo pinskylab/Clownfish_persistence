@@ -436,7 +436,7 @@ best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_off
 # Save as separate items, for plotting ease
 LEP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
                            LEP = c(best_est_metrics_3.5cm$LEP, best_est_metrics_4.75cm$LEP, best_est_metrics_6.0cm$LEP, best_est_metrics_mean_offspring$LEP), stringsAsFactors = FALSE)
-LEP__R_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+LEP_R_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
                            LEP_R = c(best_est_metrics_3.5cm$LEP_R, best_est_metrics_4.75cm$LEP_R, best_est_metrics_6.0cm$LEP_R, best_est_metrics_mean_offspring$LEP_R), stringsAsFactors = FALSE)
 NP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
                            NP = c(best_est_metrics_3.5cm$NP, best_est_metrics_4.75cm$NP, best_est_metrics_6.0cm$NP, best_est_metrics_mean_offspring$NP), stringsAsFactors = FALSE)
@@ -468,6 +468,9 @@ prob_r_set_fromdata = sample(prob_r, n_runs, replace = TRUE)  # just sample from
 prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("normal", n_runs), rep("sample from data", n_runs)),
                           values = c(prob_r_set, prob_r_set_normal, prob_r_set_fromdata))
 
+# Still occassionally get super low prob_r values.... get rid of those...
+prob_r_set[which(prob_r_set <= 0.1)] <- 0.1  # make 0.1 the minimum value prob_r can be
+
 # # Some prob r values are negative (b/c pulling from a normal distribution... should think through a better way to do this...). For now, make those that are <- 0 0.01 and those > 1 1
 # for (i in 1:length(prob_r_set_1)){
 #   prob_r_val <- prob_r_set_1[i]
@@ -487,15 +490,15 @@ prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("normal", n_
 # Uncertainty in recruits-per-egg - two ways
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
 n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotypes, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
-scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled %>% filter(method == "metal tags"))$total_prop_hab_sampled_2012to2015, prob_r_mean)
+scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_mean)
 recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)
 
 # Way two: uncertainty in probability of capturing a fish (so number of offspring we find from the tagged parents) - is this worth it?
-scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_parentage, (total_area_sampled %>% filter(method == "metal tags"))$total_prop_hab_sampled_2012to2015, prob_r_set)
+scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_parentage, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_set)
 recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, LEP_6cm)
 
 # Way three: both together
-scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled %>% filter(method == "metal tags"))$total_prop_hab_sampled_2012to2015, prob_r_set)
+scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_set)
 recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, LEP_6cm)
 
 # Compare the uncertainty in recruits-per-egg (rbinom for assigned offspring, prob_r, both), for plot later
@@ -515,6 +518,17 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
+# Without uncertainty in survival, growth for now
+param_set_full_no_surv_no_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = rep(Linf_growth_mean, n_runs), Sint = rep(Sint_mean, n_runs),
+         breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_set,
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+
 
 # Run the metrics for lots of parameters
 # Set output dataframes 
@@ -580,15 +594,13 @@ SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %
 
 #################### What-if calculations: ####################
 ##### What-if calculation 1) what if all genotyped offspring came from the population?
-# How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015
-n_offspring_genotypes_df <- allfish_caught %>%
-  filter(year %in% years_parentage) %>%
-  filter(!is.na(gen_id)) %>%  # NEED TO ALSO FILTER OUT THOSE WITH ISSUES THAT DIDN'T GO INTO PARENTAGE!
-  filter(size <- min_breeding_M_size & color != "YP" & color != "O") %>%  # any genotyped individuals that didn't meet the parent criteria
-  distinct(gen_id, .keep_all = TRUE)
+# How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 (did this above)
 
-n_offspring_genotypes = length(n_offspring_genotypes_df$gen_id)  # saying 767 for 2012-2015
-#n_offspring_genotypes = offspring_parentage_file  # eventually, pull the number of offspring in the parentage files from 2012-2015 from KC
+# Find egg-recruit survival if all offspring we genotyped are included (say they all came from this pop)
+recruits_per_egg_all_offspring <- n_offpsring_genotypes/tagged_eggs_6cm
+
+# Make a new parameter set with that as the best estimate
+
 
 ##### What-if calculation 2) What would egg-recruit survival need to be for NP to be 1? 
 
@@ -608,7 +620,7 @@ n_offspring_genotypes = length(n_offspring_genotypes_df$gen_id)  # saying 767 fo
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_histogram.pdf'))
 ggplot(data = LEP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = LEP_best_est, color='black') +
+  geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "3.5cm"))$LEP, color='black') +
   xlab('LEP') + ggtitle('Histogram of LEP values') +
   theme_bw()
 dev.off()
@@ -617,8 +629,18 @@ dev.off()
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram.pdf'))
 ggplot(data = LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = LEP_R_best_est, color = 'black') +
+  geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
   xlab('LEP_R') + ggtitle('Histogram of LEP_R values') +
+  theme_bw()
+dev.off()
+
+# Zoomed in LEP_R (since sometimes there are some really high values)
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram_zoomed.pdf'))
+ggplot(data = LEP_R_out_df, aes(x=value)) +
+  geom_histogram(binwidth=0.5, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
+  xlim(c(0,20)) +
+  xlab('LEP_R') + ggtitle('Histogram of LEP_R values, zoomed') +
   theme_bw()
 dev.off()
 
@@ -626,26 +648,26 @@ dev.off()
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
 ggplot(data = NP_out_df, aes(x=value)) +
   geom_histogram(bins=25, color='gray', fill='gray') +
-  geom_vline(xintercept = NP_best_est, color='black') +
+  geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "3.5cm"))$NP, color='black') +
   xlab('NP') + ggtitle('Histogram of NP values') +
   theme_bw()
 dev.off()
 
-# Recruits-per-egg
-pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram.pdf'))
-ggplot(data = NP_out_df, aes(x=value)) +
+# Recruits-per-egg -- something is weird here... the lowest uncertainty value is orders of mag above "best est" - WHAT IS GOING ON??
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'RperE_histogram.pdf'))
+ggplot(data = data.frame(value = recruits_per_egg_set), aes(x=value)) +
   geom_histogram(bins=25, color='gray', fill='gray') +
-  geom_vline(xintercept = NP_best_est, color='black') +
-  xlab('NP') + ggtitle('Histogram of NP values') +
+  geom_vline(xintercept = recruits_per_egg_best_est, color='black') +
+  xlab('recruits-per-egg') + ggtitle('Histogram of recruits-per-egg values') +
   theme_bw()
 dev.off()
 
-##### SP at each site
+##### SP at each site - this plot was taking forever to make, seemed to break R....
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
 ggplot(data = SP_out_df, aes(x=value)) +
   #geom_histogram(binwidth=0.0005) +
   geom_histogram(binwidth=0.001, color='gray', fill='gray') +
-  geom_vline(data=SP_best_est, aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
+  geom_vline(data=(SP_best_est %>% filter(recruit_size == "3.5cm")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites?
   ylim(0,300) +
   facet_wrap(~site) +
   xlab('SP') + ggtitle('Self-persistence histograms by site') +
