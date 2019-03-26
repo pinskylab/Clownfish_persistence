@@ -917,6 +917,21 @@ SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% m
                                    best_est_metrics_4.75cm_all_offspring$SP %>% mutate(recruit_size = "4.75cm"),
                                    best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"))
 
+# Do uncertainty run with those parameters
+# Uncertainty in all parameters included for now 
+param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
+         breeding_size = breeding_size_set,
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage)  
+
+output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff")
+
 ##### What-if calculation 2) What would egg-recruit survival need to be for NP to be 1? 
 
 ##### What-if calculation 3) What would egg-recruit survival need to be for one of the patches to be SP? 
@@ -1278,7 +1293,49 @@ ggplot(data = recruits_per_egg_uncertainty, aes(x=recruits_per_egg, fill=method)
   theme_bw()
 dev.off()
 
+########## What-if #1: what if all the offspring we genotype were from our sites? ##########
+
+# LEP_R (LEP in terms of recruits) (this is plot "LEP_R_histogram_whatif_all_offspring.pdf") - where are these separate plots? Find and set to whatifs folder
+LEP_R_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(data = LEP_R_best_est_all_offspring, aes(xintercept = LEP_R, color = recruit_size)) +
+  xlab("LEP_R") + ggtitle("a) LEP_R with all offspring") +
+  theme_bw()
+
+# NP (this plot is "NP_histogram_whatif_all_offspring.pdf")
+NP_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(data = NP_best_est_all_offspring, aes(xintercept = NP, color = recruit_size)) +
+  xlab("NP") + ggtitle("b) NP with all offspring") +
+  theme_bw()
+
+pdf(file = here::here("Plots/PersistenceMetrics/Whatifs", "LEP_R_and_NP_histograms_whatif_all_offspring.pdf"), width=7, height=3)
+grid.arrange(LEP_R_histogram_whatif_all_offspring, NP_histogram_whatif_all_offspring, nrow=1)
+dev.off()
+
 ########## Sub-figured plots to be able to look at things together ##########
+
+# LEP_R (LEP in terms of recruits) 
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'LEP_R_histogram_whatif_all_offspring.pdf'))
+ggplot(data = output_uncert_all_offspring_all$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(data = LEP_R_best_est_all_offspring, aes(xintercept = LEP_R, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "3.5cm"))$LEP_R, color = 'black') +
+  xlab('LEP_R') + ggtitle('Histogram of LEP_R values with all offspring') +
+  theme_bw()
+dev.off()
+
+# NP
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'NP_histogram_whatif_all_offspring.pdf'))
+ggplot(data = output_uncert_all_offspring_all$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(data = NP_best_est_all_offspring, aes(xintercept = NP, color = recruit_size)) +
+  #geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "3.5cm"))$NP, color='black') +
+  xlab('NP') + ggtitle('Histogram of NP values with all offspring') +
+  theme_bw()
+dev.off()
+
+##### What if 1: all genotyped offspring considered to have come from our sites
 
 ##### The four metrics all together
 
