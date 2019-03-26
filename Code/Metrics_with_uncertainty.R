@@ -1,5 +1,6 @@
 # Characterizing uncertainty in LEP, recruit survival, dispersal estimates
 
+####### SOMETHING IN NEW FUNCTION DIDN'T OUTPUT OR COMPUTE RperE CORRECTLY! CHECK!!
 # To add: uncertainty in egg-recruit survival
 # fix uncertainty in growth and uncertainty in annual survival
 # uncertainty in egg-size relationship? -- added this in (via rbinom for assigned juveniles and uncertainty in prop_r)
@@ -241,8 +242,17 @@ calcMetrics <- function(param_set, sites_and_dists, sites) {
                 param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd, 
                 param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
   
-  # Find egg-recruit survival (recruits/egg) - RIGHT NOW, USING JOHNSON-LIKE ESTIMATE BUT COULD MAKE THIS A DISTRIBUTION TOO
-  recruits_per_egg = param_set$recruits_per_egg
+  # Find egg-recruit survival (recruits/egg)
+  tagged_recruits_val = scaleTaggedRecruits(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled, param_set$prob_r)
+  LEP_parents = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
+                        param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, 
+                        param_set$breeding_size, 6.0, param_set$start_recruit_sd, 
+                        param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
+  tagged_eggs_val = param_set$n_parents*LEP_parents
+  recruits_per_egg = findRecruitsPerTaggedEgg(tagged_recruits_val, tagged_eggs_val)
+  
+  # # Find egg-recruit survival (recruits/egg) - RIGHT NOW, USING JOHNSON-LIKE ESTIMATE BUT COULD MAKE THIS A DISTRIBUTION TOO
+  # recruits_per_egg = param_set$recruits_per_egg
   
   # Find LEP in terms of recruits
   LEP_R = LEP*recruits_per_egg
@@ -422,6 +432,8 @@ n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring id
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
 recruited_tagged_offspring <- n_offspring_parentage/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 
+total_prop_hab_sampled <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area
+
 # rto <- scaleTaggedRecruits(n_offspring_parentage, (total_area_sampled_through_time %>% filter(method == "metal tags" & time_frame == "2012-2015"))$total_prop_hab_sampled_area, mean(prob_r))  # not this function causing best est recruits-per-egg to be way lower (2 orders of magnitude) than the lowest in the uncertainty dist either
 
 # How many potential offspring (eggs) were produced by tagged adults (parents)
@@ -469,7 +481,8 @@ param_best_est_3.5 <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean)  
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         total_prop_hab_sampled = total_prop_hab_sampled)  
 
 # start at 4.75cm 
 param_best_est_4.75 <- data.frame(t_steps = n_tsteps) %>%
@@ -480,7 +493,8 @@ param_best_est_4.75 <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean)  
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         total_prop_hab_sampled = total_prop_hab_sampled)  
 
 # start at 6.0cm
 param_best_est_6.0 <- data.frame(t_steps = n_tsteps) %>%
@@ -491,7 +505,8 @@ param_best_est_6.0 <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean)  
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         total_prop_hab_sampled = total_prop_hab_sampled)  
 
 # start at mean size of actual offspring collected (about 4.45)
 param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -502,7 +517,8 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean) 
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         total_prop_hab_sampled = total_prop_hab_sampled) 
 
 # Calculate the metrics for the best estimates
 # best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)  # site_list <- c_mat_allyears$dest_site[1:19]
@@ -539,6 +555,7 @@ k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # di
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
 
+# probability of capturing a fish
 prob_r_beta_params = findBetaDistParams(mean(prob_r), var(prob_r))  # find beta distribution parameters for prob r distrubtion from normal mean and variance
 prob_r_set_fodder = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # should the non-centrality parameter be 0?
 
@@ -580,6 +597,8 @@ start_recruit_size_options <- data.frame(recruit_size = c('3.5cm', '4.75cm', '6.
 # Uncertainty in recruits-per-egg - two ways
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
 n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotypes, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
+
+# I think the rest of this is now incorporated into the calcMetrics function
 scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_mean)
 # recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)  # this was the problem!! Accidentally put that those tagged recruits came from one tagged parent's egg output, not all the tagged parents
 recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, tagged_eggs_6cm)
@@ -599,8 +618,8 @@ recruits_per_egg_uncertainty <- data.frame(recruits_per_egg = c(recruits_per_egg
                                            method = c(rep("n assigned offspring", n_runs), rep("prob r", n_runs), rep("both", n_runs)),
                                            stringsAsFactors = FALSE)
 
-# Pick a recruits_per_egg_set to use
-recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
+# # Pick a recruits_per_egg_set to use
+# recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
 
 ##### Do runs with uncertainty
 ### Make parameter set with different kinds of uncertainty included
@@ -611,9 +630,10 @@ param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in growth only
 param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -622,9 +642,10 @@ param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in survival only
 param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -633,9 +654,10 @@ param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_set,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in breeding size only
 param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -644,20 +666,46 @@ param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_set, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
-# Uncertainty in recruits-per-egg only
-param_set_recruits_per_egg <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+# Uncertainty in offspring assigned to parents (affects recruits-per-egg)
+param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_set,
+         breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage) 
+
+# Uncertainty in probability catching a fish (affects recruits-per-egg)
+param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+
+# Uncertainty in both offspring assigned to parents and probability catching a fish (affects recruits-per-egg)
+param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage) 
 
 # Uncertainty in dispersal only
 param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -666,9 +714,10 @@ param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_mean, 
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in all parameters included for now 
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -677,9 +726,10 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
-         breeding_size = breeding_size_set, recruits_per_egg = recruits_per_egg_set,
+         breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set)  
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage)  
 
 # # Without uncertainty in survival, growth for now
 # param_set_full_no_surv_no_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -764,31 +814,36 @@ output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_rec
 output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_dist_info, site_vec_order, "growth")
 output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_dist_info, site_vec_order, "survival")
 output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_dist_info, site_vec_order, "breeding size")
-output_uncert_recruits_per_egg <- calcMetricsAcrossRuns(n_runs, param_set_recruits_per_egg, site_dist_info, site_vec_order, "recruits-per-egg")
+output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_dist_info, site_vec_order, "assigned offspring")
+output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_dist_info, site_vec_order, "prob r")
+output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_dist_info, site_vec_order, "assigned offspring and prob r")
 output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_dist_info, site_vec_order, "dispersal k")
 output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_dist_info, site_vec_order, "all")
 
 # Join them together for plotting purposes
 LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
                  output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
-                 output_uncert_recruits_per_egg$LEP_out_df, output_uncert_recruits_per_egg$LEP_out_df,
+                 output_uncert_offspring_assigned$LEP_out_df, output_uncert_prob_r$LEP_out_df,
+                 output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
                  output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
 
 LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
                     output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
-                    output_uncert_recruits_per_egg$LEP_R_out_df, output_uncert_recruits_per_egg$LEP_R_out_df,
+                    output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
+                    output_uncert_prob_r_and_offspring_assigned$LEP_R,
                     output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
 
 RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
                     output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
-                    output_uncert_recruits_per_egg$RperE_out_df, output_uncert_recruits_per_egg$RperE_out_df,
+                    output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
+                    output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
                     output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
 
 NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
                    output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
-                   output_uncert_recruits_per_egg$NP_out_df, output_uncert_recruits_per_egg$NP_out_df,
+                   output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
+                   output_uncert_prob_r_and_offspring_assigned$NP_out_df,
                    output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
-
 
 
 #################### What-if calculations: ####################
@@ -807,7 +862,8 @@ param_best_est_3.5_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set)  
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage)  
 
 # start at 4.75cm 
 param_best_est_4.75_all_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -818,7 +874,8 @@ param_best_est_4.75_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set) 
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage) 
 
 # start at 6.0cm
 param_best_est_6.0_all_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -829,7 +886,8 @@ param_best_est_6.0_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set)  
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage)  
 
 # # start at mean size of actual offspring collected (about 4.45)
 # param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
@@ -913,24 +971,25 @@ ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   theme_bw()
 dev.off()
 
-# Recruits-per-egg
+# Recruits-per-egg -- SOMETHING SEEMS WRONG WITH THIS AGAIN!! ESTIMATE IS ORDERS OF MAG BELOW THE UNCERTAINTY - MULTIPYING BY PARENTS CORRECTLY?
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'RperE_histogram.pdf'))
 ggplot(data = output_uncert_all$RperE_out_df, aes(x=value)) +
-  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_histogram(bins=50, color='gray', fill='gray') +
   geom_vline(xintercept = recruits_per_egg_best_est, color = "black") +
   #geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "3.5cm"))$NP, color='black') +
   xlab('recruits-per-egg') + ggtitle('Histogram of recruits-per-egg values') +
   theme_bw()
 dev.off()
 
-# # Recruits-per-egg 
-# pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'RperE_histogram.pdf'))
-# ggplot(data = data.frame(value = recruits_per_egg_set), aes(x=value)) +
-#   geom_histogram(bins=40, color='gray', fill='gray') +
-#   geom_vline(xintercept = recruits_per_egg_best_est, color='black') +
-#   xlab('recruits-per-egg') + ggtitle('Histogram of recruits-per-egg values') +
-#   theme_bw()
-# dev.off()
+# Recruits-per-egg zoomed
+pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'RperE_histogram_zoomed.pdf'))
+ggplot(data = output_uncert_all$RperE_out_df, aes(x=value)) +
+  geom_histogram(bins=50, color='gray', fill='gray') +
+  geom_vline(xintercept = recruits_per_egg_best_est, color='black') +
+  xlim(0,0.002) +
+  xlab('recruits-per-egg') + ggtitle('Histogram of recruits-per-egg values zoomed') +
+  theme_bw()
+dev.off()
 
 ##### SP at each site - this plot takes a few seconds to make
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
@@ -959,7 +1018,7 @@ ggplot(data = SP_out_df, aes(x=value)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
 
-########## Plotting the metrics with different kinds of uncertainty ##########
+########## Plotting the metrics with different kinds of uncertainty ########## STOPPED SAVING PLOTS HERE
 
 # LEP
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty.pdf"))
@@ -1024,14 +1083,26 @@ ggplot(data = NP_uncert, aes(x=value)) +
   theme_bw()
 dev.off()
 
-# Recruits-per-egg - why is all different than recruits-per-egg here?
+# Recruits-per-egg - why is all different than recruits-per-egg here? Was on old, fixed now?
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty.pdf"))
-ggplot(data = RperE_uncert, aes(x=value)) +
+ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
   geom_vline(xintercept = recruits_per_egg_best_est) +
   facet_wrap(~uncertainty_type) +
   xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
   theme_bw()
+dev.off()
+
+# Recruits-per-egg  - zoomed
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty_zoomed.pdf"))
+ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = recruits_per_egg_best_est) +
+  xlim(0,0.0002) +
+  facet_wrap(~uncertainty_type) +
+  xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()
 
 ########## Plotting inputs (histograms of data inputs) ##########
