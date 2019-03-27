@@ -238,10 +238,15 @@ anems_visited_by_year <- left_join(anems_visited_by_year, total_anems_by_site, b
 ##### Calculate proportion habitat sampled and create a tidied version where NaN, Inf, and values >1 are edited
 anems_visited_by_year <- anems_visited_by_year %>%
   mutate(prop_hab_sampled = n_anems/n_total_anems) %>%  # for all methods of determining total number of tags, calculate prop_hab_sampled
-  mutate(prop_hab_sampled_tidied = case_when(prop_hab_sampled <= 1 ~ prop_hab_sampled,  # if it's a real number and less than one, stick with original prop_hab_sampled
-                                            prop_hab_sampled == Inf | is.na(prop_hab_sampled) ~ 0,  # if it's infinite or otherwise not a number (b/c total anems is 0), use 0
-                                            prop_hab_sampled > 1 ~ 1))  # if it's bigger than 1, round down to 1 
+  mutate(n_anems_tidied = case_when(n_anems <= n_total_anems ~ n_anems,
+                                   n_anems > n_total_anems ~ n_total_anems)) %>%  # to avoid prop_hab_sampled > 1, restrict n_anems in each year and site to the total at that site
+  mutate(prop_hab_sampled_tidied = case_when(n_anems_tidied/n_total_anems <= 1 ~ n_anems_tidied/n_total_anems,  
+                                              n_anems_tidied/n_total_anems == Inf | is.na(n_anems_tidied/n_total_anems) ~ 0))  # make a tidier version of prop_hab_sampled (no Inf, NaN, > 1 values), using n_anems_tidied
 
+# # How I was doing this tidying before - moved to tidying anems so it carries over into the cumulative counts (anems over the total at a site don't count in the total sampled at all sites across years)
+# mutate(prop_hab_sampled_tidied = case_when(prop_hab_sampled <= 1 ~ prop_hab_sampled,  # if it's a real number and less than one, stick with original prop_hab_sampled
+#                                            prop_hab_sampled == Inf | is.na(prop_hab_sampled) ~ 0,  # if it's infinite or otherwise not a number (b/c total anems is 0), use 0
+#                                            prop_hab_sampled > 1 ~ 1)) %>%  # if it's bigger than 1, round down to 1 
 
 ##### Calculate the total amount of habitat visited over time (used in estimating egg-recruit survival)
 # Sum up total site area (all site areas times all years sampled) - total possible sampling area 
@@ -265,9 +270,11 @@ total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_
          total_area_sampled_km2 = NA,
          total_prop_hab_sampled_area = NA,
          end_year = str_sub(time_frame, -4, -1),
-         total_possible_sample_anems = NA,
-         total_anems_sampled = NA,
-         total_prop_hab_sampled_anems = NA)
+         total_possible_sample_anems = NA,  # total number of anems that would have been possible to sample in the time frame (sum of total at all sites X number of years of sampling)
+         total_anems_sampled = NA,  # sum of total number of anems sampled at all sites in that time period
+         total_anems_sampled_tidied = NA,  # sum of total number of anems sampled at all sites in that time period but not including anems that exceed the total at a site (so if 15 sampled recorded at a site with 10 estimated total, this number sums using 10)
+         total_prop_hab_sampled_anems = NA,
+         total_prop_hab_sampled_anems_tidied = NA)  # doesn't include anems sampled at a site that exceed the total anems at that site estimated by each method
 
 # total_area_sampled <- data.frame(method = methods) %>%
 #   mutate(total_area_sampled = NA,
@@ -289,14 +296,16 @@ for (i in 1:length(total_area_sampled_through_time$method)) {
   # Find possible area to sample, area sampled, and prob_hab sampled using anems and proportion of anems, rather than converting to area (like do for within-year proportion hab sampled)
   total_area_sampled_through_time$total_possible_sample_anems[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_total_anems)
   total_area_sampled_through_time$total_anems_sampled[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems)
+  total_area_sampled_through_time$total_anems_sampled_tidied[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems_tidied)
   total_area_sampled_through_time$total_prop_hab_sampled_anems[i] = total_area_sampled_through_time$total_anems_sampled[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
+  total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied[i] = total_area_sampled_through_time$total_anems_sampled_tidied[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
 }
 
 # Make into a data frame for easier comparison plotting
-total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sampled_through_time$method, 2),
-                                          time_frame = rep(total_area_sampled_through_time$time_frame, 2),
-                                          total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems),
-                                          total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method))))
+total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sampled_through_time$method, 3),
+                                          time_frame = rep(total_area_sampled_through_time$time_frame, 3),
+                                          total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems, total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied),
+                                          total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method)), rep("anems tidied", length(total_area_sampled_through_time$method))))
 
 # total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
 # 
@@ -318,6 +327,16 @@ total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sa
 rm(site_areas_modified, sampled_area_each_year)
 
 #################### Plots: #################### (already have versions of these in this folder from the other script but now can compare)
+# Look at cumulative proportion total habitat sampled, using metal tags as total anemones
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp.pdf"))
+ggplot(data = total_sampling_across_years, aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle("Cumulative proportion habitat sampled") + xlab("Sampling years") + ylab("Proportion sampled") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+dev.off()
+  
+
 # Look at proportion sampled, using metal tags as total anemones
 pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Metal_TA_prop_hab_sampled.pdf"))
 ggplot(data = anems_visited_by_year %>% filter(method=="metal tags"), aes(x=site, y=prop_hab_sampled)) +
@@ -463,6 +482,7 @@ save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visite
 #save(sampled_area_each_year, file=here::here("Data/Script_outputs", "sampled_area_each_year.RData"))
 #save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
 save(total_area_sampled_through_time, file=here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))
+save(total_sampling_across_years, file=here::here("Data/Script_outputs", "total_sampling_across_years.RData"))  # summary of prop hab sampled by different total area and total anem methods
 
 # # # Load helpful functions from other scripts
 # # script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R", ssl.verifypeer = FALSE)
