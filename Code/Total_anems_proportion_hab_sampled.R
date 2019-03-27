@@ -329,13 +329,22 @@ rm(site_areas_modified, sampled_area_each_year)
 #################### Plots: #################### (already have versions of these in this folder from the other script but now can compare)
 # Look at cumulative proportion total habitat sampled, using metal tags as total anemones
 pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp.pdf"))
-ggplot(data = total_sampling_across_years, aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
+ggplot(data = total_sampling_across_years %>% filter(total_anems_method == "metal tags"), aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
   geom_bar(position = "dodge", stat = "identity") +
-  ggtitle("Cumulative proportion habitat sampled") + xlab("Sampling years") + ylab("Proportion sampled") +
+  ggtitle("Cumulative proportion habitat sampled (metal tags)") + xlab("Sampling years") + ylab("Proportion sampled") +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()
   
+# Look at cumulative proportion total habitat sampled, using metal tags as total anemones
+pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp_all_anems_methods.pdf"))
+ggplot(data = total_sampling_across_years, aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  facet_wrap(~total_anems_method) +
+  ggtitle("Cumulative proportion habitat sampled") + xlab("Sampling years") + ylab("Proportion sampled") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+dev.off()
 
 # Look at proportion sampled, using metal tags as total anemones
 pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Metal_TA_prop_hab_sampled.pdf"))
