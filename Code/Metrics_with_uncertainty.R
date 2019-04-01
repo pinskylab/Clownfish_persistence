@@ -29,6 +29,10 @@ load(file = here::here("Data/Script_outputs", "site_width_info.RData"))
 load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
 # source(here::here("Code", "Site_widths_and_distances.R"))
 
+# Load simple VBL growth analysis
+load(file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
+#source(here::here("Code", "Growth_analysis.R"))  # this script needs to be cleaned up before it would be reasonble to actually source it here
+
 # Figure out where these outputs came from so can source those scripts too!
 # Should have two options: source the files that create these outputs or load them from Data folder
 #load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
@@ -61,10 +65,6 @@ n_bins = 100
 n_tsteps = 100
 start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
 start_recruit_sd = 0.1
-
-# Other size points
-min_size = 0
-max_size = 15 #should check this w/data...
 
 ##### Parameter info (candidates for uncertainty)
 # k_allyears_CIh = -0.97  # upper 97.5% confidence interval of k (from KC email with screenshot)

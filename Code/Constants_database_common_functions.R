@@ -74,6 +74,10 @@ clutches_per_year_mean = 11.9
 
 
 #################### Constants, indices, etc. ####################
+########## Uncertainty parameters ##########
+# Number of runs
+n_runs = 1000
+
 ########## Site information ##########
 # vector of sites, in alphabetical order, for referencing sites easily in plots and filtering and such (does not include Sitio Hicgop, which has no fish)
 site_vec <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas", "Haina", "Hicgop South",
@@ -115,6 +119,10 @@ site_vec_order$geo_order <- c(5, 6, 7, 10, 16, 18, 8, 3, 4, 1, 14, 13, 12, 19, 1
 # tagging and fin-clipping thresholds
 min_tag_size <- 6.0  # minimum size for tagging   
 min_clip_size <- 3.5  # minimum size for fin-clip
+
+# minimum and maximum size
+min_size = 0
+max_size = 15 #should check this w/data...
 
 # Maybe move this to another script? Like a data characteristics script? 
 #size thresholds for determining stage (just made up based on gut for now) - update based on data - Michelle has a boxplot somewhere?
