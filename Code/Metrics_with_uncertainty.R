@@ -57,13 +57,13 @@ recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_fi
 recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))
 
 #### Set-up parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
-# Number of runs
-n_runs = 1000
+# Number of runs - in Constants_database_common_functions.R now
+# n_runs = 1000
 
 # Set params for IPM structure
 n_bins = 100
 n_tsteps = 100
-start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
+# start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
 start_recruit_sd = 0.1
 
 ##### Parameter info (candidates for uncertainty)
@@ -72,9 +72,11 @@ start_recruit_sd = 0.1
 
 # Growth (for LEP)
 s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from...
-k_growth_mean = 0.9447194  # lowest AIC model
-Linf_growth_mean = 10.50670  # lowest AIC model
-Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
+k_growth_mean = mean(growth_info_estimate$k_est)  # from Growth_analysis growth work (very simple)
+Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # from Growth_analysis growth work (very simple)
+#k_growth_mean = 0.9447194  # lowest AIC model
+#Linf_growth_mean = 10.50670  # lowest AIC model
+#Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
 
 # Eggs (for LEP)
 size_fecundity_model = length_count8llEA  # assign here, in case model input from Adam changes, both length and eggs on log scale
@@ -342,11 +344,14 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
   metric_vals_with_params <- metric_vals %>%
     mutate(breeding_size = param_sets$breeding_size,
            Linf = param_sets$Linf,
+           k_growth = param_sets$k_growth,
            Sint = param_sets$Sint,
            k_connectivity = param_sets$k_connectivity,
            recruits_per_egg = param_sets$recruits_per_egg,
            prob_r = param_sets$prob_r,
-           start_recruit_size = param_sets$start_recruit_size)
+           assigned_offspring = param_sets$offspring_assigned_to_parents,
+           start_recruit_size = param_sets$start_recruit_size,
+           total_prop_hab_sampled = param_sets$total_prop_hab_sampled)
   
   SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %>%
     dplyr::rename(SP = value)
@@ -459,6 +464,7 @@ assignment_rate = n_offspring_parentage/n_offspring_genotypes  # proportion of g
 
 mean_sampled_offspring_size <- mean(n_offspring_genotypes_df$size, rm.na = TRUE)  # this is just one of the obs of each of these fish... not sure how many duplicates there are, should really check...
 
+start_recruit_size = mean_sampled_offspring_size
 # # Estimate survival from adult-recruit
 # prop_F_M <- 0.5  # saying 50% of the "adults" we clip are males that won't make it to females -- reasonable? could check this. But LEP takes that into account, right?
 # tagged_offspring_3.5cm <- n_parents_parentage*LEP_ests$LEP_3.5cm
@@ -549,7 +555,9 @@ SP_best_est <- rbind(best_est_metrics_3.5cm$SP %>% mutate(recruit_size = "3.5cm"
 
 #################### Run the metrics for uncertainty in the parameter estimates: ####################
 ### Generate sets of parameters for uncertainty
-Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd = Linf_growth_sd)  # growth
+# Linf_set = rnorm(n_runs, mean = Linf_growth_mean, sd = Linf_growth_sd)  # growth
+Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
+k_growth_set = growth_info_estimate$k_est  # growth (k)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
 k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # dispersal kernel k (replace should be true, right?)
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
@@ -635,13 +643,13 @@ param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
-# Uncertainty in growth only
+# Uncertainty in growth only (both Linf and k)
 param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_mean,
+         k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
@@ -725,7 +733,7 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
+         k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled,
@@ -889,33 +897,36 @@ param_best_est_6.0_all_offspring <- data.frame(t_steps = n_tsteps) %>%
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
          offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage)  
 
-# # start at mean size of actual offspring collected (about 4.45)
-# param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
-#   mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
-#          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
-#          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
-#          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-#          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-#          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
-#          k_connectivity = k_allyears, theta_connectivity = theta_allyears)  # dispersal kernel parameters
+# start at mean size of actual offspring collected (about 4.45)
+param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
+         offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage)  
 
 # Calculate the metrics for the best estimates
 # best_est_metrics <- calcMetrics(param_best_est, c_mat_allyears, site_list)  # site_list <- c_mat_allyears$dest_site[1:19]
 best_est_metrics_3.5cm_all_offspring <- calcMetrics(param_best_est_3.5_all_offspring, site_dist_info, site_vec_order$site_name)
 best_est_metrics_4.75cm_all_offspring <- calcMetrics(param_best_est_4.75_all_offspring, site_dist_info, site_vec_order$site_name)
 best_est_metrics_6.0cm_all_offspring <- calcMetrics(param_best_est_6.0_all_offspring, site_dist_info, site_vec_order$site_name)
-#best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name)
+best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_dist_info, site_vec_order$site_name)
 
 # Save as separate items, for plotting ease
-LEP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm"),
-                           LEP = c(best_est_metrics_3.5cm_all_offspring$LEP, best_est_metrics_4.75cm_all_offspring$LEP, best_est_metrics_6.0cm_all_offspring$LEP), stringsAsFactors = FALSE)
-LEP_R_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm"),
-                             LEP_R = c(best_est_metrics_3.5cm_all_offspring$LEP_R, best_est_metrics_4.75cm_all_offspring$LEP_R, best_est_metrics_6.0cm_all_offspring$LEP_R), stringsAsFactors = FALSE)
-NP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm"),
-                          NP = c(best_est_metrics_3.5cm_all_offspring$NP, best_est_metrics_4.75cm_all_offspring$NP, best_est_metrics_6.0cm_all_offspring$NP), stringsAsFactors = FALSE)
+LEP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+                           LEP = c(best_est_metrics_3.5cm_all_offspring$LEP, best_est_metrics_4.75cm_all_offspring$LEP, best_est_metrics_6.0cm_all_offspring$LEP, best_est_metrics_mean_offspring_all_offspring$LEP), stringsAsFactors = FALSE)
+LEP_R_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+                             LEP_R = c(best_est_metrics_3.5cm_all_offspring$LEP_R, best_est_metrics_4.75cm_all_offspring$LEP_R, best_est_metrics_6.0cm_all_offspring$LEP_R, best_est_metrics_mean_offspring_all_offspring$LEP_R), stringsAsFactors = FALSE)
+NP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+                          NP = c(best_est_metrics_3.5cm_all_offspring$NP, best_est_metrics_4.75cm_all_offspring$NP, best_est_metrics_6.0cm_all_offspring$NP, best_est_metrics_mean_offspring_all_offspring$NP), stringsAsFactors = FALSE)
 SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% mutate(recruit_size = "3.5cm"),
                                    best_est_metrics_4.75cm_all_offspring$SP %>% mutate(recruit_size = "4.75cm"),
-                                   best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"))
+                                   best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"),
+                                   best_est_metrics_mean_offspring_all_offspring$SP %>% mutate(recruit_size = "mean offspring"))
 
 # Do uncertainty run with those parameters
 # Uncertainty in all parameters included for now 
@@ -924,7 +935,7 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
+         k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled,
@@ -986,7 +997,7 @@ ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   theme_bw()
 dev.off()
 
-# Recruits-per-egg -- SOMETHING SEEMS WRONG WITH THIS AGAIN!! ESTIMATE IS ORDERS OF MAG BELOW THE UNCERTAINTY - MULTIPYING BY PARENTS CORRECTLY?
+# Recruits-per-egg
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'RperE_histogram.pdf'))
 ggplot(data = output_uncert_all$RperE_out_df, aes(x=value)) +
   geom_histogram(bins=50, color='gray', fill='gray') +
@@ -1008,10 +1019,11 @@ dev.off()
 
 ##### SP at each site - this plot takes a few seconds to make
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram.pdf'))
-ggplot(data = SP_out_df, aes(x=value)) +
+#ggplot(data = SP_out_df, aes(x=value)) +
+ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=SP)) +
   #geom_histogram(binwidth=0.0005) +
   geom_histogram(binwidth=0.001, color='gray', fill='gray') +
-  geom_vline(data=(SP_best_est %>% filter(recruit_size == "3.5cm")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites? -- not anymore...
+  geom_vline(data=(SP_best_est %>% filter(recruit_size == "mean offspring")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites? -- not anymore...
   #ylim(0,300) +
   facet_wrap(~site) +
   xlab('SP') + ggtitle('Self-persistence histograms by site') +
@@ -1021,10 +1033,11 @@ dev.off()
 
 # SP at each site - zoomed in
 pdf(file = here('Plots/PersistenceMetrics/MetricsWithUncertainty','SP_histogram_zoomed.pdf'))
-ggplot(data = SP_out_df, aes(x=value)) +
+#ggplot(data = SP_out_df, aes(x=value)) +
+ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=SP)) +
   #geom_histogram(binwidth=0.0005) +
   geom_histogram(binwidth=0.001, color='gray', fill='gray') +
-  geom_vline(data=(SP_best_est %>% filter(recruit_size == "3.5cm")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites? -- not anymore...
+  geom_vline(data=(SP_best_est %>% filter(recruit_size == "mean offspring")), aes(xintercept=SP_value), color='black') +   # now these look weird, don't seem to fit in the dists for most sites? -- not anymore...
   xlim(0,0.05) +
   ylim(0,300) +
   facet_wrap(~site) +
@@ -1039,7 +1052,7 @@ dev.off()
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty.pdf"))
 ggplot(data = LEP_uncert, aes(x = value)) +
   geom_histogram(bins = 50, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP)) +
+  geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
   facet_wrap(~uncertainty_type) +
   xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
   theme_bw()
@@ -1049,7 +1062,7 @@ dev.off()
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty_zoomed.pdf"))
 ggplot(data = LEP_uncert, aes(x = value)) +
   geom_histogram(bins = 50, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP)) +
+  geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
   ylim(0,500) +
   facet_wrap(~uncertainty_type) +
   xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
@@ -1060,7 +1073,7 @@ dev.off()
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty.pdf"))
 ggplot(data = LEP_R_uncert, aes(x=value)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP_R)) +
+  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
   facet_wrap(~uncertainty_type) +
   xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
   theme_bw()
@@ -1070,7 +1083,7 @@ dev.off()
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty_zoomed.pdf"))
 ggplot(data = LEP_R_uncert, aes(x=value)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept = LEP_R)) +
+  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
   ylim(0,500) +
   facet_wrap(~uncertainty_type) +
   xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
@@ -1081,7 +1094,7 @@ dev.off()
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty.pdf"))
 ggplot(data = NP_uncert, aes(x=value)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = NP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept =NP)) +
+  geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept =NP)) +
   facet_wrap(~uncertainty_type) +
   xlab("NP") + ggtitle("NP with different types of uncertainty") +
   theme_bw()
@@ -1091,8 +1104,8 @@ dev.off()
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty_zoomed.pdf"))
 ggplot(data = NP_uncert, aes(x=value)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = NP_best_est %>% filter(recruit_size == "3.5cm"), aes(xintercept =NP)) +
-  ylim(0,500) +
+  geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept =NP)) +
+  ylim(0,750) +
   facet_wrap(~uncertainty_type) +
   xlab("NP") + ggtitle("NP with different types of uncertainty") +
   theme_bw()
@@ -1101,11 +1114,12 @@ dev.off()
 # Recruits-per-egg - why is all different than recruits-per-egg here? Was on old, fixed now?
 pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty.pdf"))
 ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
-  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_histogram(bins = 50, color = "gray", fill = "gray") +
   geom_vline(xintercept = recruits_per_egg_best_est) +
   facet_wrap(~uncertainty_type) +
   xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()
 
 # Recruits-per-egg  - zoomed
@@ -1120,7 +1134,7 @@ ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned o
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()
 
-########## Plotting inputs (histograms of data inputs) ##########
+########## Plotting inputs (histograms of data inputs) ########## 
 
 # start recruit size (what size we think a "recruit" is)
 pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'start_recruit_histogram.pdf'))
@@ -1149,12 +1163,21 @@ ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Linf)) +
   theme_bw()
 dev.off()
 
-# Sint
+# k growth
+pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'k_growth_histogram.pdf'))
+ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=k_growth)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = k_growth_mean, color='black') +
+  xlab('k in VBL') + ggtitle('k (growth) values') +
+  theme_bw()
+dev.off()
+
+# Sint -- #come up with a more descriptive way of titling this!
 pdf(file =  here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'Sint_histogram.pdf'))
 ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Sint)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = Sint_mean, color = 'black') +
-  xlab('Sint') + ggtitle('Sint values') +
+  xlab('Sint') + ggtitle('Sint (survival) values') +
   theme_bw()
 dev.off()
 
@@ -1174,6 +1197,64 @@ ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = prob_r)) +
   xlab("prob r") + ggtitle("Prob r values") +
   theme_bw()
 dev.off()
+
+# Number of offspring assigned to parents (using rbinom)
+pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "Assigned_offspring_histogram.pdf"))
+ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = assigned_offspring)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = n_offspring_parentage, color = "black") +
+  xlab("# assigned offspring") + ggtitle("Number offspring assigned to parents") +
+  theme_bw()
+dev.off()
+
+### Sub-figured plot to look at all inputs together
+# Start-recruit size
+startRecruit_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size)) +
+  geom_histogram(bins=40, color="gray", fill="gray") +
+  geom_vline(xintercept = (start_recruit_size_options %>% filter(recruit_size == "mean offspring"))$size) +
+  xlab("recruit size (cm)") + ggtitle("a) Census size") +
+  theme_bw()
+
+# Breeding size
+breedingSize_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=breeding_size)) +
+  geom_histogram(bins=40, color="gray", fill="gray") +
+  geom_vline(xintercept=breeding_size_mean, color='black') +
+  xlab("female breeding size (cm)") + ggtitle('b) Female transition') +
+  theme_bw()
+
+# Dispersal k
+dispersalK_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=k_connectivity)) +
+  geom_histogram(bins=40, color="gray", fill="gray") +
+  geom_vline(xintercept = k_allyears, color='black') +
+  xlab("k parameter") + ggtitle("c) Dispersal kernel") +
+  theme_bw()
+
+# Growth - Linf + k
+growthLinf_k_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Linf, y=k_growth)) +
+  geom_point(color = "gray", fill = "gray") +
+  geom_point(x = Linf_growth_mean, y = k_growth_mean, color = "black", fill = "black") +
+  xlab('Linf (cm)') + ylab("k") + ggtitle("d) VBL growth model") +
+  theme_bw()
+
+# Survival
+survivalSint_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Sint)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = Sint_mean, color = 'black') +
+  xlab('intercept of size-survival relationship') + ggtitle('e) Survival') +
+  theme_bw()
+
+# Prob r
+probR_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = prob_r)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  xlab("prob r") + ggtitle("f) Capture probability") +
+  theme_bw()
+
+# Assigned offspring
+assignedOffspring_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = assigned_offspring)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = n_offspring_parentage, color = "black") +
+  xlab("# assigned offspring") + ggtitle("g) Assigned offspring") +
+  theme_bw()
 
 ########## Relationships between values ##########
 
@@ -1340,45 +1421,67 @@ dev.off()
 ##### The four metrics all together
 
 
-############# STOPPED EDITING HERE 
+########## Plots for figures ##########
 
+# Demographic parameters, relationships: survival curve, growth curve, dispersal kernel, transition size to female (?)
 
-##### Prettier sub-figured plots for potential figures
-## LEP and LEP_R histograms
-LEP_plot <- ggplot(data = LEP_out_df, aes(x=value)) +
+# Metrics: LEP, recruit-egg-survival, LEP_R
+LEP_plot <- ggplot(data = output_uncert_all$LEP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = LEP_best_est, color='black') +
+  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   xlab('LEP') + ggtitle('a) Lifetime egg production') +
-  theme_bw() 
-  #theme(axis.text.x=element_text(angle=45,hjust=1,vjust=0))
-
-LEP_R_plot <- ggplot(data = LEP_R_out_df, aes(x=value)) +
-  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(xintercept = LEP_R_best_est, color = 'black') +
-  xlab('LRP') + ggtitle('b) Lifetime recruit production') +
   theme_bw()
 
-pdf(file = here('Plots/FigureDrafts', 'LEP_and_LRP.pdf'), width=7, height=3)
-grid.arrange(LEP_plot, LEP_R_plot, nrow=1)
+RperE_plot <- ggplot(data = output_uncert_all$RperE_out_df, aes(x=value)) +
+  geom_histogram(bins=50, color='gray', fill='gray') +
+  geom_vline(xintercept = recruits_per_egg_best_est, color = "black") +
+  xlab('recruits-per-egg') + ggtitle('b) Egg-recruit survival') +
+  theme_bw()
+
+LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+  geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
+  xlab('LEP_R') + ggtitle('c) Lifetime recruit production') +
+  theme_bw()
+
+pdf(file = here('Plots/FigureDrafts', 'LEP_RperE_LRP.pdf'), width=8.5, height=3)
+grid.arrange(LEP_plot, RperE_plot, LEP_R_plot, nrow=1)
 dev.off()
 
-## NP and realized connectivity matrix
-NP_plot <- ggplot(data = NP_out_df, aes(x=value)) +
-  geom_histogram(bins=25, color='gray', fill='gray') +
-  geom_vline(xintercept = NP_best_est, color='black') +
-  xlab('NP') + ggtitle('a) Network persistence values') +
+# Metrics: NP, realized connectivity matrix
+NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  #geom_vline(data = NP_best_est, aes(xintercept = NP, color = recruit_size)) +
+  geom_vline(xintercept = (NP_best_est %>% filter(recruit_size == "mean offspring"))$NP, color='black') +
+  xlab('NP') + ggtitle('a) Network persistence') +
   theme_bw()
 
-realized_C_plot <- ggplot(data = best_est_metrics$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
   scale_fill_gradient(high='black', low='white', name='Recruits') +
   xlab('origin') + ylab('destination') + ggtitle('b) Realized connectivity matrix') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
-    
-pdf(file = here('Plots/FigureDrafts', 'NP_and_connMatrixR.pdf'), width = 9, height = 4)
+
+pdf(file = here('Plots/FigureDrafts', 'NP_and_connMatrixR.pdf'), width = 10, height = 5)
 grid.arrange(NP_plot, realized_C_plot, nrow=1)
 dev.off()
+
+# Metrics: Self persistence by site
+
+# Histograms (or scatters) of all inputs into uncertainty runs
+pdf(file = here::here("Plots/FigureDrafts", "Uncertainty_inputs.pdf"))
+grid.arrange(startRecruit_plot, breedingSize_plot, dispersalK_plot, 
+             growthLinf_k_plot, survivalSint_plot, probR_plot, 
+             assignedOffspring_plot, nrow=3)
+dev.off()
+
+
+############# STOPPED EDITING HERE 
+
+
 
 ## SP by site
 pdf(file = here('Plots/FigureDrafts','SP_hists_by_site.pdf'), width=8, height=6)
@@ -2054,6 +2157,42 @@ save(LEP_ests, file=here('Data', 'LEP_ests.RData'))
 #   theme_bw()
 # dev.off()
 # 
+# # 
+# ##### Prettier sub-figured plots for potential figures - what I showed at lab meeting in early March 2019
+# ## LEP and LEP_R histograms
+# LEP_plot <- ggplot(data = LEP_out_df, aes(x=value)) +
+#   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+#   geom_vline(xintercept = LEP_best_est, color='black') +
+#   xlab('LEP') + ggtitle('a) Lifetime egg production') +
+#   theme_bw() 
+# #theme(axis.text.x=element_text(angle=45,hjust=1,vjust=0))
 # 
+# LEP_R_plot <- ggplot(data = LEP_R_out_df, aes(x=value)) +
+#   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+#   geom_vline(xintercept = LEP_R_best_est, color = 'black') +
+#   xlab('LRP') + ggtitle('b) Lifetime recruit production') +
+#   theme_bw()
+# 
+# pdf(file = here('Plots/FigureDrafts', 'LEP_and_LRP.pdf'), width=7, height=3)
+# grid.arrange(LEP_plot, LEP_R_plot, nrow=1)
+# dev.off()
+# 
+# ## NP and realized connectivity matrix
+# NP_plot <- ggplot(data = NP_out_df, aes(x=value)) +
+#   geom_histogram(bins=25, color='gray', fill='gray') +
+#   geom_vline(xintercept = NP_best_est, color='black') +
+#   xlab('NP') + ggtitle('a) Network persistence values') +
+#   theme_bw()
+# 
+# realized_C_plot <- ggplot(data = best_est_metrics$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+#   geom_tile(aes(fill=prob_disp_R)) +
+#   scale_fill_gradient(high='black', low='white', name='Recruits') +
+#   xlab('origin') + ylab('destination') + ggtitle('b) Realized connectivity matrix') +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+# 
+# pdf(file = here('Plots/FigureDrafts', 'NP_and_connMatrixR.pdf'), width = 9, height = 4)
+# grid.arrange(NP_plot, realized_C_plot, nrow=1)
+# dev.off()
 
 
