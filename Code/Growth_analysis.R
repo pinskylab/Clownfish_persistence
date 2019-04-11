@@ -281,6 +281,7 @@ dev.off()
 
 #################### Saving output: ####################
 growth_info_estimate = model_1_runs  # saving it with different name in case change input later...
+save(recap_pairs_year, file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # saving all recapture pairs caught about a year apart, for plotting purposes
 save(growth_info_estimate, file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
 
 #################### Old code: ####################
