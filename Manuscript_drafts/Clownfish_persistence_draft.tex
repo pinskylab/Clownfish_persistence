@@ -1,4 +1,4 @@
-\documentclass[12pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\documentclass[12pt, oneside]{article}   	% use "a msart" instead of "article" for AMSLaTeX format
 \usepackage{color}
 \usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
 \geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
@@ -14,9 +14,9 @@
 \usepackage{pdflscape}
 %\usepackage{rotating}
 \usepackage{soul}
-%\usepackage{longtable}
+\usepackage{longtable}
 %\usepackage{threeparttable}
-%\usepackage{lineno}
+\usepackage{lineno}
 \usepackage[round]{natbib} %round makes pare{}ntheses instead of square brackets
 \usepackage{url}
 %\usepackage{authblk}
@@ -34,6 +34,9 @@
 \maketitle{}
 
 %\section*{Abstract}
+
+\linenumbers{}
+\modulolinenumbers[3]
 
 \section*{Introduction}
 
@@ -122,6 +125,12 @@ TALK TO KATRINA AND MICHELLE, ADD IN HERE. BRIEF OVERVIEW, WITH CITATIONS TO PAP
 
 \subsection*{Estimating inputs from empirical data} % Which should come first, this section or the one about persistence metrics?
 
+\begin{figure}[H] % Schematic
+	\centering
+	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/Schematic/Schematic.pdf}}
+	\caption{Here, we show the data collected for fish at each life stage (life stage boxes are not scaled by length of stage). We also show how the empirical data fit with the metric calculations. \label{FIG_Schematic}} % MAKE CAPTION BETTER! MAKE SCHEMATIC BETTER TOO!
+\end{figure}
+
 \paragraph*{Growth and survival: mark-recapture analyses}
 
 We mark fish through both genetic samples and PIT tags, allowing us to estimate growth and survival through mark-recapture. After matching up recaptures of the same fish identified by genotype or tag, we have a set of encounters of each recaptured fish that includes size and stage at each capture time.
@@ -139,46 +148,156 @@ We see from eqn.\ \ref{EQN_VBL} that we would expect the first length $L_t$ and 
 
 % Write about survival!
 
+\begin{equation} % Just a placeholder for the moment so I can get schematic numbering correct
+p_a = \text{some stuff here}. \label{EQN_Survival}
+\end{equation}
+
 \paragraph*{Fecundity}
-Talk about Adam fecundity work
-For comparison of numbers (from Clownfish\_SP\_Notes:) Moyer (1986): the individual observed for 11 years and thought to live to at least 13 was ”estimated to have contributed about 160,000 propagules in its lifetime,” spent 3 years as a functional male, then outlived 3 mates as a female; fertilized about 45,000 eggs during 3 years as a male, then spawned about 115,000 eggs as a female; fecundity estimate at this site (Miyake-jima in Japan) is 17,500 eggs/yr/female (from Bell (1976))
 
-\paragraph*{Survival from eggs to recruits}
+We use a size-dependent fecundity relationship, determined using photos of egg clutches and females (Yawdoszyn et al.\ in prep), where the number of eggs per clutch ($E_c$) is exponentially related to the length of the female ($L$) with slope $beta_l$, intercept $b$, and effect $\beta_e$ dependent on if the eggs are old enough to have visible eyes: 
+\begin{equation} % is this the best way of writing this?
+\ln(E_c) = \beta_l\ln(L) + b_e[\text{eyed}] + b. \label{EQN_Fec}
+\end{equation}
+To get total annual fecundity, we multiply the number of eggs per clutch by the number of clutches per year $c_e$, using the estimate from \cite{holtswarth2017fecundity}.
 
+We only consider reproductive effort once the fish has reached the female stage. Though the size at which a fish transitions to become a breeding female $L_f$ will depend on the size hierarchy in each particular colony (CTIATION), we use the average size recaptured fish were first observed as female for the best estimate. 
 
+% For comparison of numbers (from Clownfish\_SP\_Notes:) Moyer (1986): the individual observed for 11 years and thought to live to at least 13 was ”estimated to have contributed about 160,000 propagules in its lifetime,” spent 3 years as a functional male, then outlived 3 mates as a female; fertilized about 45,000 eggs during 3 years as a male, then spawned about 115,000 eggs as a female; fecundity estimate at this site (Miyake-jima in Japan) is 17,500 eggs/yr/female (from Bell (1976))
+
+\paragraph*{Lifetime egg production}
+We use an integral projection model (IPM) \citep[e.g.][]{rees2014building} to estimate the total number of eggs produced by one individual (lifetime egg production: LEP), starting at the recruit stage, when individuals have settled and survived to a size we can sample.
+
+In an IPM, the state of the population at time $t$ is described by the distribution of the population over a continuous trait $z$, for which we use size: $n(z,t)$. The total number of individuals in the population at time $t$ is the integral of the size distribution over size from the lower size bound $L$ to the upper size bound $U$: $\int_L^U n(z,t) dz$. The population is projected forward with probability density functions, called the kernel, that describe the survival, growth, and reproductive output of existing individuals into the next time step. 
+
+We initalize the IPM with one recruit-sized individual $\text{size}_\text{recruit}$: $n(t=0) = n(\text{size}_\text{recruit}, 0)$, then use a kernel with the size-dependent survival and growth functions described above to project forward for 100 time steps. This gives us the size distribution at each time step, which represents the probability that the individual has survived and grown into each of the possible size categories. The probability that the individual is still alive and of any size decreases as the time steps progress; by using a large number of steps, we are able to avoid arbitrarily setting a maximum age and instead let the probabilities become essentially zero. 
+
+We then multiply each size-distribution vector in the matrix by the size-dependent fecundity function described above (eqn.\ \ref{EQN_Fec}) to get the total number of eggs produced at each time step. To get the total number of of eggs one individual is likely to produce in its lifetime, we then sum across all time steps in the individual's potential life.  % Should I try to show this in equation form? Not quite sure how that would look yet...
+
+%WRITE AN EQUATION FOR LEP?
+ 
+\begin{equation} % placeholder to get schematic numbering correct
+\text{LEP}z = IPM * Fec. \label{EQN_LEP}
+\end{equation}
+
+\paragraph*{Survival from egg to recruit}
+
+We estimate survival from egg to recruit $S_e$ using the number of recruited offspring we can match back to genotyped parents as surviving individuals from genetically "tagged" eggs in a method similar to that in \cite{johnson2018integrating}. We estimate the number of eggs produced by genotyped parent fish by multiplying the number of genotyped parents $N_g$ by the expected lifetime egg production of a parent fish $LEP_p$, using LEP calculated starting with an individual of 6cm. We make the assumption that all recruited offspring originating from the genotyped parents end up in one of the sites we sample and estimate the total number of offspring that survive to recruit $R_t$ by dividing the number of offspring matches we find $R_m$ by the proportion of our site habitat we sample $P_h$ and the probability of capturing a fish if we sample an anemone $P_c$ (see \ref{APP_FIG_Uncertainty_RperE} for details on $P_h$ and $P_c$). Our estimated survival from egg to recruit is the number of tagged recruits divided by the number of tagged eggs produced:
+
+\begin{equation}
+S_e = \frac{\frac{R_m}{P_h P_c}}{N_g \text{LEP}_p}. \label{EQN_EggRecruitSurv}
+\end{equation}
+
+\paragraph*{Defining recruit and census stage} % Not quite sure where to put this section... or if it should even be it's own section
+
+When assessing persistence, it is important to consider mortality and reproduction that occurs across the entire life cycle to determine whether an individual is replacing itself with an individual that reaches its same life stage (CITATION?). We define recruit to be a juvenile individual that has settled on the reef the previous year; lifetime egg production assesses how many offspring an individual recruit is likely to produce in its lifetime from that point forward and egg-recruit survival gives us the fraction of those eggs that will survive to reach the recruit stage. In theory, it should not matter exactly how we define recruit so long we use that defition in our calculations of both egg-recruit survival and LEP. In our system it is straighforward to calculate LEP from any point but it is not possible to change our estimate of egg-recruit survival to allow different definitions of recruit: we do not have enough tagged recruits to reliably estimate survival to different recruit sizes. Instead, we choose the mean size of offspring matched in the parentage study as our best estimate of the size of a recruit ($\text{size}_\text{recruit}$) and test sensitivity to different sizes within the range of sizes that the recruit stage covers (Table \ref{TAB_Params}).
+
+% Talk here about how we decided where to assess "recruits" - where egg-recruit mortality takes us through and where we start assessing LEP
+% Talk about how it shouldn't matter - we should get the same answer either way - and we can change how we estimate LEP by changing where we start but we can't really change our estimate of egg-recruit survival (don't have enough recruits to assess survival to different sizes reliably - already a really hard parameter to estimate) so have to pick something and go with it. Test sensitivity to different sizes within the 3.5 to 6 range it covers. (or whatever the actual max from the data Katrina uses is)
 
 \paragraph*{Probability of dispersal}
 
-We use a distance-based dispersal kernel, estimated in other work using parent-offspring matches from our genetic data (Catalano et al.\ in prep). The dispersal kernel is estimated using fish that have recruited to a population and survived to be sampled so it gives the probability of dispersing given that a fish recruits somewhere, not the probability that a released larvae will travel a particular distance. 
-To find the probability of fish dispersing among our sites, we calculate the distance between the middle of each site to the closest and farthest edge of each other site, then use the distances as upper and lower bounds to integrate the dispersal kernel.
+We use a distance-based dispersal kernel, estimated in other work using parent-offspring matches from our genetic data (Catalano et al.\ in prep) using the method described in \cite{bode2018estimating}. The relative dispersal is a function of distance $d$ as measured in kilometers and parameters $\theta$ and $k_d$, which control the shape and scale of the kernel:
 
+\begin{equation}
+p(d) = e^k e^{-(e^k d)^\theta}. \label{EQN_DispKernel}
+\end{equation}
+
+The dispersal kernel is estimated using fish that have already recruited to a population and survived to be sampled so it gives the relative amount of dispersal given that a fish recruits somewhere, not the probability that a released larvae will travel a particular distance. To find the probability of fish dispersing among our sites, we calculate the distance between the middle of each site to the closest and farthest edge of each other site, then use the distances as upper and lower bounds when integrating eqn. \ref{EQN_DispKernel}, which we do numerically. For example, the probability of dispersal from site A to B, where $d_1$ is the distance from the middle of A to the closest edge of B and $d_2$ is the distance from the middle of A to the far edge of B, is:
+
+% \begin{equation} % might not need this equation...
+% p_{A, B}(d) = \int_\text{middle A to close edge of B}^\text{middle A to far edge of B} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integratingDK}
+% \end{equation}
+
+\begin{equation} % might not need this equation...
+p_{A, B}(d) = \int_{d_1}^{d_2} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integratingDK}
+\end{equation}
 
 \subsection*{Persistence metrics}
 
 % What does it mean to persist? How do we define persistence?
 
-For a metapopulation to persist, at least one patch needs to achieve replacement, where the number of individuals entering the population balances those lost to mortality or emmigration (CITATION). In our focal system, adults do not move among patches so we do not need to consider emmigration and only need to assess whether fish produce enough offspring to be able to replace themselves and where those offspring travel within the metapopulation. We consider three primary metrics to assess whether and how the population is persistent: 1) lifetime production of recruits, to assess whether the population has enough surviving offspring to acheive replacement 2) self-persistence, to assess whether any individual patches would be able to persist in isolation without any input from other patches, and 3) network persistence, to assess whether the metapopulation is persistent as a connected unit. We explain each metric below in details and how we calculated the inputs in the following section. % Reference the section with \ref?
+For a metapopulation to persist, at least one patch needs to achieve replacement, where the number of individuals entering the population balances those lost to mortality or emmigration (CITATION). In our focal system, adults do not move among patches so we do not need to consider emmigration and only need to assess whether fish produce enough offspring that survive to recruitment to be able to replace themselves and where those offspring travel within the metapopulation. We consider three primary metrics to assess whether and how the population is persistent: 1) lifetime production of recruits, to assess whether the population has enough surviving offspring to acheive replacement 2) self-persistence, to assess whether any individual patches would be able to persist in isolation without any input from other patches, and 3) network persistence, to assess whether the metapopulation is persistent as a connected unit. We explain each metric below in detail. % Reference the section with \ref?
 
-\paragraph*{Lifetime egg production and lifetime production of recruits}
+\paragraph*{Lifetime production of recruits}
 
-We find the expected reprodutive output of an individual in the population by estimating lifetime egg production (LEP), which is the number of eggs an individual of a particular size can be expected to produce over its lifetime, taking into account how likely it is to grow, survive, and reproduce. We calculate lifetime egg production using an integral projection model (DESCRIBE AND DEFINE).
+% The first requirement for persistence is that individuals within a population produce enough surviving offspring to replace themselves. We use an integral projection model (IPM) \citep[e.g.][]{rees2014building} to estimate the total number of eggs produced by one individual (lifetime egg production: LEP), starting at the recruit stage, when individuals have settled and survived to a size we can sample.
 
-To assess whether individuals at our focal patches produce enough offspring that survive to become recruits themselves, we multiply LEP by survival from egg to recruits $S_{ER}$ to estimate the number of recruits an individual recruit will produce over its lifetime, which we call lifetime recruit production (LRP):
+% In an IPM, the state of the population at time $t$ is described by the distribution of the population over a continuous trait $z$, for which we use size: $n(z,t)$. The total number of individuals in the population at time $t$ is the integral of the size distribution over size from the lower size bound $L$ to the upper size bound $U$: $\int_L^U n(z,t) dz$. The population is projected forward with probability density functions, called the kernel, that describe the survival, growth, and reproductive output of existing individuals into the next time step. 
+
+% We initalize the IPM with one recruit-sized individual $\text{size}_\text{recruit}$: $n(t=0) = n(\text{size}_\text{recruit}, 0)$, then use a kernel with the size-dependent survival and growth functions described above to project forward for 100 time steps. This gives us the size distribution at each time step, which represents the probability that the individual has survived and grown into each of the possible size categories. The probability that the individual is still alive and of any size decreases as the time steps progress; by using a large number of steps, we are able to avoid arbitrarily setting a maximum age and instead let the probabilities become essentially zero. We then multiply each size-distribution vector in the matrix by the size-dependent fecundity function described above to get the total number of eggs produced at each time step. To get the total number of of eggs one individual is likely to produce in its lifetime, we then sum across all time steps in the individual's potential life.  % Should I try to show this in equation form? Not quite sure how that would look yet...
+
+% % estimated as the mean size of offspring in the parentage analysis ($$) Talk about that here or in egg-recruit survival section?
+
+% The kernel $K(z',z)$ is typically broken into a survival and growth piece, $P(z'z)$ and a reproductive piece $F(z',z)$: $K(z',z) = P(z',z) + F(z',z)$.  % NEED TO DO A BETTER JOB OF DESCRIBING WHAT z' and z are - think about what of this would go in the methods and what would go in a more detailed appen
+
+%  We find the expected reprodutive output of an individual in the population by estimating lifetime egg production (LEP), which is the number of eggs an individual of a particular size can be expected to produce over its lifetime based on how likely it is to grow, survive, and reproduce. 
+
+% We use an integrated projection model (IPM) to estimate the total number of eggs produced by one individual, starting at the recruit stage. IPMs 
+
+% In an IPM, the state of the population at time $t$ is described by the distribution of the population over a continuous trait $z$, which here we consi{}der size: $n(z,t)$. The total number of individuals in the population at time $t$ is the integral of the size distribution over size from the lower size bound $L$ to the upper size bound $U$: $\int_L^U n(z,t) dz$. The population is projected forward with a kernel, probability density functions that describe the survival and growth of existing individuals into the next time step and their reproductive output. The kernel $K(z',z)$ is typically broken into a survival and growth piece, $P(z'z)$ and a reproductive piece $F(z',z)$: $K(z',z) = P(z',z) + F(z',z)$.  % NEED TO DO A BETTER JOB OF DESCRIBING WHAT z' and z are - think about what of this would go in the methods and what would go in a more detailed appendix
+
+% Because we are not trying to use the IPM to project the population through time but instead are just trying to project the growth and survival of one individual, we use only the first part of the kernel describing size-dependent survival $s(z)$ and size-dependent growth $G(z',z)$:
+% \begin{equation}
+% P(z',z) = s(z) G(z',z). \label{EQN_kernel_description}
+% \end{equation}
+% For the survival function, we use the size-dependent survival relationship we estimate from our mark-recapture data (see MARK section). For the size-dependent growth, we estimate the parameters of a von Bertalanffy model, commonly used to describe fish growth. %PROBABLY NEED TO PROVIDE MORE DETAIL HERE?
+
+% We initalize the IPM with one recruit-sized individual (3.5cm): $n(t=0) = n(3.5, 0)$, then use the kernel to project forward for a large number of time steps to get the size distribution at each time step. The probability that the individual is still alive and of any size decreases as the time steps progress - by using a larger number, we are able to avoid arbitrarily setting a maximum age and instead let the probabilities play out and essentially become zero. We then multiply each size-distribution vector in the matrix by a size-dependent fecundity function to get the total number of eggs produced at each time step, and sum across all time steps in the individual's potential life to get the total number of eggs one individual is likely to produce in its lifetime.  % THIS EXPLANATION IS TERRIBLE, SHOULD PROBABLY START WITH WHAT LEP IS, THEN MOVE INTO HOW WE ESTIMATE IT USING AN IPM
+
+% We calculate lifetime egg production using an integral projection model (DESCRIBE AND DEFINE).
+
+To assess whether individuals at our focal patches produce enough offspring that survive to become recruits themselves, we find the estimated number of recruits an individual recruit will produce over its lifetime (lifetime recruit production: LRP) by multiplying LEP by the estimated survival from egg to recruit $S_e$:
 \begin{equation}
-\text{LRP} = \text{LEP} * S_{ER}. \label{EQN_LRP}
+\text{LRP} = \text{LEP} * S_e. \label{EQN_LRP}
 \end{equation}
-If $LRP \geq 1$, the population has the possibility for replacement; indviduals produce enough surviving offspring, before taking into account the probability of dispersal and settlement. % think about this more, because dispersal mortality is somewhat already baked into egg-to-recruit mortality. Might be dinging the population twice there, somehow... since dispersal probabilities are prob given you recruited somewhere...
-
-
-
-
+If $LRP \geq 1$, the population has the possibility for replacement; indviduals produce enough surviving offspring, before taking into account the probability of dispersal and settlement. If $LRP < 1$, the individuals are not replacing themselves and the population cannot persist without input from outside patches .% think about this more, because dispersal mortality is somewhat already baked into egg-to-recruit mortality. Might be dinging the population twice there, somehow... since dispersal probabilities are prob given you recruited somewhere...
 
 \paragraph*{Self-persistence}
 
-\paragraph*{Network persistence}
+A patch is able to persist in isolation (self-persistent) if individuals produce enough offspring (LEP) that disperse back to the natal patch and survive to recruitment to be able to replace themselves (LR): $\text{LEP} \times \text{LR} \geq 1$ \citep{burgess2014beyond}. Our dispersal kernel represents the probability that a recruit disperses a distance given that it recruits somewhere, rather than the probability of a larvae dispersing and recruiting to a particular patch, which implicitly encompasses mortality from egg to recruitment. We modify the equation to fit our data and include survival from egg to recruit to whether a particular patch $i$ is self-persistent: 
+\begin{equation}
+\begin{split}
+SP_i &= \text{LEP} \times \frac{\text{recruits}}{\text{egg}} \times \frac{p_{i,i} \times \text{\# recruits from site}}{\frac{\text{recruits}}{\text{egg}} \times \text{\# eggs produced by patch i}} \\ 
+%SP_i &= \text{LEP} \times S_e \times \frac{p_{i,i} \times \text{\# recruits from site $i$}}{S_e \times \text{\# eggs produced by patch $i$}} \\
+SP_i &= \text{LEP} \times S_e \times p_{i,i}. \label{EQN_SP}
+\end{split}
+\end{equation}
+A patch is self-persistent if $\text{SP} \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole is persistent as well (CTITATION).
+
+
+% Modifiying the self-persistence criterion in Table 1 of \cite{burgess2014beyond} to make it clear that both LEP and the measure of local retention must consider the same life stage, we estimate self-persistence as the expected lifetime egg production of an individual recruit (LEP) multipled by the survival of eggs to recruits ($S_e$) multipled by the probability of dispersing back to the natal patch ($p_{i,i}$, calculated from the dispersal kernel):
+
+% \begin{equation}
+% \text{SP} = \text{LEP} \times S_e \times p_{i,i}. \label{EQN_SP}
+% \end{equation}
+
+% For a patch to be able to persist in isolation, enough offspring must disperse back to their natal patch and survive to recruitment to acheive replacement \citep{hastings_persistence_2006}. 
+
+\paragraph*{Realized connectivity matrix and network persistence}
+We find the probabilities of a recruit dispersing between each set of sites ($p_{i,j}$) by integrating the dispersal kernel (eqn.\ \ref{EQN_DispKernel} over the distance between each set of sites. We then create a realized connectivity matrix $C$ by multiplying the dispersal probabilities by the expected number of recruits an individual produces: $C_{i,j} = \text{LRP} \times p_{i,j}$ \citep{burgess2014beyond}. The diagonal entries of $C$, where the origin and destination are the same sites, are the values of self-persistence we calculate above. 
+
+Network persistence requires that the largest real eigenvalue of the realized connectivity matrix be $\lambda_C$ be greater than $1$: $\text{NP} = \lambda_C > 1$ \citep[e.g.][]{hastings_persistence_2006, white_population_2010, burgess2014beyond}.
 
 \paragraph*{Incorporating uncertainty}
+To represent the uncertainty in our estimates of the parameters that go into calculating our persistence metrics, we calculate each metric 1000 times, pulling each parameter from a distribution. In our results, we show the range of values of each persistence metric as well as the value with our best estimate of each parameter. 
 
+Not sure where to put this, or if it should exist, but seems like it might be helpful:
+\begin{centering}
+\begin{longtable}{|p{0.8in}|p{1.2in}|p{1.5in}|p{1in}|p{1.5in}|}
+\hline 
+\textbf{Parameter} & \textbf{Description} & \textbf{Best estimate} & \textbf{Range in uncertainty runs} & \textbf{Notes} \\ \hline
+$k_d$ &  scale parameter in dispersal kernel & -1.36 & -2.03 to -0.96 & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+$\theta$ & shape parameter in dispersal kernel & 0.5 & NA & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+$\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.4cm & 3.5 - 6.0cm & \\ \hline
+$S_e$ & egg-recruit survival & & &  \\ \hline
+$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
+$b_e$ & coefficient for eyed eggs & -0.608 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$b_l$ & slope in eggs-per-clutch relationship & 2.39 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$b$ & intercept in eggs-per-clutch relationship & 1.17 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
+\caption{}\label{TAB_Params}
+\end{longtable}
+\end{centering}
 
 % What are the metrics we use, how do we reframe those in terms of data we have or things we can estimate?
 
@@ -272,6 +391,9 @@ previous research suggests 10km dispersal kernel spread for yellowtail clownfish
 \setcounter{table}{0}
 \numberwithin{equation}{section}
 \numberwithin{figure}{section}
+
+\section{Method details}
+\subsection*{Proportion of habitat sampled} \label{APP_SEC_ProbHabSampled}
 
 \section{Uncertainty details}
 
