@@ -40,6 +40,7 @@
 
 \section*{Introduction}
 
+
 Paragraph 1: Long been a challenge to understand how marine metapopulations - patchy, interconnected populations - are connected and how they persist. Particularly challenging in the marine environment, where much movement happens at the larval stage - high mortality, hard to tag/track, can go far b/c of currents. Of key interest, though - both just because we want to understand population dynamics, persistence, and connectivity for basic ecological reasons, and for more applied reasons, like conservation (establishment of marine protected areas), understanding where to fish.
 
 Lots of theory has been developed about how we would expect populations largely connected by larval movement to persist, which essentially boils down to replacement. To understand persistence, we need to know 1) whether we see replacement and 2) the origins of that replacement - self or other patches? Define and distinguish self persistence vs network persistence. Hastings and Botsford 2006 papers, Bostford 2009, some of the White papers (2010?), Burgess et al. 2014. Walk through the theory, our expectations for persistence, and what we need to know. Might take more than one paragraph. 
@@ -111,11 +112,14 @@ We focus on a tropical metapopulation of yellowtail clownfish (\textit{Ampiprion
 
 % ANY OTHER GENERAL CLOWNFISH LIFE HISTORY DETAILS TO ADD HERE?
 
-Clownfish are particularly well-suited to metapopulation studies due to their limited movement as adults and clearly patchy habitat. Once fish have settled, they tend to stay within close proximity of their anemones (XX meters, CITATION). This makes fish easier to relocate for mark-recapture studies and simiplifies the exchange between patches to only the dispersal during the larval phase. Patches, whether considered to be the reef patch or the anemone territory of the fish, are clearly discrete and easily delineated, which makes determining the spatial structure of the metapopultion clear. Additionally, clear patches make it easier to assess how much of the site has been surveyed. These simplifying characterstics in habitat and fish behavior are SOMETHING ABOUT CLOWNFISH AND OTHER SIMILAR SPECIES BECOMING ALMOST A MODEL SYSTEM FOR METAPOPULATION PERSISTENCE WORK, CITATIONS.
+Clownfish are particularly well-suited to metapopulation studies due to their limited movement as adults and clearly patchy habitat. Once fish have settled, they tend to stay within close proximity of their anemones (XX meters, CITATION). This makes fish easier to relocate for mark-recapture studies and simiplifies the exchange between patches to only the dispersal during the larval phase. Patches, whether considered to be the reef patch or the anemone territory of the fish, are clearly discrete and easily delineated, which makes determining the spatial structure of the metapopultion clear. Additionally, clear patches make it easier to assess how much of the site has been surveyed. These simplifying characterstics in habitat and fish behavior are SOMETHING ABOUT CLOWNFISH AND OTHER SIMILAR SPECIES AS A MODEL SYSTEM FOR METAPOPULATION PERSISTENCE WORK, CITATIONS.
 
 \paragraph*{Field data collection}
 
 We focus on a set of seventeen patch reef sites spanning approximately 30km along the western coast of Leyte island in the Philippines (MAP FIGURE). The sites consist of rocky patches of coral reef and are separated by sand flats. Previous work using genetic isolation by distances estimated that yellowtail clowfish larvae have a dispersal spread of about 10km \citep{pinsky2010using}, so our sites were selected to cover and exceed that range. On the north edge, the sites are isolated from nearby habitat. with no additional reef habitat for at least 20km. % Pinsky et al. 2010 paper: (4–27 km with median 11 km)
+
+TO ADD: Figure 1: map of study sites, picture of clownfish
+\textit{(Any figure summarizing the data? How many fish captured, sequenced, etc? Could go in the appendix?)}
 
 Since 2012, members of the team have sampled fish and habitat at most of the sites annually. During sampling, divers using SCUBA and tethered to GPS readers swim the extent of each site. Divers visit each anemone inhabited by yellowtail clownfish, tagging the anemone to be able to track anemones through time. At each anemone, the divers attempt to catch all of the yellowtail clownfish 3.5cm and larger, taking a non-lethal tail fin-clip from each for use in genetic analysis, measuring the fork length, and noting the tail color (as an indicator of life stage). Starting in the 2015 field season, fish 6.0cm and larger are tagged with a passive integrated transponder (PIT) tag, unless already tagged. Divers also looked for eggs around each anemone and measured and photographed any clutches found.
 
@@ -146,11 +150,21 @@ L_{t+1} & = L_t + (L_\infty - L_t)[1 - e^{(-K)}] \\
 
 We see from eqn.\ \ref{EQN_VBL} that we would expect the first length $L_t$ and the second length $L_{t+1}$ to be related linearly \citep{hart2009estimating}. From the slope $m = e^{(-K)}$ and y-intercept $b =  L_\infty[1 - e^{(-K)}]$, we can estimate the von Bertalanffy parameters, such that $K = -\ln m$ and $L_\infty = \frac{b}{(1-m)}$. We use the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate $L_\infty$ and $K$. We have some fish that were recaptured multiple times so we randomly select only one pair of recaptures from each to use in estimating the parameters, and repeat this process 1000 times to generate a distribution (Fig. \ref{FIG_ParameterInputs}b, \ref{APP_FIG_UncertaintyInputs}d).
 
-% Write about survival!
+We use the full set of fish encountered multiple times to estimate annual survival $\phi$ and probability of recapture $p_r$ using the mark-recapture program MARK implemented in R \citep{RMark_Laake2013}. We consider several models with year, size, and site effects on the probability of survival and year and size effects on the probability of recapturing a fish on a log-odds scale (see full list in Table \ref{APP_TAB_MARKmodels}. For fish that are not recaptured at a particular time point, we estimate their size using our growth model (eqn.\ \ref{EQN_VBL}) and the size recorded or estimated in the previous year. Because fish are not well-mixed at our sites and instead stay quite close to their home anemones, we need to swim near an anemone to have a reasonable chance of capturing the fish on it. Therefore, we also consider a distance effect on recapture probability; we use the GPS tracks of divers to estimate the shortest distance a diver got to the anemone for each tagged fish in each sample year and include it as a factor in some of the models.
 
-\begin{equation} % Just a placeholder for the moment so I can get schematic numbering correct
-p_a = \text{some stuff here}. \label{EQN_Survival}
-\end{equation}
+The best-fit model using model selection with AICc has an effect of fish size on survival and additive effects of fish size and shortest distance to anemone on the probability of recapture:
+% Given $s_i$ as whether or not fish $i$ strayed, $p$ as the probability of straying, $H$ as hatchery identity, $X_i$ as the factors, and $b_i$ as the effect sizes for each factor, the general model structure for estimating effects on probability on a log-odds scale is: 
+
+% \begin{equation} % Just a placeholder for the moment so I can get schematic numbering correct
+% p_a = \text{some stuff here}. \label{EQN_Survival}
+% \end{equation}
+
+\begin{eqnarray}
+%\phi &\sim& \text{Binomial}(1,p) \\ \label{EQN_MainEffectsModelStructure}
+%\text{logit}(p) &=& a_\text{hatch}[H] + b_1X_1 + b_1X_2 + ... + b_nXn.
+\log(\frac{\phi}{1-\phi}) &=& b_\phi + b_a\text{size} \\
+\log(\frac{p_r}{1-p_r}) &=& b_{p_r} + b_1\text{size} + b_2d. \label{EQN_Survival}
+\end{eqnarray}
 
 \paragraph*{Fecundity}
 
@@ -217,6 +231,8 @@ p_{A, B}(d) = \int_{d_1}^{d_2} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integrati
 % What does it mean to persist? How do we define persistence?
 
 For a metapopulation to persist, at least one patch needs to achieve replacement, where the number of individuals entering the population balances those lost to mortality or emmigration (CITATION). In our focal system, adults do not move among patches so we do not need to consider emmigration and only need to assess whether fish produce enough offspring that survive to recruitment to be able to replace themselves and where those offspring travel within the metapopulation. We consider three primary metrics to assess whether and how the population is persistent: 1) lifetime production of recruits, to assess whether the population has enough surviving offspring to acheive replacement 2) self-persistence, to assess whether any individual patches would be able to persist in isolation without any input from other patches, and 3) network persistence, to assess whether the metapopulation is persistent as a connected unit. We explain each metric below in detail. % Reference the section with \ref?
+
+% Should I include some sort of discussion of time series?
 
 \paragraph*{Lifetime production of recruits}
 
@@ -304,40 +320,35 @@ $L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
 
 %%%% Methods fodder from powerpoint presentations
 
-17 sites along a 30km stretch of coastline in Leyte in the Philippines – fairly distant from other habitat to the north (20km away), previous estimates of clownfish larval dispersal have been put at ~10km so expect a lot of connectivity among these patches
+% 17 sites along a 30km stretch of coastline in Leyte in the Philippines – fairly distant from other habitat to the north (20km away), previous estimates of clownfish larval dispersal have been put at ~10km so expect a lot of connectivity among these patches
 
-More info about clownfish – either on this slide or one before
-tag anemones
-tag adult clownfish
-fin clip adults and sub-adults
-photograph eggs
+% More info about clownfish – either on this slide or one before
+% tag anemones
+% tag adult clownfish
+% fin clip adults and sub-adults
+% photograph eggs
 
-The Pinsky lab has been following these populations for several years, marking anemones, taking fin clips and putting in pit tags for the fish for parentage analyses and mark-recapture studies, measuring fish sizes, take pictures of eggs to estimate fecundity. 
+% The Pinsky lab has been following these populations for several years, marking anemones, taking fin clips and putting in pit tags for the fish for parentage analyses and mark-recapture studies, measuring fish sizes, take pictures of eggs to estimate fecundity. 
 
-Can we tell if the patches and overall population are persistent?
-survival and population size from mark/recap
-does input (recruits x surv to adult) = adult mortality
-Are any patches self-persistent?
-At what scales do groups of patches show network persistence?
-replacement achieved with increasing number of patches?
-analyses with realized connectivity matrices
+% Can we tell if the patches and overall population are persistent?
+% survival and population size from mark/recap
+% does input (recruits x surv to adult) = adult mortality
+% Are any patches self-persistent?
+% At what scales do groups of patches show network persistence?
+% replacement achieved with increasing number of patches?
+% analyses with realized connectivity matrices
 
 
---size likely matters – b/c of the hierarchy
---tag shedding
+% --size likely matters – b/c of the hierarchy
+% --tag shedding
 
-Many marine populations are spatially-structured, with different patch populations that are connected through movement and exchange of individuals, like these population patches on a coastline here. One challenge that can be particularly pronounced in the marine environment is understanding how spatially-structured populations are connected – how many individuals they exchange how often and what that means for their structure, dynamics, and persistence.
+% Many marine populations are spatially-structured, with different patch populations that are connected through movement and exchange of individuals, like these population patches on a coastline here. One challenge that can be particularly pronounced in the marine environment is understanding how spatially-structured populations are connected – how many individuals they exchange how often and what that means for their structure, dynamics, and persistence.
 
-For understanding, the consequences of connectivity, we have to take a step back to think about what it means for a population to persist. Essentially, for a population to persist, on average adults need to replace themselves each generation, meaning on average, they each needs to produce one offspring that survives to become a reproductive adult. This concept goes by different names, depending on the context, sometimes mentioned as Ro, replacement, lifetime egg production, or a growth rate lambda = 1. It can also be thought of as equilibrium flow (
-
+% For understanding, the consequences of connectivity, we have to take a step back to think about what it means for a population to persist. Essentially, for a population to persist, on average adults need to replace themselves each generation, meaning on average, they each needs to produce one offspring that survives to become a reproductive adult. This concept goes by different names, depending on the context, sometimes mentioned as Ro, replacement, lifetime egg production, or a growth rate lambda = 1. It can also be thought of as equilibrium flow (
 
 \section*{Results}
 
-Figure 1: map of study sites, picture of clownfish
-
-Any figure summarizing the data? How many fish captured, sequenced, etc? Could go in the appendix?
-
-Figure 2: schematic figure
+%$Figure 2: schematic figure
 
 Figure 2: abundance trends through time with some sort of time series analysis
 
@@ -394,6 +405,30 @@ previous research suggests 10km dispersal kernel spread for yellowtail clownfish
 
 \section{Method details}
 \subsection*{Proportion of habitat sampled} \label{APP_SEC_ProbHabSampled}
+
+\newpage{}
+
+\subsection*{Full set of MARK models}
+We consider the following set of models in MARK:
+\begin{table}
+\begin{centering}
+\begin{tabular}{|p{2in}|p{2.5in}|p{0.75in}|p{0.75in}|}
+\hline 
+\textbf{Model} & \textbf{Model description} & \textbf{AICc} & \textbf{dAICc} \\ \hline
+& survival size, recapture size+distance & 3348.861 & 0 \\ \hline
+& survival size, recapture distance & 3359.998 & -11.1371 \\ \hline
+& survival constant, recapture distance & 3383.175 & 34.3141 \\ \hline
+& survival constant, recapture size+distance & 3384.959 & 36.0981 \\ \hline
+& survival time, recapture constant & 3408.342 & 59.4816 \\ \hline
+& survival site, recapture constant & 3440.842 & 91.98112 \\ \hline
+& survival site, recapture size+distance & 3440.842 & 91.98112 \\ \hline
+& survival constant, recapture time & 3453.609 & 104.74839 \\ \hline
+& survival size, recapture size & 3527.710 & 178.84940 \\ \hline
+& survival constant, recapture constant & 3570.908 & 222.04690 \\ \hline
+\end{tabular}
+\end{centering}
+\caption{}\label{APP_TAB_MARKmodels}
+\end{table}
 
 \section{Uncertainty details}
 
