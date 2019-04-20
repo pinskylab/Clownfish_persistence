@@ -12,11 +12,12 @@ library(ggplot2)
 # Pull data, functions, constants 
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
-# Set sites to include for total possible sampling area (all site areas times all years sampled) - excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this because they disappeared partway through (check with Michelle on that) (should I exclude the Sitio Lonas match too?)
-sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
-                           'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
-                           'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
-                           'Visca', 'Wangag', 'S. Magbangon')  
+# Moved this to Constants_database_common_functions.R
+# # Set sites to include for total possible sampling area (all site areas times all years sampled) - excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this because they disappeared partway through (check with Michelle on that) (should I exclude the Sitio Lonas match too?)
+# sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
+#                            'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
+#                            'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
+#                            'Visca', 'Wangag', 'S. Magbangon')  
 
 #################### Functions: ####################
 # Find the number of tagged anemones visited by each site, each year 
@@ -307,6 +308,51 @@ total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sa
                                           total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems, total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied),
                                           total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method)), rep("anems tidied", length(total_area_sampled_through_time$method))))
 
+##### Do a similar thing by site, finding cumulative proportion habitat sampled by site
+# Make the time frames into a list of the right order and length for the site-level data frame (just one method)
+time_frame_list_site <- rep(time_frames[1], length(site_vec_order$site_name))
+for(i in 2:length(time_frames)) {
+  time_frame_list_site <- c(time_frame_list_site, rep(time_frames[i], length(site_vec_order$site_name)))
+}
+
+# Set up data frame, just using metal tags tidied method (not other anem methods or area)
+cumulative_prop_hab_sampled_by_site <- data.frame(site = rep(site_vec_order$site_name, length(time_frames)),
+                                                  method = "metal tags", stringsAsFactors = FALSE) %>%
+  mutate(time_frame = time_frame_list_site,
+         end_year = str_sub(time_frame, -4, -1),
+         total_possible_sample_anems = NA,  # total number of anems that would have been possible to sample in the time frame (sum of total at this site x number of years of sampling)
+         total_anems_sampled = NA,  # sum of total anems sampled at this site in that time period
+         total_anems_sampled_tidied = NA,  # sum of total anems sampled at that site in that time period not including anems that exceed the total at the site
+         total_prop_hab_sampled_anems = NA,
+         total_prop_hab_sampled_anems_tidied = NA)
+                                                               
+# Find total anems that could have been sampled, adding a sample year each time (for parentage)
+for(i in 1:length(cumulative_prop_hab_sampled_by_site$method)) {
+  end_year <- as.integer(cumulative_prop_hab_sampled_by_site$end_year[i])
+  years_to_include <- seq(2012, end_year, by=1)
+  site_i = cumulative_prop_hab_sampled_by_site$site[i]
+   
+  # Total number of anems that could have been sampled (total at site x number of years) 
+  cumulative_prop_hab_sampled_by_site$total_possible_sample_anems[i] = ((total_anems_by_site %>% filter(site == site_i, method == "metal tags"))$n_total_anems)*length(years_to_include)
+
+  # Total number sampled (raw value from this method)
+  cumulative_prop_hab_sampled_by_site$total_anems_sampled[i] = sum(anems_visited_by_year %>% 
+                                                                  filter(site == site_i, year %in% years_to_include, method ==  "metal tags") %>% 
+                                                                  select(n_sampled_anems))
+  
+  # Total number sampled, tidied (so doesn't exceed total at this site)
+  cumulative_prop_hab_sampled_by_site$total_anems_sampled_tidied[i] = sum(anems_visited_by_year %>% 
+                                                                     filter(site == site_i, year %in% years_to_include, method ==  "metal tags") %>% 
+                                                                     select(n_anems_tidied))
+}
+
+# Find cumulative proportion habitat sampled for each site
+cumulative_prop_hab_sampled_by_site <- cumulative_prop_hab_sampled_by_site %>%
+  mutate(total_prop_hab_sampled_anems = total_anems_sampled/total_possible_sample_anems,
+         total_prop_hab_sampled_anems_tidied = total_anems_sampled_tidied/total_possible_sample_anems)
+
+
+
 # total_area_all_years <- sum(site_areas_modified$kmsq_area)*length(years_sampled)
 # 
 # total_area_2012to2015 <- sum(site_areas_modified$kmsq_area)*length(years_parentage)  # until all genetic data is in parentage, only act as if we sampled in 2012-2015 (for egg-recruit survival estimate)
@@ -492,7 +538,7 @@ save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visite
 #save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
 save(total_area_sampled_through_time, file=here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))
 save(total_sampling_across_years, file=here::here("Data/Script_outputs", "total_sampling_across_years.RData"))  # summary of prop hab sampled by different total area and total anem methods
-
+save(cumulative_prop_hab_sampled_by_site, file=here::here("Data/Script_outputs", "cumulative_prop_hab_sampled_by_site.RData"))  # summary of prop hab sampled cumulatively through time by site, method is "metal tags"
 # # # Load helpful functions from other scripts
 # # script <- getURL("https://raw.githubusercontent.com/pinskylab/Clownfish_data_analysis/master/Code/Common_constants_and_functions.R", ssl.verifypeer = FALSE)
 # # eval(parse(text = script))
