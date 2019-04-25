@@ -17,7 +17,7 @@
 \usepackage{longtable}
 %\usepackage{threeparttable}
 \usepackage{lineno}
-\usepackage[round]{natbib} %round makes pare{}ntheses instead of square brackets
+\usepackage[round]{natbib} %round makes parentheses instead of square brackets
 \usepackage{url}
 %\usepackage{authblk}
 \setcounter{secnumdepth}{4}
@@ -40,16 +40,82 @@
 
 \section*{Introduction}
 
+Metapopulation dynamics and persistence depend on the demographic rates at each patch and the connectivity among patches \citep[e.g.][]{hastings_persistence_2006} OTHER CITATIONS, maybe Hanski?. Many marine species exist in metapopulations, consisting of patch populations connected through dispersal (though differing from one definition of metapopulation in that individual patches are unlikely to go extinct) \citep{kritzer2006marine}. Assessing demographic parameters and levels of connectivity has been particularly challenging for marine species, where much of the mortality and movement happens at larval and juvenile stages when individuals are hard to track and have the potential to travel long distances with ocean currents \citep[e.g.][]{kritzer2006marine}(CITATONS, maybe Botsford et al. 2009, Roughgarden check others, Cowen and Sponagule). A need to understand metapopulations for conservation and management, such as siting marine protected areas (CITATONS), however, has led to a large body of theory describing how marine metapopulations might persist. % but with few empirical tests. RETHINK THIS PARAGRAPH AND FINAL SENTENCE! SHOULD I GO INTO MORE DETAIL ABOUT DIFFERENT KINDS OF METAPOPULATIONS AT THE BEGINNING, maybe one more sentence early on? That second sentence needs help or maybe doesn't even need to exist. Check Gerber et al. 2005 as a potential reference, here and in paragraphs below.
 
-Paragraph 1: Long been a challenge to understand how marine metapopulations - patchy, interconnected populations - are connected and how they persist. Particularly challenging in the marine environment, where much movement happens at the larval stage - high mortality, hard to tag/track, can go far b/c of currents. Of key interest, though - both just because we want to understand population dynamics, persistence, and connectivity for basic ecological reasons, and for more applied reasons, like conservation (establishment of marine protected areas), understanding where to fish.
+For any population to persist, individuals must on average replace themselves during their lifetimes. In non-spatially structured populations, we use criteria such as the average number of recruiting offspring contributed by each individual during its life (called $R_0$ when the population is age-structured and density-independent) or the growth rate of the population (such as the dominant eigenvalue $\lambda$ of an age-structured Leslie matrix) \citep{caswell_matrix_2001, burgess2014beyond}. To assess replacement, metrics must take into account the demographic processes across the whole life cycle, including how likely individuals are to survive to the next age or stage, their expected fecundity at each stage, and the survival of any offspring produced to recruitment. %CITATIONS? DOES THIS PARAGRAPH MAKE SENSE?
 
-Lots of theory has been developed about how we would expect populations largely connected by larval movement to persist, which essentially boils down to replacement. To understand persistence, we need to know 1) whether we see replacement and 2) the origins of that replacement - self or other patches? Define and distinguish self persistence vs network persistence. Hastings and Botsford 2006 papers, Bostford 2009, some of the White papers (2010?), Burgess et al. 2014. Walk through the theory, our expectations for persistence, and what we need to know. Might take more than one paragraph. 
+In a spatially-structured population, persistence still requires replacement but in addition to assessing whether the reproductive output and survival of a population is sufficient, we must also consider how the offspring are distributed across space. The spread of offspring is often described using dispersal kernels, probability density functions that give the relative number of settlers with increasing distance from the origin patch \citep[e.g.][]{bode2018estimating}. Connectivity can also be described using a connectivity matrix, where entries give the probability of dispersing from one patch to another, either found by discretizing the dispersal kernel or through direct estimates of pairwise exchange among patches (CITATION). A long-held paradigm suggested that marine larvae were well-mixed and dispersed far on ocean currents \citep{roughgarden_recruitment_1988}, suggesting widespread connectivity. With the ability to estimate connectivity through natural tags such as otolith microchemistry or genetics and the realization that larvae can alter their dispersal through behavior \citep[e.g.][]{morgan_nearshore_2009}, the paradigm is shifting and local persistence of marine populations is seeming more possible. % Sentence here about how we thought that marine larvae went all over but turns out in some cases they stay closer to home? Or put that down later??
 
-Testing/validating/demonstrating that theory empirically has been challenging but new technologies in tagging and genetics are making it more feasible. There have been some recent successes. Cite Johnson et al., Salles et al. the recent paper by someone Will works with (Garavelli or something?). Go through (briefly) what they did and found.
+When we consider both the demographic processes within patches and the connectivity among them, a metapopulation can persist in two ways: 1) at least one patch can achieve replacement in isolation, or 2) patches receive enough recruitment to achieve replacement through loops of connectivity with other patches in the metapopulation \citep{hastings_persistence_2006, burgess2014beyond}. In the first case (termed self-persistence), enough of the reproductive output produced at a patch is retained at the patch for the patch, and therefore the metapopulation as a whole, to persist. In the second (network persistence), closed loops of connectivity among at least some of the patches - where individuals from one patch settle at another and eventually send offspring back to the first in a future generation - provide the patch with enough recruitment to persist in the network. Though it has been challenging to estimate the parameters necessary to understand how actual metapopulations persist, a large work of theory developed to guide marine protected area helps predict when each type of persistence is likely to occur \citep[i.e.\ large patches relative to the mean dispersal distance are likely to be self-persistent][]{botsford_dependence_2001}. % Is this sentence relevant here?
 
-We continue this work with our long-ish term data set of clownfish. Like Salles (check) and Johnson (check), we use a tropical reef species blablalbah (maybe study system description goes in next paragraph). Talk about how we have longer-term data set (check that this is actually true...) so we can capture longer-term replacement, smooth out some of the year-to-year variability. Many years of sampling lets us assess pop persistence in two ways: 1) from estimated abundance trends and 2) estimating replacement and persistence metrics. Also, have a portion of the metapopulation that is continuous (though might not be quite enough of the metapopulation to capture the full network). Here, essentially, distinguish what we are doing from the other studies. Not exactly sure of the flow here - maybe 1 paragraph or maybe 2?
+New ways of identifying individuals and determining their origins, such as otolith microchemistry and genetic parentage analysis \citep[e.g.][]{wang2004sibship, wang2014estimation}, however, are making it increasingly possible to estimate both the demographic [ADD EXAMPLE CITATIONS] and the connectivity \citep[e.g.][]{hameed2016inverse, almany2017larval} parameters necessary to assess persistence in real metapopulations. We might expect that populations on isolated islands are the most likely to be self-persistent and \cite{salles_coral_2015} find that the population of orange clownfish (\textit{Amphiprion percula} at isolated Kimbe Island in Papua New Guinea can likely persist without outside immigration. In contrast, a metapopulation of bicolor damselfish (\textit{Stegastes partitus}) across four isolated islands in the Bahamas does not appear able to persist without outside input \citep{johnson2018integrating}. For populations that exist in patches along a continuous coastline, rather than on separate islands, however, it is still an open question of how patches interact and the scale of metapopulation persistence.
 
-Overview of clownfish and why they are a great system. Here we.....
+We further our understanding of metapopulation dynamics in a network of patches along a coastline through a study of yellowtail clownfish (\textit{Amphiprion clarkii}) in the Philippines. We assess persistence for all patches of habitat within a 30 km stretch of coastline, which exceeds estimates of the dispersal spread for this species \citep{pinsky2010using}, suggesting the network is likely to operate as a contained metapopulation. With seven years of sampling data, we are able to estimate persistence metrics and replacement over the longer term, rather than just capturing a snapshot of the population dynamics. Our annual sampling also enables us to estiamte abundance each year and investigate dynamics through time to compare with the replacement-based persistence metrics. Here, we use a long-term data set from habitat patches on a continuous set of coastline to understand persistence within a local network. % Work on last sentence...
+
+% Testing/validating/demonstrating that theory empirically has been challenging but new technologies in tagging and genetics are making it more feasible. There have been some recent successes. Cite Johnson et al., Salles et al. the recent paper by someone Will works with (Garavelli or something?). Go through (briefly) what they did and found.
+
+% We continue this work with our long-ish term data set of clownfish. Like Salles (check) and Johnson (check), we use a tropical reef species blablalbah (maybe study system description goes in next paragraph). Talk about how we have longer-term data set (check that this is actually true...) so we can capture longer-term replacement, smooth out some of the year-to-year variability. Many years of sampling lets us assess pop persistence in two ways: 1) from estimated abundance trends and 2) estimating replacement and persistence metrics. Also, have a portion of the metapopulation that is continuous (though might not be quite enough of the metapopulation to capture the full network). Here, essentially, distinguish what we are doing from the other studies. Not exactly sure of the flow here - maybe 1 paragraph or maybe 2?
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% but in addition to tracking whether reproduction and survival of offp, such as a metapopulaton metapopulation persistence, however, we also care about connectivity - how offspring get distributed in space - in addition to the demographic processes. Connectivity is often described through dispersal kernels, probability density functions that give the relative number of settlers each distance from the origin patch \citep[e.g.][]{bode2018estimating}, which can then be discretized to form connectivity matrices that give the probability of dispersing from one patch to another (CITATIONS). Considering both demographic rates at the patches and the connectivity among them, a metapopulation can then persist in two ways: 1) at least one patch is able to achieve replacement through retention of osffspring produced locally (termed self-persistence) and 2) no patch retains enough local production to be able to persist in isolation but at least one patch receives enough offspring through connectivity loops with other patches to persist (termed network persistence) \citep{hastings_persistence_2006, burgess2014beyond}.
+
+
+% In asssesing persistence in a spatially-structured metapopulation, we must consider both whether rindividuals replace themselvesFor any population to persist, individuals must on average replace themselves over their lifetime, and in a spatially-structure metapopulation, we must also consider how offspring get distributed across space. For consider both whether individuals produce engoughTo understand persistence of a metapopulation, we need to know both ho the demographic rates of the population - the production and survival of offspring - 
+% ,
+
+% For any population to persist, individuals must on average replace themselves during their lifetimes. We use various criteria for different types of populations, such as the average number of offspring contributed by each individual during its life (called $R_0$ when the population is age-structured and density-independent) or the growth rate of the population (such as the dominant eigenvalue $\lambda$ of an age-structured Leslie matrix) \citep{caswell_matrix_2001, burgess2014beyond}. Demographic persistence metrics take into account how likely individuals are to survive to the next age or stage, the expected fecundity at each stage, and the survival of any offspring produced to recruitment. CITATIONS? DOES THIS PARAGRAPH MAKE SENSE?
+
+% For metapopulation persistence, however, we also care about connectivity - how offspring get distributed in space - in addition to the demographic processes. Connectivity is often described through dispersal kernels, probability density functions that give the relative number of settlers each distance from the origin patch \citep[e.g.][]{bode2018estimating}, which can then be discretized to form connectivity matrices that give the probability of dispersing from one patch to another (CITATIONS). Considering both demographic rates at the patches and the connectivity among them, a metapopulation can then persist in two ways: 1) at least one patch is able to achieve replacement through retention of osffspring produced locally (termed self-persistence) and 2) no patch retains enough local production to be able to persist in isolation but at least one patch receives enough offspring through connectivity loops with other patches to persist (termed network persistence) \citep{hastings_persistence_2006, burgess2014beyond}.
+
+% % Mabye I should combine the demographic persistence paragraph with the connectivity part - topic sentence would be what? Need to understand both xx side of persistence and connectivity to understand metapops? Then a new paragraph about the persistence critera (self-persistence and network persistence) and how theory has helped us understand the nuances of those (give some summary, details here?). Then a new paragraph about how it's hard to actually get a sense of this empirically but we're getting there, both with better estiamtes of connectivity and now starting to get examples with combos of connectivity and demographics? Then a paragraph about what sets our case apart (fully sampled all habitat within a range that estiamted to be within this species' dispersal distance, sampling over time to get a more average sense of persistence, not just a couple of time points)
+
+% % Need to come up with a better phrase for the demographic side of persistence
+% Many models and simulations have helped us understand the nuances of persistence criteria and  
+
+
+%  For metapopulations, however, we care about both the demographic processes - whether individuals in the patches produce enough surviving offspring to be able to replace themselves - and connectivity - how those offspring get distributed in space (CITATIONS). A metapopulation can persist in two ways: 1) at least one patch can achieve replacement through retention of offspring produced locally (termed self-persistence) and 
+
+% Two ways a metapopulation can persist
+% self-persistence, network persistence
+
+
+% Or could have 1 paragraph about demographic persistence criteria
+% Then one about connectivity and those kinds of metrics
+% Then one about metapopulation persistence, where both demographics and connectivity are at play
+% Then one about how this is hard to validate/test empirically but there has been progress, especially in connectivity. A long while of just focusing on connectivity, forgetting the demographics. But still gaps b/c we know these kinds of rates/parameters can vary over time and space, one snapshot isn't likely to tell us much about persistence in the long-run.
+
+% Then one about how we are furthering this work with clownfish.
+% -estimate inputs to our persistence metrics directly from our data
+% -annual sampling across 8 year time period - can assess persistence with longer-term estimates of metrics, not just snapshot estimates
+% -sampling a continuous section of a metapopulation that spans the estimated mean dispersal distance for this species, easily distinguished reef patches separated by non-habitat, sampled all habitat within this area
+% -means we can compare our persistence metrics to population abundances through time, can assess whether this population is persistent and if so, how important connectivity between our sampled patches and outside patches is to persistence
+
+
+% There are two wasyA patch could persist by producing sufficient offspring that disperse back to the patch to achieve replacement 
+
+% the demographic piece - and Different types of populationWe have mathematical representations of this replacement for many types of populations, such as $R_0$ (CITATIONS).  on average   To persist, individuals in a population need to replace
+% , where much Assessing connectivity and persistence for metapopulations in marine environments has  has long been a challenge becuase  among patches in metapopulations and determining how if it contributes to persistence of the metapopulation as a whole has long been a challenge in marine environments.
+
+% Will need to address density-dependence and that these metrics are for low-densities when density-dependence is thought not to apply somewhere - probably both here to be clear about the metrics and in the methods somewhere to explain that we're basically ignoring the DD for now, even thought it is likely important in our system. Could also discuss in the results - particularly, egg-recruit survival would probably be higher in low-density situations (how much higher do we need it to be to see persistence? Is that an amount that could be explained by DD?)
+
+% Brief summaries of papers and how they might fit in here:
+% \begin{itemize}
+% \item \cite{almany2017larval}: different species (but still tropical reef fish, including another clownfish species -  \textit{Amphiprion percula}), example of much better kernel fitting and estimates of larval connectivity using genetic parentage;
+% \item \cite{salles2016genetic}: local habitat differences (like species of anemone) might lead to different demographic rates and production of recruits for the individuals in those habitats (here \textit{Amphiprion percula} on two anemone species in Kimbe Bay)
+% \item \cite{lorenzen2018density}: in fisheries ecology, stock assessment, define recruit to be when a fish has grown/survived past the stage when density-dependence and environmental variability are really important for mortality, and has reached a stage when mortality is more stable and density-independent. Can be hard to figure out when that is, though, models can be mis-specified if get the timing/age/size of recruitment wrong and call things recruits too early.
+% \end{itemize}
+% %%%%%%%%%%%%%%%%%%%%% Outline below %%%%%%%%%%%%%%%%%%%%%%
+
+% Understanding connectivity with metapopulations are connected and how the
+% Paragraph 1: Long been a challenge to understand how marine metapopulations - patchy, interconnected populations - are connected and how they persist. Particularly challenging in the marine environment, where much movement happens at the larval stage - high mortality, hard to tag/track, can go far b/c of currents. Of key interest, though - both just because we want to understand population dynamics, persistence, and connectivity for basic ecological reasons, and for more applied reasons, like conservation (establishment of marine protected areas), understanding where to fish.
+
+% Lots of theory has been developed about how we would expect populations largely connected by larval movement to persist, which essentially boils down to replacement. To understand persistence, we need to know 1) whether we see replacement and 2) the origins of that replacement - self or other patches? Define and distinguish self persistence vs network persistence. Hastings and Botsford 2006 papers, Bostford 2009, some of the White papers (2010?), Burgess et al. 2014. Walk through the theory, our expectations for persistence, and what we need to know. Might take more than one paragraph. 
+
+% Testing/validating/demonstrating that theory empirically has been challenging but new technologies in tagging and genetics are making it more feasible. There have been some recent successes. Cite Johnson et al., Salles et al. the recent paper by someone Will works with (Garavelli or something?). Go through (briefly) what they did and found.
+
+% We continue this work with our long-ish term data set of clownfish. Like Salles (check) and Johnson (check), we use a tropical reef species blablalbah (maybe study system description goes in next paragraph). Talk about how we have longer-term data set (check that this is actually true...) so we can capture longer-term replacement, smooth out some of the year-to-year variability. Many years of sampling lets us assess pop persistence in two ways: 1) from estimated abundance trends and 2) estimating replacement and persistence metrics. Also, have a portion of the metapopulation that is continuous (though might not be quite enough of the metapopulation to capture the full network). Here, essentially, distinguish what we are doing from the other studies. Not exactly sure of the flow here - maybe 1 paragraph or maybe 2?
+
+% Overview of clownfish and why they are a great system. Here we.....
 
 
 % Notes on relevant papers:
@@ -104,7 +170,7 @@ Overview of clownfish and why they are a great system. Here we.....
 
 %%%%%%%%%%%%
 
-We focus on a tropical metapopulation of yellowtail clownfish (\textit{Ampiprion clarkii} in the Philippines. Like many clownfish species, yellowtail clownfish have a mutualistic relationship with anemones, where small colonies of fish live (CITATION). Yellowtail clownfish are protandrous hermaphrodites and maintain a size-strutured hierarchy; within an anemone, the largest fish is the breeding female, the next largest is the breeding male, and any smaller fish are non-breeding juveniles (CITATION). The fish on an anemone maintain a strict social and size hierarchy \citep{buston2003social}, with fish moving up in rank to become breeders only after the larger fish have died. In the tropical patch reef habitat of the Philippines, yellowtail clownfish spawn once per lunar month from November to May, laying clutches benthic eggs that the parents protect and tend \citep{ochi1989mating}. Larvae hatch after about six days (check this) and spend 7-10 days as pelagic larvae before returning to reef habitat to settle in an anemone \citep{fautin1992field}.
+We focus on a tropical metapopulation of yellowtail clownfish (\textit{Ampiprion clarkii} in the Philippines. Like many clownfish species, yellowtail clownfish have a mutualistic relationship with anemones, where small colonies of fish live \citep{buston2003social, fautin1992field}. Yellowtail clownfish are protandrous hermaphrodites and maintain a size-strutured hierarchy; within an anemone, the largest fish is the breeding female, the next largest is the breeding male, and any smaller fish are non-breeding juveniles. The fish on an anemone maintain a strict social and size hierarchy \citep{buston2003social}, with fish moving up in rank to become breeders only after the larger fish have died. In the tropical patch reef habitat of the Philippines, yellowtail clownfish spawn once per lunar month from November to May, laying clutches benthic eggs that the parents protect and tend \citep{ochi1989mating}. Larvae hatch after about six days and spend 7-10 days as pelagic larvae before returning to reef habitat to settle in an anemone \citep{fautin1992field}.
 
 % % Other possible life histories in temperate areas or depending on the density of anemones
 % \cite{hattori1991life}: different life history pathways found in population of \textit{A. clarkii} in Japan in area where they are the only anemonefish:
@@ -112,27 +178,27 @@ We focus on a tropical metapopulation of yellowtail clownfish (\textit{Ampiprion
 
 % ANY OTHER GENERAL CLOWNFISH LIFE HISTORY DETAILS TO ADD HERE?
 
-Clownfish are particularly well-suited to metapopulation studies due to their limited movement as adults and clearly patchy habitat. Once fish have settled, they tend to stay within close proximity of their anemones (XX meters, CITATION). This makes fish easier to relocate for mark-recapture studies and simiplifies the exchange between patches to only the dispersal during the larval phase. Patches, whether considered to be the reef patch or the anemone territory of the fish, are clearly discrete and easily delineated, which makes determining the spatial structure of the metapopultion clear. Additionally, clear patches make it easier to assess how much of the site has been surveyed. These simplifying characterstics in habitat and fish behavior are SOMETHING ABOUT CLOWNFISH AND OTHER SIMILAR SPECIES AS A MODEL SYSTEM FOR METAPOPULATION PERSISTENCE WORK, CITATIONS.
+Clownfish are particularly well-suited to metapopulation studies due to their limited movement as adults and clearly patchy habitat. Once fish have settled, they tend to stay within close proximity of their anemones [XX meters, CITATION]. This makes fish easier to relocate for mark-recapture studies and simiplifies the exchange between patches to only the dispersal during the larval phase. Patches, whether considered to be the reef patch or the anemone territory of the fish, are clearly discrete and easily delineated, which makes determining the spatial structure of the metapopultion clear. Additionally, clear patches make it easier to assess how much of the site has been surveyed. These simplifying characterstics in habitat and fish behavior make clownfish and other similarly territory-based reef fish useful model systems for studies of metapopulation dynamics and persistence \citep[e.g.][]{buston2013marine, salles_coral_2015, johnson2018integrating}.
 
 \paragraph*{Field data collection}
 
-We focus on a set of seventeen patch reef sites spanning approximately 30km along the western coast of Leyte island in the Philippines (MAP FIGURE). The sites consist of rocky patches of coral reef and are separated by sand flats. Previous work using genetic isolation by distances estimated that yellowtail clowfish larvae have a dispersal spread of about 10km \citep{pinsky2010using}, so our sites were selected to cover and exceed that range. On the north edge, the sites are isolated from nearby habitat. with no additional reef habitat for at least 20km. % Pinsky et al. 2010 paper: (4–27 km with median 11 km)
+We focus on a set of seventeen patch reef sites spanning approximately 30 km along the western coast of Leyte island in the Philippines (MAP FIGURE). The sites consist of rocky patches of coral reef and are separated by sand flats. Previous work using genetic isolation by distances estimated that yellowtail clowfish larvae have a dispersal spread of about 10 km \citep[range 4-27 km][]{pinsky2010using}, so our sites were selected to cover and exceed that range. On the north edge, the sites are isolated from nearby habitat with no additional reef habitat for at least 20 km. % Pinsky et al. 2010 paper: (4–27 km with median 11 km)
 
 TO ADD: Figure 1: map of study sites, picture of clownfish
-\textit{(Any figure summarizing the data? How many fish captured, sequenced, etc? Could go in the appendix?)}
+[\textit{(Add figure with map of study sites and a picture of a clownfish(?). Any figure summarizing the data? How many fish captured, sequenced, etc? Could go in the appendix?)}]
 
 Since 2012, members of the team have sampled fish and habitat at most of the sites annually. During sampling, divers using SCUBA and tethered to GPS readers swim the extent of each site. Divers visit each anemone inhabited by yellowtail clownfish, tagging the anemone to be able to track anemones through time. At each anemone, the divers attempt to catch all of the yellowtail clownfish 3.5cm and larger, taking a non-lethal tail fin-clip from each for use in genetic analysis, measuring the fork length, and noting the tail color (as an indicator of life stage). Starting in the 2015 field season, fish 6.0cm and larger are tagged with a passive integrated transponder (PIT) tag, unless already tagged. Divers also looked for eggs around each anemone and measured and photographed any clutches found.
 
 \paragraph*{Processing genetic samples}
 
-TALK TO KATRINA AND MICHELLE, ADD IN HERE. BRIEF OVERVIEW, WITH CITATIONS TO PAPERS WITH RELEVANT METHODS AND TO KATRINA'S CONNECTIVITY PAPER.
+[\textit{Add in brief overview of genetic methods, with citations to papers with relevant methods and to Katrina's connectivity paper}]
 
 \subsection*{Estimating inputs from empirical data} % Which should come first, this section or the one about persistence metrics?
 
 \begin{figure}[H] % Schematic
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/Schematic/Schematic.pdf}}
-	\caption{Here, we show the data collected for fish at each life stage (life stage boxes are not scaled by length of stage). We also show how the empirical data fit with the metric calculations. \label{FIG_Schematic}} % MAKE CAPTION BETTER! MAKE SCHEMATIC BETTER TOO!
+	\caption{Here, we show the data collected for fish at each life stage (life stage boxes are not scaled by length of stage) and how the empirical data fit into the metric calculations. \label{FIG_Schematic}} % MAKE CAPTION BETTER! MAKE SCHEMATIC BETTER TOO!
 \end{figure}
 
 \paragraph*{Growth and survival: mark-recapture analyses}
@@ -172,9 +238,9 @@ We use a size-dependent fecundity relationship, determined using photos of egg c
 \begin{equation} % is this the best way of writing this?
 \ln(E_c) = \beta_l\ln(L) + b_e[\text{eyed}] + b. \label{EQN_Fec}
 \end{equation}
-To get total annual fecundity, we multiply the number of eggs per clutch by the number of clutches per year $c_e$, using the estimate from \cite{holtswarth2017fecundity}.
+To get total annual fecundity $f$, we multiply the number of eggs per clutch by the number of clutches per year $c_e$, using the estimate from \cite{holtswarth2017fecundity}.
 
-We only consider reproductive effort once the fish has reached the female stage. Though the size at which a fish transitions to become a breeding female $L_f$ will depend on the size hierarchy in each particular colony (CTIATION), we use the average size recaptured fish were first observed as female for the best estimate. 
+We only consider reproductive effort once the fish has reached the female stage. Though the size at which a fish transitions to become a breeding female $L_f$ will depend on the size hierarchy in each particular colony [CITATION], we use the average size recaptured fish were first observed as female for the best estimate. 
 
 % For comparison of numbers (from Clownfish\_SP\_Notes:) Moyer (1986): the individual observed for 11 years and thought to live to at least 13 was ”estimated to have contributed about 160,000 propagules in its lifetime,” spent 3 years as a functional male, then outlived 3 mates as a female; fertilized about 45,000 eggs during 3 years as a male, then spawned about 115,000 eggs as a female; fecundity estimate at this site (Miyake-jima in Japan) is 17,500 eggs/yr/female (from Bell (1976))
 
@@ -185,12 +251,12 @@ In an IPM, the state of the population at time $t$ is described by the distribut
 
 We initalize the IPM with one recruit-sized individual $\text{size}_\text{recruit}$: $n(t=0) = n(\text{size}_\text{recruit}, 0)$, then use a kernel with the size-dependent survival and growth functions described above to project forward for 100 time steps. This gives us the size distribution at each time step, which represents the probability that the individual has survived and grown into each of the possible size categories. The probability that the individual is still alive and of any size decreases as the time steps progress; by using a large number of steps, we are able to avoid arbitrarily setting a maximum age and instead let the probabilities become essentially zero. 
 
-We then multiply each size-distribution vector in the matrix by the size-dependent fecundity function described above (eqn.\ \ref{EQN_Fec}) to get the total number of eggs produced at each time step. To get the total number of of eggs one individual is likely to produce in its lifetime, we then sum across all time steps in the individual's potential life.  % Should I try to show this in equation form? Not quite sure how that would look yet...
+We then multiply each size-distribution vector $v_z$ in the matrix by the size-dependent fecundity function described above (eqn.\ \ref{EQN_Fec}) to get the total number of eggs produced at each time step. To get the total number of of eggs one individual is likely to produce in its lifetime, we then sum across all time steps in the individual's potential life.  % Should I try to show this in equation form? Not quite sure how that would look yet...
 
 %WRITE AN EQUATION FOR LEP?
  
-\begin{equation} % placeholder to get schematic numbering correct
-\text{LEP}z = IPM * Fec. \label{EQN_LEP}
+\begin{equation} % I'm not sure this is quite right...
+\text{LEP} = \Sigma_{t=0}^{t=100} \Sigma_{z=L}^{z=U} v_z,t f_z. \label{EQN_LEP}
 \end{equation}
 
 \paragraph*{Survival from egg to recruit}
@@ -203,7 +269,7 @@ S_e = \frac{\frac{R_m}{P_h P_c}}{N_g \text{LEP}_p}. \label{EQN_EggRecruitSurv}
 
 \paragraph*{Defining recruit and census stage} % Not quite sure where to put this section... or if it should even be it's own section
 
-When assessing persistence, it is important to consider mortality and reproduction that occurs across the entire life cycle to determine whether an individual is replacing itself with an individual that reaches its same life stage (CITATION?). We define recruit to be a juvenile individual that has settled on the reef the previous year; lifetime egg production assesses how many offspring an individual recruit is likely to produce in its lifetime from that point forward and egg-recruit survival gives us the fraction of those eggs that will survive to reach the recruit stage. In theory, it should not matter exactly how we define recruit so long we use that defition in our calculations of both egg-recruit survival and LEP. In our system it is straighforward to calculate LEP from any point but it is not possible to change our estimate of egg-recruit survival to allow different definitions of recruit: we do not have enough tagged recruits to reliably estimate survival to different recruit sizes. Instead, we choose the mean size of offspring matched in the parentage study as our best estimate of the size of a recruit ($\text{size}_\text{recruit}$) and test sensitivity to different sizes within the range of sizes that the recruit stage covers (Table \ref{TAB_Params}).
+When assessing persistence, it is important to consider mortality and reproduction that occurs across the entire life cycle to determine whether an individual is replacing itself with an individual that reaches its same life stage \citep{burgess2014beyond}. We define recruit to be a juvenile individual that has settled on the reef the previous year; lifetime egg production assesses how many offspring an individual recruit is likely to produce in its lifetime from that point forward and egg-recruit survival gives us the fraction of those eggs that will survive to reach the recruit stage. In theory, it should not matter exactly how we define recruit so long we use that defition in our calculations of both egg-recruit survival and LEP. In our system it is straighforward to calculate LEP from any point but it is not possible to change our estimate of egg-recruit survival to allow different definitions of recruit: we do not have enough tagged recruits to reliably estimate survival to different recruit sizes. Instead, we choose the mean size of offspring matched in the parentage study as our best estimate of the size of a recruit ($\text{size}_\text{recruit}$) and test sensitivity to different sizes within the range of sizes that the recruit stage covers (Table \ref{TAB_Params}).
 
 % Talk here about how we decided where to assess "recruits" - where egg-recruit mortality takes us through and where we start assessing LEP
 % Talk about how it shouldn't matter - we should get the same answer either way - and we can change how we estimate LEP by changing where we start but we can't really change our estimate of egg-recruit survival (don't have enough recruits to assess survival to different sizes reliably - already a really hard parameter to estimate) so have to pick something and go with it. Test sensitivity to different sizes within the 3.5 to 6 range it covers. (or whatever the actual max from the data Katrina uses is)
@@ -211,10 +277,10 @@ When assessing persistence, it is important to consider mortality and reproducti
 \paragraph*{Probability of dispersal}
 
 We use a distance-based dispersal kernel, estimated in other work using parent-offspring matches from our genetic data (Catalano et al.\ in prep) using the method described in \cite{bode2018estimating}. The relative dispersal is a function of distance $d$ as measured in kilometers and parameters $\theta$ and $k_d$, which control the shape and scale of the kernel:
-
 \begin{equation}
 p(d) = e^k e^{-(e^k d)^\theta}. \label{EQN_DispKernel}
 \end{equation}
+We use a fat-tailed dispersal kernel with shape parameters $\theta = 0.5$ and scale parameter $k_d = -1.36$ (Fig.\ \ref{FIG_ParameterInputs}a, estimate done in Catalano et al.\ \textit{in prep}).
 
 The dispersal kernel is estimated using fish that have already recruited to a population and survived to be sampled so it gives the relative amount of dispersal given that a fish recruits somewhere, not the probability that a released larvae will travel a particular distance. To find the probability of fish dispersing among our sites, we calculate the distance between the middle of each site to the closest and farthest edge of each other site, then use the distances as upper and lower bounds when integrating eqn. \ref{EQN_DispKernel}, which we do numerically. For example, the probability of dispersal from site A to B, where $d_1$ is the distance from the middle of A to the closest edge of B and $d_2$ is the distance from the middle of A to the far edge of B, is:
 
@@ -230,7 +296,7 @@ p_{A, B}(d) = \int_{d_1}^{d_2} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integrati
 
 % What does it mean to persist? How do we define persistence?
 
-For a metapopulation to persist, at least one patch needs to achieve replacement, where the number of individuals entering the population balances those lost to mortality or emmigration (CITATION). In our focal system, adults do not move among patches so we do not need to consider emmigration and only need to assess whether fish produce enough offspring that survive to recruitment to be able to replace themselves and where those offspring travel within the metapopulation. We consider three primary metrics to assess whether and how the population is persistent: 1) lifetime production of recruits, to assess whether the population has enough surviving offspring to acheive replacement 2) self-persistence, to assess whether any individual patches would be able to persist in isolation without any input from other patches, and 3) network persistence, to assess whether the metapopulation is persistent as a connected unit. We explain each metric below in detail. % Reference the section with \ref?
+For a metapopulation to persist, at least one patch needs to achieve replacement, where the number of individuals entering the population balances those lost to mortality or emmigration \citep{burgess2014beyond}. In our focal system, adults do not move among patches so we do not need to consider emmigration and only need to assess whether fish produce enough offspring that survive to recruitment to be able to replace themselves and where those offspring travel within the metapopulation. We consider three primary metrics to assess whether and how the population is persistent: 1) lifetime production of recruits, to assess whether the population has enough surviving offspring to acheive replacement 2) self-persistence, to assess whether any individual patches would be able to persist in isolation without any input from other patches, and 3) network persistence, to assess whether the metapopulation is persistent as a connected unit. We explain each metric below in detail. % Reference the section with \ref?
 
 % Should I include some sort of discussion of time series?
 
@@ -278,7 +344,7 @@ SP_i &= \text{LEP} \times \frac{\text{recruits}}{\text{egg}} \times \frac{p_{i,i
 SP_i &= \text{LEP} \times S_e \times p_{i,i}. \label{EQN_SP}
 \end{split}
 \end{equation}
-A patch is self-persistent if $\text{SP} \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole is persistent as well (CTITATION).
+A patch is self-persistent if $\text{SP} \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole is persistent as well \citep{hastings_persistence_2006, burgess2014beyond}.
 
 
 % Modifiying the self-persistence criterion in Table 1 of \cite{burgess2014beyond} to make it clear that both LEP and the measure of local retention must consider the same life stage, we estimate self-persistence as the expected lifetime egg production of an individual recruit (LEP) multipled by the survival of eggs to recruits ($S_e$) multipled by the probability of dispersing back to the natal patch ($p_{i,i}$, calculated from the dispersal kernel):
@@ -297,23 +363,6 @@ Network persistence requires that the largest real eigenvalue of the realized co
 \paragraph*{Incorporating uncertainty}
 To represent the uncertainty in our estimates of the parameters that go into calculating our persistence metrics, we calculate each metric 1000 times, pulling each parameter from a distribution. In our results, we show the range of values of each persistence metric as well as the value with our best estimate of each parameter. 
 
-Not sure where to put this, or if it should exist, but seems like it might be helpful:
-\begin{centering}
-\begin{longtable}{|p{0.8in}|p{1.2in}|p{1.5in}|p{1in}|p{1.5in}|}
-\hline 
-\textbf{Parameter} & \textbf{Description} & \textbf{Best estimate} & \textbf{Range in uncertainty runs} & \textbf{Notes} \\ \hline
-$k_d$ &  scale parameter in dispersal kernel & -1.36 & -2.03 to -0.96 & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
-$\theta$ & shape parameter in dispersal kernel & 0.5 & NA & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
-$\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.4cm & 3.5 - 6.0cm & \\ \hline
-$S_e$ & egg-recruit survival & & &  \\ \hline
-$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
-$b_e$ & coefficient for eyed eggs & -0.608 & & Yawdoszyn et al.\ (in prep) \\ \hline
-$b_l$ & slope in eggs-per-clutch relationship & 2.39 & & Yawdoszyn et al.\ (in prep) \\ \hline
-$b$ & intercept in eggs-per-clutch relationship & 1.17 & & Yawdoszyn et al.\ (in prep) \\ \hline
-$L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
-\caption{}\label{TAB_Params}
-\end{longtable}
-\end{centering}
 
 % What are the metrics we use, how do we reframe those in terms of data we have or things we can estimate?
 
@@ -348,15 +397,39 @@ $L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
 
 \section*{Results}
 
-%$Figure 2: schematic figure
+Estimated abundance of females at each site over time is relatively constant [\textit{add some sort of actual analysis here}] (Fig.\ \ref{FIG_FthroughTime}, suggesting that our sample populations are persistent.
 
-Figure 2: abundance trends through time with some sort of time series analysis
+\begin{figure}[H] %  abundance trends through time with some sort of time series analysis
+	\centering
+	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Time_series_scaled_F_by_site_with_lines.pdf}}
+	\caption{The estimated number of females at each site over the sampling years. The total number of females at each site was estimated by taking the number of females (fish > 5cm with the yellow pointed tail indicating female) captured at each site in each year and scaling up by the proportion of habitat sampled at that site that season (see \ref{APP_SEC_ProbHabSampled} for details) and by the average probability of capturing a fish (see \ref{APP_SEC_ProbR}). \label{FIG_FthroughTime}}
+\end{figure}
 
-%%% UPTDATE THIS FIGURE WITH A BETTER GROWTH DEPICTION (DATA, MEAN LINE ESTIMATE, SPREAD AROUND THAT)}
+Using tagged and genotyped mark-recaptures, we estimate growth parameters XX (Fig.\ \ref{FIG_ParameterInputs}b) and survival parameters XX (Fig.\ \ref{FIG_ParameterInputs}c). [Put rest of actual parameter estimates here].
+% List the parameter estimates here, cite relevant figures.
+
+[\textit{Not sure where to put this, or if it should exist, but seems like it might be helpful - not fully filled out yet:}]
+\begin{centering}
+\begin{longtable}{|p{0.8in}|p{1.2in}|p{1.5in}|p{1in}|p{1.5in}|}
+\hline 
+\textbf{Parameter} & \textbf{Description} & \textbf{Best estimate} & \textbf{Range in uncertainty runs} & \textbf{Notes} \\ \hline
+$k_d$ &  scale parameter in dispersal kernel & -1.36 & -2.03 to -0.96 & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+$\theta$ & shape parameter in dispersal kernel & 0.5 & NA & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+$\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.4cm & 3.5 - 6.0cm & \\ \hline
+$S_e$ & egg-recruit survival & & &  \\ \hline
+$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
+$b_e$ & coefficient for eyed eggs & -0.608 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$b_l$ & slope in eggs-per-clutch relationship & 2.39 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$b$ & intercept in eggs-per-clutch relationship & 1.17 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
+\caption{}\label{TAB_Params}
+\end{longtable}
+\end{centering}
+
 \begin{figure}[H] % demographic parameters: survival curve, growth curve, dispersal kernel, transition size to female 
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Parameter_inputs.pdf}}
-	\caption{WRITE A CAPTION! \label{FIG_ParameterInputs}}
+	\caption{Best estimates (solid black line) and range (gray) for dispersal, growth, survival, and size at female transition parameters. \label{FIG_ParameterInputs}}
 \end{figure}
 
 \begin{figure}[H] % LEP, recruits-per-egg, LRP shown with uncertainty, line for best estimate (using mean offspring size as recruit size)
@@ -385,8 +458,45 @@ Figure 2: abundance trends through time with some sort of time series analysis
 
 
 \section*{Discussion}
+Big picture: What do our results mean for persistence in this system and our understanding of metapopulations generally?
+\begin{itemize}
+	\item So we don't see persistence in our metrics, either self-persistence or network persistence but our abundances don't seem to be changing. Suggests that this is just a portion of a larger metapopulation, rather than a self-contained metapopulation. Maybe it is a sink? Persistent in terms of constant abundance but relies on outside immigration to persist.
+	\item How does dispersal spread interact with scale of a self-contained metapopulation? How do we reconcile this in our system?
+	\item Sensitivity - how would our parameters need to change to see persistence? Egg-recruit survival is a big one. Discuss limitations of how we calculated it (offspring going outside our pops not included), what we see for persistence when estimate recruits/recruits instead.
+\end{itemize}
 
-previous research suggests 10km dispersal kernel spread for yellowtail clownfish \citep{pinsky2010using}
+More detailed discussion of our estimates, limitations, ways to move forward:
+\begin{itemize}
+	\item Discuss density-dependence: not explicitly accounting for it, included in our egg-recruit survival estimate. But it's these metrics at low abundance, when DD isn't happening, that really matter for persistence. Egg-recruit-survival is probably higher in that case than our estimate of it here (b/c larvae able to settle without being chased off by already-settled recruits).
+	\item Discuss site-specific demographic rates, why we don't have them in our system, the importance they play in other studies, what we might need to go about resolving them.
+	\item Contextualize our parameter estimates with those from other studies (esp. survival, growth, egg-recruit survival).
+	% \item Discuss density-dependence: how we might consider it, what not explicitly including it means for our results \\
+	% 	\cite{lorenzen2018density}: mortality driven by environmental variability and density-dependence tends to be most important/concentrated in early life stages, density-dependence at that stage can "dampens the variability in abundance induced in earlier life stages and confers compensatory reserve (Myers and Cadigan, 1993; Rose et al. 2001)" \\
+	% 	"The relationship betwen stock reproductive output and the number of resulting recruits is described by a stock-recruitment relationship that captures the effects of environmental variability and density-dependence on stock dynamics but does not explicitly model the underlying biological processes." - we just estiamte one number, instead of stock-recruitment curve, in reality, is a function that probably depends on stock size (to capture density dependence) - where do we think our estimate is on that curve? how would including density-dependence shift our estimate? Survival is slope of SR curve (right?) If we're somewhere stable, probably pretty far out on the curve, survival is relatively low (shallow slope), if were to estimate survival at low pop density, would shift left and see higher survivals (how much higher would our survival need to be to see persistence?) \\
+	% 	From zebrafish (\textit{Danio rerio}) (Hazlerigg et al. 2012 figure reproduced in Lorenzen and Camp 2018): "Density effects on survival cease at the later juvenile phases" \\
+	% 	Often think more about density-dependence in recruitment, tends to predominate, but density-dependent effects on growth can also be important (think more about what that would mean in our system - without the influence of competitors, fish likely to grow either faster - if can just grow to reproductive stage w/out worrying about place in queue - or slower - if not trying to grow extra fast to outpace a smaller competitor in the queue). Complicated in this system, see if can think more about how it might be most likely to play out. Is there a sensitivity test to do here?
+	% \item Discuss site-specific demographic rates
+\end{itemize}
+
+
+% Context for dispersal kernel:
+% \begin{itemize}
+% 	\item previous research suggests 10km dispersal kernel spread for yellowtail clownfish \citep{pinsky2010using}
+% 	\item \cite{hameed2016inverse}: \textit{Petrolisthes cinctipes}, porcelin crab, in N CA had mean dispersal distance of 6.9km (+-sd of 25km) despite 4-6 week PLD
+% \end{itemize}
+
+% Context for larval mortality or egg-recruit mortality:
+% \begin{itemize}
+% 	\item check \cite{white2014planktonic}
+% 	\item check estimate in \cite{johnson2018integrating}
+% \end{itemize}
+
+% Context for adult mortality
+% \begin{itemize}
+% 	\item \cite{salles_coral_2015}: check paper, possibly 0.18-0.49 for J, 0.09-0.44 for M, 0.19-0.55 for F (are the ranges for subpops? biannual mortality rates?), orange clownfish (\textit{Ampiphrion percula}) in Kimbe Bay
+% 	\item \cite{buston2003social} (or possibly the other 2003 Buston paper...), 12.9\% mortality per year for \textit{Ampiprion percula} in Papua New Guinea
+% \end{itemize}
+
 
 \newpage{}
 
@@ -408,7 +518,11 @@ previous research suggests 10km dispersal kernel spread for yellowtail clownfish
 
 \newpage{}
 
-\subsection*{Full set of MARK models}
+\subsection*{Probability of capturing a fish, from recapture dives} \label{APP_SEC_ProbR}
+
+\newpage{}
+
+\subsection*{Full set of MARK models} \label{APP_MARKModels}
 We consider the following set of models in MARK:
 \begin{table}
 \begin{centering}
