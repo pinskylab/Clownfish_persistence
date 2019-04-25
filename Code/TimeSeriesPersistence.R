@@ -3,11 +3,17 @@
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
+# Load libraries
+library(ggplot2)
+
 # Load in site_areas
 load(file=here::here('Data','site_areas.RData'))
 
 # Load file with proportion habitat sampled estimates (from TotalAnemsAtSite.R)
-load(file=here("Data",'anem_sampling_table.RData')) #file with anems, after 2018 anems matched
+#load(file=here("Data",'anem_sampling_table.RData')) #file with anems, after 2018 anems matched
+
+# Load in new proportion habitat sampled file
+load(file=here::here("Data/Script_outputs", "anems_visited_by_year.RData"))
 
 # Set parameters (here from EggRecruitRelationship.R)
 sample_months <- c(3,4,5,6,7,8) #set months to avoid winter 2015 anem surveys
@@ -29,19 +35,32 @@ site_vec_timeseries <- c("Cabatoan", "Caridad Cemetery", "Elementary School", "G
 # Metric 3: size structure through time - at site level and overall
 
 ##### Number of females (just from clownfish table for now - could change this later)
-## Find raw number of females in database
+## Find raw number of females in database, now using sex column instead of color/size - weirdly this doesn't have as many site/year combos - should look into this more... sticking with the other method for now
+females_df_F <- allfish_caught %>%
+  #filter(dive_type %in% dive_list) %>%  # not filtering by dives b/c most of the fish in 2017 were getting removed? but there are duplicates of tagged fish and such?? not sure how to deal with this...
+  #filter(color %in% c('YP','Y')) %>%
+  #filter(size >= min_female_size) %>%
+  filter(sex == "F") %>%
+  group_by(year,site) %>%
+  summarize(nFemalesRaw = n())
+
+## Find raw number of females in database, using color/size
 females_df <- allfish_caught %>%
   #filter(dive_type %in% dive_list) %>%  # not filtering by dives b/c most of the fish in 2017 were getting removed? but there are duplicates of tagged fish and such?? not sure how to deal with this...
   filter(color %in% c('YP','Y')) %>%
   filter(size >= min_female_size) %>%
+  #filter(sex == "F") %>%
   group_by(year,site) %>%
   summarize(nFemalesRaw = n())
 
 ## Scale by proportion of habitat sampled and probability of capturing a fish
 # Join in proportion of habitat sampled in each year at each site, then make proportions that are Inf or >1 (b/c of metal tag issues) equal to 1 
-females_df <- left_join(females_df, anems_table %>% select(site, year, prop_hab_sampled_metal_TA), by = c('year', 'site'))  
-females_df <- females_df %>%
-  mutate(prop_hab_sampled = if_else(prop_hab_sampled_metal_TA == Inf | prop_hab_sampled_metal_TA > 1, 1, prop_hab_sampled_metal_TA))
+females_df <- left_join(females_df, anems_visited_by_year %>% 
+                          filter(method == "metal tags") %>% 
+                          select(site, year, prop_hab_sampled_tidied), by = c('year', 'site'))  
+# females_df_F <- left_join(females_df_F, anems_visited_by_year %>% 
+#                           filter(method == "metal tags") %>% 
+#                           select(site, year, prop_hab_sampled_tidied), by = c('year', 'site'))  
 
 # Join in whether or not a site was sampled in a particular year
 females_df <- left_join(site_visits, females_df, by = c('year', 'site'))
@@ -52,7 +71,7 @@ prob_r_avg <- mean(prob_r)
 # Add in prob_r, scale up females by proportion habitat sampled and probability of capturing a fish
 females_df <- females_df %>%
   mutate(prob_r = prob_r_avg) %>%
-  mutate(nFemalesScaled = nFemalesRaw/(prob_r*prop_hab_sampled)) #%>%
+  mutate(nFemalesScaled = nFemalesRaw/(prob_r*prop_hab_sampled_tidied)) #%>%
   #mutate(sampled = if_else(is.na(sampled), 0, 1))
 
 # Fix sites that are sampled but with 0 proportion habitat sampled (S. Magbangon in 2017)
@@ -105,12 +124,12 @@ dev.off()
 
 # Scaled-up number of females at each site through time - attempts at figures
 pdf(file = here('Plots/FigureDrafts', 'Time_series_scaled_F_by_site_with_lines.pdf'))
-ggplot(data = females_df, aes(x=year, y=nFemalesEstimated)) +
+ggplot(data = females_df %>% filter(site %in% site_vec_timeseries), aes(x=year, y=nFemalesEstimated)) +
   #geom_bar(stat='identity') +
   geom_point() +
   geom_abline(data = females_df_models, aes(intercept = intercept, slope = coeff)) +
   #geom_ribbon(data = females_df_models, aes(ymin = ))
-  xlab('year') + ylab('# scaled females') + ggtitle('Females by site through time') +
+  xlab('year') + ylab('# scaled females') + #ggtitle('Females by site through time') +
   facet_wrap(~site) +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
