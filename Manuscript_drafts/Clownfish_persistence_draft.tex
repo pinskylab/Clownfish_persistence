@@ -27,11 +27,39 @@
 {0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 \graphicspath{ {images/} }
 
+\author{}
+\author{Allison G.\ Dedrick$^{a, \ast}$ \\
+Katrina A.\ Catalano$^a$ \\
+Michelle R.\ Stuart$^a$ \\
+J.\ Wilson White$^b$ \\
+Humberto Montes, Jr.\ $^c$ \\
+Malin Pinsky$^a$}
+
 \title{Clownfish metapopulation persistence draft}
 
+\date{} 
+
 \begin{document}
-\date{}
+\renewcommand{\topfraction}{0.95}
 \maketitle{}
+
+\noindent{} a. Department of Ecology Evolution and Natural Resources, Rutgers University, 14 College Farm Road, New Brunswick, NJ 08901;
+
+\noindent{} b. Oregon State University
+
+\noindent{} c. Visayas State University
+
+\noindent{} $\ast$ Corresponding author; e-mail: agdedrick@gmail.com
+
+(\textit{Author order not yet determined})
+
+%\noindent{} 1. Present address: Rutgers University, 14 College Farm Rd., New Brunswick, NJ, USA 08901.
+
+\bigskip
+
+%\begin{document}
+
+%\maketitle{}
 
 %\section*{Abstract}
 
@@ -185,13 +213,13 @@ Clownfish are particularly well-suited to metapopulation studies due to their li
 We focus on a set of seventeen patch reef sites spanning approximately 30 km along the western coast of Leyte island in the Philippines (MAP FIGURE). The sites consist of rocky patches of coral reef and are separated by sand flats. Previous work using genetic isolation by distances estimated that yellowtail clowfish larvae have a dispersal spread of about 10 km \citep[range 4-27 km][]{pinsky2010using}, so our sites were selected to cover and exceed that range. On the north edge, the sites are isolated from nearby habitat with no additional reef habitat for at least 20 km. % Pinsky et al. 2010 paper: (4–27 km with median 11 km)
 
 TO ADD: Figure 1: map of study sites, picture of clownfish
-[\textit{(Add figure with map of study sites and a picture of a clownfish(?). Any figure summarizing the data? How many fish captured, sequenced, etc? Could go in the appendix?)}]
+[\textit{(Add figure with map of study sites and a picture of a clownfish(?).}]
 
-Since 2012, members of the team have sampled fish and habitat at most of the sites annually. During sampling, divers using SCUBA and tethered to GPS readers swim the extent of each site. Divers visit each anemone inhabited by yellowtail clownfish, tagging the anemone to be able to track anemones through time. At each anemone, the divers attempt to catch all of the yellowtail clownfish 3.5cm and larger, taking a non-lethal tail fin-clip from each for use in genetic analysis, measuring the fork length, and noting the tail color (as an indicator of life stage). Starting in the 2015 field season, fish 6.0cm and larger are tagged with a passive integrated transponder (PIT) tag, unless already tagged. Divers also looked for eggs around each anemone and measured and photographed any clutches found.
+Since 2012, members of the team have sampled fish and habitat at most of the sites annually. During sampling, divers using SCUBA and tethered to GPS readers swim the extent of each site. Divers visit each anemone inhabited by yellowtail clownfish, tagging the anemone to be able to track anemones through time. At each anemone, the divers attempt to catch all of the yellowtail clownfish 3.5 cm and larger, taking a non-lethal tail fin-clip from each for use in genetic analysis, measuring the fork length, and noting the tail color (as an indicator of life stage). Starting in the 2015 field season, fish 6.0 cm and larger are tagged with a passive integrated transponder (PIT) tag, unless already tagged. Divers also looked for eggs around each anemone and measured and photographed any clutches found. In total, we took fin clips from XX fish and PIT-tagged XX fish across all years and sites combined, with an average of XX fish clipped and XX fish tagged per year.
 
-\paragraph*{Processing genetic samples}
+\paragraph*{Genotyping and parentage analysis}
 
-[\textit{Add in brief overview of genetic methods, with citations to papers with relevant methods and to Katrina's connectivity paper}]
+[\textit{Add in brief overview of genetic methods, with citations to papers with relevant methods and to Katrina's connectivity paper. Include number of fish genotyped.}]
 
 \subsection*{Estimating inputs from empirical data} % Which should come first, this section or the one about persistence metrics?
 
@@ -203,7 +231,7 @@ Since 2012, members of the team have sampled fish and habitat at most of the sit
 
 \paragraph*{Growth and survival: mark-recapture analyses}
 
-We mark fish through both genetic samples and PIT tags, allowing us to estimate growth and survival through mark-recapture. After matching up recaptures of the same fish identified by genotype or tag, we have a set of encounters of each recaptured fish that includes size and stage at each capture time.
+We mark fish through both genetic samples and PIT tags, allowing us to estimate growth and survival through mark-recapture. After matching up recaptures of the same fish identified by genotype or tag, we have a set of encounters of XX marked fish that includes size and stage at each capture time.
 
 For growth, we estimate the parameters of a von Bertalanffy growth curve \citep{fabens1965properties} in the growth increment form relating the length at first capture $L_t$ to the length at a later capture $L_{t+1}$ \citep{hart2009estimating}, where $L_\infty$ is the average asymptotic size across the population and $K$ controls the rate of growth: %check that I actually defined those well... % in the growth increment form (according to Hart and Chute) - need to actually get a copy of the Fabens paper, doesn't seem to be available on Google Scholar
 
@@ -214,7 +242,7 @@ L_{t+1} & = L_t + (L_\infty - L_t)[1 - e^{(-K)}] \\
 \end{split}
 \end{equation}
 
-We see from eqn.\ \ref{EQN_VBL} that we would expect the first length $L_t$ and the second length $L_{t+1}$ to be related linearly \citep{hart2009estimating}. From the slope $m = e^{(-K)}$ and y-intercept $b =  L_\infty[1 - e^{(-K)}]$, we can estimate the von Bertalanffy parameters, such that $K = -\ln m$ and $L_\infty = \frac{b}{(1-m)}$. We use the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate $L_\infty$ and $K$. We have some fish that were recaptured multiple times so we randomly select only one pair of recaptures from each to use in estimating the parameters, and repeat this process 1000 times to generate a distribution (Fig. \ref{FIG_ParameterInputs}b, \ref{APP_FIG_UncertaintyInputs}d).
+We see from eqn.\ \ref{EQN_VBL} that we would expect the first length $L_t$ and the second length $L_{t+1}$ to be related linearly \citep{hart2009estimating}. From the slope $m = e^{(-K)}$ and y-intercept $b =  L_\infty[1 - e^{(-K)}]$, we can estimate the von Bertalanffy parameters, such that $K = -\ln m$ and $L_\infty = \frac{b}{(1-m)}$. We use the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate $L_\infty$ and $K$. We have some fish that were recaptured multiple times so we randomly select only one pair of recaptures from each to use in estimating the parameters, then repeat this process 1000 times to generate a distribution (Fig. \ref{FIG_ParameterInputs}b, \ref{APP_FIG_UncertaintyInputs}d). 
 
 We use the full set of fish encountered multiple times to estimate annual survival $\phi$ and probability of recapture $p_r$ using the mark-recapture program MARK implemented in R \citep{RMark_Laake2013}. We consider several models with year, size, and site effects on the probability of survival and year and size effects on the probability of recapturing a fish on a log-odds scale (see full list in Table \ref{APP_TAB_MARKmodels}. For fish that are not recaptured at a particular time point, we estimate their size using our growth model (eqn.\ \ref{EQN_VBL}) and the size recorded or estimated in the previous year. Because fish are not well-mixed at our sites and instead stay quite close to their home anemones, we need to swim near an anemone to have a reasonable chance of capturing the fish on it. Therefore, we also consider a distance effect on recapture probability; we use the GPS tracks of divers to estimate the shortest distance a diver got to the anemone for each tagged fish in each sample year and include it as a factor in some of the models.
 
@@ -234,11 +262,11 @@ The best-fit model using model selection with AICc has an effect of fish size on
 
 \paragraph*{Fecundity}
 
-We use a size-dependent fecundity relationship, determined using photos of egg clutches and females (Yawdoszyn et al.\ in prep), where the number of eggs per clutch ($E_c$) is exponentially related to the length of the female ($L$) with slope $beta_l$, intercept $b$, and effect $\beta_e$ dependent on if the eggs are old enough to have visible eyes: 
+We use a size-dependent fecundity relationship, determined using photos of egg clutches and females \citep{yawdoszynInPrepfecundity}, where the number of eggs per clutch ($E_c$) is exponentially related to the length in cm of the female ($L$) with size effect $beta_l = 2.388$, intercept $b = 1.174$, and egg age effect $\beta_e = -0.6083$ dependent on if the eggs are old enough to have visible eyes: 
 \begin{equation} % is this the best way of writing this?
 \ln(E_c) = \beta_l\ln(L) + b_e[\text{eyed}] + b. \label{EQN_Fec}
 \end{equation}
-To get total annual fecundity $f$, we multiply the number of eggs per clutch by the number of clutches per year $c_e$, using the estimate from \cite{holtswarth2017fecundity}.
+To get total annual fecundity $f$, we multiply the number of eggs per clutch by the number of clutches per year $c_e = 11.9$, using the estimate from \cite{holtswarth2017fecundity}.
 
 We only consider reproductive effort once the fish has reached the female stage. Though the size at which a fish transitions to become a breeding female $L_f$ will depend on the size hierarchy in each particular colony [CITATION], we use the average size recaptured fish were first observed as female for the best estimate. 
 
@@ -261,7 +289,7 @@ We then multiply each size-distribution vector $v_z$ in the matrix by the size-d
 
 \paragraph*{Survival from egg to recruit}
 
-We estimate survival from egg to recruit $S_e$ using the number of recruited offspring we can match back to genotyped parents as surviving individuals from genetically "tagged" eggs in a method similar to that in \cite{johnson2018integrating}. We estimate the number of eggs produced by genotyped parent fish by multiplying the number of genotyped parents $N_g$ by the expected lifetime egg production of a parent fish $LEP_p$, using LEP calculated starting with an individual of 6cm. We make the assumption that all recruited offspring originating from the genotyped parents end up in one of the sites we sample and estimate the total number of offspring that survive to recruit $R_t$ by dividing the number of offspring matches we find $R_m$ by the proportion of our site habitat we sample $P_h$ and the probability of capturing a fish if we sample an anemone $P_c$ (see \ref{APP_FIG_Uncertainty_RperE} for details on $P_h$ and $P_c$). Our estimated survival from egg to recruit is the number of tagged recruits divided by the number of tagged eggs produced:
+We estimate survival from egg to recruit $S_e$ using the number of recruited offspring we can match back to genotyped parents as surviving individuals from genetically "tagged" eggs in a method similar to that in \cite{johnson2018integrating}. We estimate the number of eggs produced by genotyped parent fish by multiplying the number of genotyped parents ($N_g = 913$) by the expected lifetime egg production of a parent fish $LEP_p$, using LEP calculated starting with an individual of 6 cm. We make the assumption that all recruited offspring originating from the genotyped parents end up in one of the sites we sample and estimate the total number of offspring that survive to recruit $R_t$ by dividing the number of offspring matches we find ($R_m = 90$) by the proportion of our site habitat we sample cumulatively across all sampling years $P_h = 0.34$ and the probability of capturing a fish if we sample an anemone $P_c$ (see \ref{APP_SEC_ProbR}, \ref{APP_SEC_ProbHabSampled} for details on $P_c$ and $P_h$ estimates, respectively). Our estimated survival from egg to recruit is the number of tagged recruits divided by the number of tagged eggs produced:
 
 \begin{equation}
 S_e = \frac{\frac{R_m}{P_h P_c}}{N_g \text{LEP}_p}. \label{EQN_EggRecruitSurv}
@@ -276,11 +304,11 @@ When assessing persistence, it is important to consider mortality and reproducti
 
 \paragraph*{Probability of dispersal}
 
-We use a distance-based dispersal kernel, estimated in other work using parent-offspring matches from our genetic data (Catalano et al.\ in prep) using the method described in \cite{bode2018estimating}. The relative dispersal is a function of distance $d$ as measured in kilometers and parameters $\theta$ and $k_d$, which control the shape and scale of the kernel:
+We use a distance-based dispersal kernel, estimated in other work using parent-offspring matches from our genetic data \citep{catalanoInPrepconnectivity} using the method described in \cite{bode2018estimating}. The relative dispersal is a function of distance $d$ as measured in kilometers and parameters $\theta$ and $k_d$, which control the shape and scale of the kernel:
 \begin{equation}
 p(d) = e^k e^{-(e^k d)^\theta}. \label{EQN_DispKernel}
 \end{equation}
-We use a fat-tailed dispersal kernel with shape parameters $\theta = 0.5$ and scale parameter $k_d = -1.36$ (Fig.\ \ref{FIG_ParameterInputs}a, estimate done in Catalano et al.\ \textit{in prep}).
+We use a fat-tailed dispersal kernel with shape parameters $\theta = 0.5$ and scale parameter $k_d = -1.36$ (Fig.\ \ref{FIG_ParameterInputs}a, estimated in \citep{catalanoInPrepconnectivity}).
 
 The dispersal kernel is estimated using fish that have already recruited to a population and survived to be sampled so it gives the relative amount of dispersal given that a fish recruits somewhere, not the probability that a released larvae will travel a particular distance. To find the probability of fish dispersing among our sites, we calculate the distance between the middle of each site to the closest and farthest edge of each other site, then use the distances as upper and lower bounds when integrating eqn. \ref{EQN_DispKernel}, which we do numerically. For example, the probability of dispersal from site A to B, where $d_1$ is the distance from the middle of A to the closest edge of B and $d_2$ is the distance from the middle of A to the far edge of B, is:
 
@@ -299,6 +327,10 @@ p_{A, B}(d) = \int_{d_1}^{d_2} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integrati
 For a metapopulation to persist, at least one patch needs to achieve replacement, where the number of individuals entering the population balances those lost to mortality or emmigration \citep{burgess2014beyond}. In our focal system, adults do not move among patches so we do not need to consider emmigration and only need to assess whether fish produce enough offspring that survive to recruitment to be able to replace themselves and where those offspring travel within the metapopulation. We consider three primary metrics to assess whether and how the population is persistent: 1) lifetime production of recruits, to assess whether the population has enough surviving offspring to acheive replacement 2) self-persistence, to assess whether any individual patches would be able to persist in isolation without any input from other patches, and 3) network persistence, to assess whether the metapopulation is persistent as a connected unit. We explain each metric below in detail. % Reference the section with \ref?
 
 % Should I include some sort of discussion of time series?
+
+\paragraph*{Estimated abundance over time}
+
+[\textit{Add brief section here.}]
 
 \paragraph*{Lifetime production of recruits}
 
@@ -346,7 +378,6 @@ SP_i &= \text{LEP} \times S_e \times p_{i,i}. \label{EQN_SP}
 \end{equation}
 A patch is self-persistent if $\text{SP} \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole is persistent as well \citep{hastings_persistence_2006, burgess2014beyond}.
 
-
 % Modifiying the self-persistence criterion in Table 1 of \cite{burgess2014beyond} to make it clear that both LEP and the measure of local retention must consider the same life stage, we estimate self-persistence as the expected lifetime egg production of an individual recruit (LEP) multipled by the survival of eggs to recruits ($S_e$) multipled by the probability of dispersing back to the natal patch ($p_{i,i}$, calculated from the dispersal kernel):
 
 % \begin{equation}
@@ -361,7 +392,11 @@ We find the probabilities of a recruit dispersing between each set of sites ($p_
 Network persistence requires that the largest real eigenvalue of the realized connectivity matrix be $\lambda_C$ be greater than $1$: $\text{NP} = \lambda_C > 1$ \citep[e.g.][]{hastings_persistence_2006, white_population_2010, burgess2014beyond}.
 
 \paragraph*{Incorporating uncertainty}
-To represent the uncertainty in our estimates of the parameters that go into calculating our persistence metrics, we calculate each metric 1000 times, pulling each parameter from a distribution. In our results, we show the range of values of each persistence metric as well as the value with our best estimate of each parameter. 
+To represent the uncertainty in our estimates of the parameters that go into calculating our persistence metrics, we calculate each metric 1000 times, pulling each parameter from a distribution or range. In our results, we show the range of values of each persistence metric as well as the value with our best estimate of each parameter. 
+
+For the dispersal kernel, we keep the shape parameter $\theta$ constant and pull the scale parameter $k_d$ from a set capturing the 95\% confidence intervals, which was produced during kernel estimation in \citep{catalanoInPrepconnectivity}. To capture uncertainty in the size of a recruit $\text{size}_\text{recruit}$, and therefore the transition of mortality being captured by egg-recruit survival to being captured by LEP, we pull from a uniform distribution over the range of fish sizes (3.5 - 6.0 cm) considered as offspring in the parentage analyses \citep{catalanoInPrepconnectivity}. We include uncertainty in the size of transition to a breeding female $L_F$ by pulling from the set of sizes observed in the data for fish at their first recapture as a female. For the von Bertalanffy growth parameters $L_\infty$ and $K$, we pull from the full set of estimates using different combinations of recapture pairs for fish recaptured more than twice. For uncertainty in adult survival, we pull from a normal distribution generated using the standard error estimated in the mark-recapture analysis for both the intercept $b_\phi$ and the size effect $b_a$.
+
+To incorporate uncertainty in egg-recruit survival, we consider uncertainty in both the number of offspring assigned to parents during the parentage analysis and the probability of capturing a fish $P_c$, which affects how the captured assigned offspring are scaled up to account for fish uncaught. For the number of assigned offspring, we generate a set of values of number of assigned offspring using a random binomial, where the number of trials is the number of genotyped offspring (XX) and the probability of success on each trial is the assignment rate XX of offspring from the parentage analysis \citep{catalanoInPrepconnectivity}. To represent uncertainty in the probability of capturing a fish, we pull values from a beta distribution with parameters $\alpha_{P_c}$ and $\beta_{P_c}$, found using the mean and variance of capture probabilities estimated from recapture dives across sites and sampling seasons (details in \ref{APP_SEC_ProbR}). 
 
 
 % What are the metrics we use, how do we reframe those in terms of data we have or things we can estimate?
@@ -397,7 +432,7 @@ To represent the uncertainty in our estimates of the parameters that go into cal
 
 \section*{Results}
 
-Estimated abundance of females at each site over time is relatively constant [\textit{add some sort of actual analysis here}] (Fig.\ \ref{FIG_FthroughTime}, suggesting that our sample populations are persistent.
+Our estimated abundance of females at each site over time is relatively constant [\textit{add some sort of actual analysis here}] (Fig.\ \ref{FIG_FthroughTime}, suggesting that our sample populations are persistent over time.
 
 \begin{figure}[H] %  abundance trends through time with some sort of time series analysis
 	\centering
@@ -405,23 +440,37 @@ Estimated abundance of females at each site over time is relatively constant [\t
 	\caption{The estimated number of females at each site over the sampling years. The total number of females at each site was estimated by taking the number of females (fish > 5cm with the yellow pointed tail indicating female) captured at each site in each year and scaling up by the proportion of habitat sampled at that site that season (see \ref{APP_SEC_ProbHabSampled} for details) and by the average probability of capturing a fish (see \ref{APP_SEC_ProbR}). \label{FIG_FthroughTime}}
 \end{figure}
 
-Using tagged and genotyped mark-recaptures, we estimate growth parameters XX (Fig.\ \ref{FIG_ParameterInputs}b) and survival parameters XX (Fig.\ \ref{FIG_ParameterInputs}c). [Put rest of actual parameter estimates here].
+From the mark-recapture analysis of tagged and genotyped fish, we estimate mean values of $L_\infty = 10.58 \text{cm}$ (range of estimates 10.39 - 10.75 cm) and $K = 0.928$ (range of estimates 0.854 - 1.025) for the von Bertalanffy growth curve parameters (Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{TAB_Params}). For juvenile and adult (post-recruitment) survival on a log-odds scale, the best-fit model has a coefficient $b_a = 0.74 \pm 0.060$ SE for the effect of size and an intercept $b_\phi = -4.83 \pm 0.340$ SE. These results suggest that larger fish have higher annual survival, which is similar to survival estimates in other clownfish species (check Buston paper). The accompanying best-fit model for recapture probability has intercept $b_{p_r} = 17.93 \pm 0.858$ SE, size effect $b_1 = -1.816 \pm 0.080$ SE, and effect of diver distance from the anemone $b_2 = -0.171 \pm 0.021$ SE. The negative effect of both size and distance suggest that divers are less likely to recapture larger fish and those at anemones far from areas sampled, with the chance of recapturing an average-sized fish falling below 5\% if a diver stays farther than XX from its home anemone [add the recapture probability plots, like the survival one in Fig.\ \ref{FIG_ParameterInputs}, to the appendix and reference here.] 
+
+We set the transition size to breeding female $L_f$ at 9.32 cm, the mean size of first female capture of recaptured fish (Fig. \ref{FIG_ParameterInputs}d). [\textit{Contextualize these values.}]
+
+% Assume I shouldn't talk about fecundity model results and dispersal kernel results here b/c they are done in other papers? Or should I? But put their parameters below for easy reference?
+
+% Still need to discuss egg-recruit survival, size of transition to breeding female?, 
 % List the parameter estimates here, cite relevant figures.
 
-[\textit{Not sure where to put this, or if it should exist, but seems like it might be helpful - not fully filled out yet:}]
+[\textit{Not sure where to put this - kind of a methods/results hybrid, or if it should exist, but seems like it might be helpful - not fully filled out yet. Need to clarify somewhere what kind of distributions are going into the uncertainty runs (drawn from data, uniform across a range, 95\% confidence bounds, etc.)}]
 \begin{centering}
 \begin{longtable}{|p{0.8in}|p{1.2in}|p{1.5in}|p{1in}|p{1.5in}|}
 \hline 
 \textbf{Parameter} & \textbf{Description} & \textbf{Best estimate} & \textbf{Range in uncertainty runs} & \textbf{Notes} \\ \hline
-$k_d$ &  scale parameter in dispersal kernel & -1.36 & -2.03 to -0.96 & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+$k_d$ & scale parameter in dispersal kernel & -1.36 & -2.03 to -0.96 & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
 $\theta$ & shape parameter in dispersal kernel & 0.5 & NA & estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
-$\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.4cm & 3.5 - 6.0cm & \\ \hline
+$L_\infty$ & average asymptotic size in von Bertalanffy growth curve & 10.58 cm & 10.39 to 10.75 cm &  \\ \hline
+$K$ & growth coefficient in von Bertalanffy growth curve &  0.928 & 0.854 to 1.025 & \\ \hline  
+$b_\phi$ & intercept for adult survival & -4.83 & $\pm$ 0.340 standard error & \\ \hline
+$b_a$ & size effect for adult survival & 0.74 & $\pm$ 0.060 standard error & \\ \hline
+$b_{p_r}$ & intercept for recapture probability from mark-recapture analysis & 17.93 & $\pm$ 0.858 standard error & not used in persistence estimates \\ \hline
+$b_1$ & size effect for recapture & -1.816 & $\pm$ 0.080 standard error & not used in persistence estimates \\ \hline
+$b_2$ & distance effect for recapture & -0.171 & $\pm$ 0.021 standard error & not used in persistence estimates \\ \hline
+$\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.4 cm & 3.5 - 6.0 cm & \\ \hline
 $S_e$ & egg-recruit survival & & &  \\ \hline
-$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
+%$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
 $b_e$ & coefficient for eyed eggs & -0.608 & & Yawdoszyn et al.\ (in prep) \\ \hline
-$b_l$ & slope in eggs-per-clutch relationship & 2.39 & & Yawdoszyn et al.\ (in prep) \\ \hline
+$b_l$ & size effect in eggs-per-clutch relationship & 2.39 & & Yawdoszyn et al.\ (in prep) \\ \hline
 $b$ & intercept in eggs-per-clutch relationship & 1.17 & & Yawdoszyn et al.\ (in prep) \\ \hline
 $L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
+$P_c$ & probability of capturing a fish & 0.56 & drawn from beta distribution with parameters $\alpha_{P_c} = 1.44$ and $\beta_{P_c} = 1.13$ & details in \ref{APP_SEC_ProbR} \\ \hline
 \caption{}\label{TAB_Params}
 \end{longtable}
 \end{centering}
@@ -429,25 +478,34 @@ $L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
 \begin{figure}[H] % demographic parameters: survival curve, growth curve, dispersal kernel, transition size to female 
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Parameter_inputs.pdf}}
-	\caption{Best estimates (solid black line) and range (gray) for dispersal, growth, survival, and size at female transition parameters. \label{FIG_ParameterInputs}}
+	\caption{Best estimates (solid black line) and range included for uncertainty (gray) for dispersal (a), growth (b), post-recruit survival (c), and size at female transition (d) parameters. \label{FIG_ParameterInputs}}
 \end{figure}
+
+Using our best estimates for growth, survival, and fecundity, we calculate a value of LEP for 10876, ranging from XX to XX when we consider uncertainty in the inputs (Fig.\ \ref{FIG_LEP_RperE_LRP}a). The size at recruitment - the cenusus point between egg-recruit survival and LEP - has the most effect on the value of LEP (Fig.\ \ref{APP_FIG_Uncertainty_LEP}), with higher values of LEP the higher the size of recruitment as less mortality is included before reaching reproductive sizes. 
+
+We estimate egg-recruit survival $S_e$ to be 1.82e-05, ranging from XX to XX when we include uncertainty in the number of offspring assigned to parents and the probability of catching a fish (Fig.\ \ref{FIG_LEP_RperE_LRP}b). Uncertainty in the size of transition to breeding female $L_f$ has the largest effect on egg-recruit survival (Fig.\ \ref{APP_FIG_Uncertainty_RperE}); we only consider reproduction from females, to avoid double-counting, so the larger the transition size to female, the fewer tagged eggs we estimate were produced by genotyped parents and the higher egg-recruit survival. % REPHRASE THIS BETTER! THEN TALK ABOUT LRP - what that means for persistence potential.
+
+We estimate lifetime recruit production, the product of LEP and $S_e$, to be 0.20, below the value of 1 necessary for replacement. This suggests that even without considering connectivity, the individuals at our sample populations do not produce enough offspring that survive to recruitment to replace themselves.
 
 \begin{figure}[H] % LEP, recruits-per-egg, LRP shown with uncertainty, line for best estimate (using mean offspring size as recruit size)
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/LEP_RperE_LRP.pdf}}
-	\caption{Metrics with best estimate (using recruit size of mean of offspring size) and uncertainty. WRITE A CAPTION! \label{FIG_LEP_RperE_LRP}}
+	\caption{Estimates of a) LEP, b) egg-recruit survival, and c) LRP, showing the best estimate (black solid line) and range of estimates considering uncertainty in the inputs. \label{FIG_LEP_RperE_LRP}}
 \end{figure}
+
+We do not find any sites with self-persistence values $>$ 1, indicating that the site could persist in isolation. Given that our estimate of LRP does not suggest replacement and only a fraction of that recruitment stays at the natal site, this makes sense.
 
 \begin{figure}[H] % SP with line for best estimate (using mean offspring size as recruit size)
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/SP_hists_by_site_noSLSTCP.pdf}}
-	\caption{Metrics with best estimate (using recruit size of mean of offspring size) and uncertainty. WRITE A CAPTION! \label{FIG_SP}}
+	\caption{Values of self-persistence at each site, showing the best estimate (black line) and range of estimates considering uncertainty in the input paramters. No site reaches a value of SP > 1, necessary to be self-persistent. \label{FIG_SP}}
 \end{figure}
 
+We also do not find evidence of network persistence; the dominant eigenvalue of the realized connectivity matrix is 0.023, well below the value of 1 needed for network persistence.
 \begin{figure}[H] % NP with line for best estimate (using mean offspring size as recruit size), realized connectivity matrix for best estimate - should re-do without Sitio Lonas, Sitio Tugas, Caridad Proper!
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/NP_and_connMatrixR.pdf}}
-	\caption{Metrics with best estimate (using recruit size of mean of offspring size) and uncertainty. WRITE A CAPTION! \label{FIG_NP_realizedCmat}}
+	\caption{a) Network persistence values, showing the best estimate (black solid line) and range of estimates considering uncertainty. b) The realized connectivity matrix $C$. \label{FIG_NP_realizedCmat}}
 \end{figure}
 
 \begin{figure}[H] % Do we see replacement if we consider all recruits when looking at recuits-per-recruit?
@@ -455,7 +513,6 @@ $L_f$ & size at transition to female & 9.32cm & 5.2 - 12.7cm & \\ \hline
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/PersistenceMetrics/Whatifs/LEP_R_and_NP_histograms_whatif_all_offspring.pdf}}
 	\caption{Range of parameter inputs for uncertainty runs with all uncertainty included. Census size is the size at fish are considered to have recruited, such that egg-recruit survival ends. Female transition is the size at which fish transition from male to female and their reproductive output is included in the estimate of lifetime egg production (LEP). FINISH LISTING PARAMS! \label{FIG_AllOffspringWhatIf}}
 \end{figure}
-
 
 \section*{Discussion}
 Big picture: What do our results mean for persistence in this system and our understanding of metapopulations generally?
@@ -515,10 +572,24 @@ More detailed discussion of our estimates, limitations, ways to move forward:
 
 \section{Method details}
 \subsection*{Proportion of habitat sampled} \label{APP_SEC_ProbHabSampled}
+[\textit{Need to add in the details here}]
 
 \newpage{}
 
 \subsection*{Probability of capturing a fish, from recapture dives} \label{APP_SEC_ProbR}
+
+We use mark-recapture data from recapture dives done within a sampling season to estimate the probability of capturing a fish. During some of the sampling years (XX), portions of the sites were sampled again XX-XX weeks after the original sampling dives. We assume there is no mortality of tagged fish between the original sampling dives and the recapture dives because they are so close in time and that fish do not change their behavior or reponse to divers, so therefore assume that the probability of recapturing a fish is the same as the probablity of capturing a fish on a sample dive. For each recapture dive, we use GPS tracks of the divers to identify the anemones covered in the recapture dive and the set of PIT-tagged fish encountered on those anemones during the original sampling dives. We estimate the probability of capture $P_c$ as the number of tagged fish caught during the capture dive $m_2$ divided by the total number of fish caught on the recapture dive $n_2$: $P_c = frac{m_2}{n_2}$. 
+
+We use the mean $P_c$ across all 14 recapture dives, covering XX sites in 3 sampling seasons (2016, 2017, 2018), as our best estimate. Because there are so few recapture dives compared to the number of times we calculate the metrics to show the range of uncertainty, we represent the probability of capture as a distribution, rather than pulling directly from the values calculated for each recapture dive. The distribution of capture probabilities across the 14 dives is quite skewed so we represent it as a beta distribution, using the mean $\mu_{P_c}$ and variance $V_{P_c}$ of the set of 14 values to find the appropriate $\alpha_{P_c}$ and $\beta_{P_c}$ parameters, where 
+
+\begin{eqnarray}
+\alpha_{P_c} &=& (\frac{1-\mu_{P_c}}{V_{P_c}} - \frac{1}{\mu_{P_c}}) \mu_{P_c}^2 \\
+\beta_{P_c} &=& \alpha_{\mu_{P_c}} \times \frac{1}{\mu_{P_c} - 1}. \label{APP_EQN_ProbCapBetaDistParams}  % Should I cite a source for this?
+\end{eqnarray}
+
+% Should I include a table of the recapture probs for each recapture dive, including site and year?
+
+The mean of the individual capture probability values is $\mu_{P_c} = 0.56$, with variance $V_{P_c} = 0.069$, which gives beta distribution parameters $\alpha_{P_c} = 1.44$ and $\beta_{P_c} = 1.13$. 
 
 \newpage{}
 
