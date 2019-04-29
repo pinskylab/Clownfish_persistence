@@ -83,6 +83,13 @@ n_runs = 1000
 site_vec <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas", "Haina", "Hicgop South",
               "N. Magbangon", "S. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", "San Agustin", "Sitio Baybayon", "Sitio Lonas", 
               "Sitio Tugas", "Tamakin Dacot", "Visca", "Wangag")
+
+# Set sites to include for total possible sampling area (all site areas times all years sampled) - excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this because they disappeared partway through (check with Michelle on that) (should I exclude the Sitio Lonas match too?)
+sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
+                           'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
+                           'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
+                           'Visca', 'Wangag', 'S. Magbangon')  
+
 # Cabatoan <- 1
 # CaridadCemetery <- 2
 # CaridadProper <- 3

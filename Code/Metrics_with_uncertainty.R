@@ -1,5 +1,7 @@
 # Characterizing uncertainty in LEP, recruit survival, dispersal estimates
 
+# Could also produce an example vbl from the K and Linf we calculate (L = Linf(1- exp(-k(t-t0))))
+
 ####### SOMETHING IN NEW FUNCTION DIDN'T OUTPUT OR COMPUTE RperE CORRECTLY! CHECK!!
 # To add: uncertainty in egg-recruit survival
 # fix uncertainty in growth and uncertainty in annual survival
@@ -31,6 +33,7 @@ load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
 
 # Load simple VBL growth analysis
 load(file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
+load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # all recap pairs a year apart, for plotting purposes
 #source(here::here("Code", "Growth_analysis.R"))  # this script needs to be cleaned up before it would be reasonble to actually source it here
 
 # Figure out where these outputs came from so can source those scripts too!
@@ -52,7 +55,7 @@ load(file=here::here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MA
 
 #load(file=here('Data', 'c_mat_allyears.RData'))  # Probability of dispersing (for C matrix for now, before use kernel params to include uncertainty)
 
-# Size transition info (Michelle analysis in genomics repo)
+# Size transition info (Michelle analysis in genomics repo) - switch this to just females from males (is that reasonable?)
 recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))
 recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))
 
@@ -94,7 +97,7 @@ eall_mean.Phi.size.p.size.plus.dist.results <- as.data.frame(eall_mean.Phi.size.
 Sint_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1]  # survival intercept (on logit scale)
 Sl_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]  # survival slope (on logit scale)
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE, should really use SD...
-Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
+Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
 #recruits_per_egg = surv_egg_recruit  # right now using Johnson method where have size cutoff or YP or O for parents, multiply by LEP for 3.5cm recruit - should think about this more, talk to MP/KC
@@ -597,7 +600,7 @@ prob_r_comp <- data.frame(distribution = c(rep("beta", n_runs), rep("truncated b
 # # Another way of doing prob r - pull from within a uniform distribution between min-max observed values
 # prob_r_set_2 = runif(n_runs, min =  min(prob_r), max = max(prob_r))
 
-# Uncertainty in how big a "recruit" is
+# Uncertainty in how big a "recruit" is - could pull from the actual distribution of offspring sizes?
 start_recruit_size_set <- runif(n_runs, min = 3.5, max = 6.0)  # just adding some uncertainty in the size of a recruit too...
 start_recruit_size_options <- data.frame(recruit_size = c('3.5cm', '4.75cm', '6.0cm', 'mean offspring'),
                                          size = c(3.5, 4.75, 6.0, mean_sampled_offspring_size), stringsAsFactors = FALSE)
@@ -1417,23 +1420,22 @@ dispersal_kernel_plot <- ggplot(data=dispersal_df, aes(x=distance, y=kernel_best
 # Growth curve - plot the data and linear model for fish caught about a year apart, models for only one recapture pair per fish, pairs selected randomly and models fit 1000x
 growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
   geom_point(shape = 1) +
-  geom_abline(aes(intercept = mean(model_1_runs$intercept_est), slope = mean(model_1_runs$slope_est)), color = "black") +
+  geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black") +
   geom_ribbon(aes(x=seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
-                  ymin = (min(model_1_runs$intercept_est) + min(model_1_runs$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
-                  ymax = (max(model_1_runs$intercept_est) + max(model_1_runs$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "light gray", alpha = 0.5) +
-  xlab("length (cm)") + ylab("length (cm) next year") +
-  ggtitle("Model fits across runs with data") + ggtitle('b) Growth curve') +
+                  ymin = (min(growth_info_estimate$intercept_est) + min(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
+                  ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "light gray", alpha = 0.5) +
+  xlab("length (cm)") + ylab("length (cm) next year") + ggtitle('b) Growth') +
   theme_bw()
 
-
-growth_df <- data.frame(length1 = seq(min_size, max_size, length.out = n_bins*10)) %>%
-  mutate(length2 = VBL_growth(Linf_growth_mean, k_growth_mean, length1))
-
-growth_curve_plot <- ggplot(data=growth_df, aes(x=length1, y=length2)) +
-  geom_point(color='black') +
-  xlab('size (cm)') + ylab('size next year') + ggtitle('b) Growth curve') +
-  ylim(0,13) +
-  theme_bw()
+# 
+# growth_df <- data.frame(length1 = seq(min_size, max_size, length.out = n_bins*10)) %>%
+#   mutate(length2 = VBL_growth(Linf_growth_mean, k_growth_mean, length1))
+# 
+# growth_curve_plot <- ggplot(data=growth_df, aes(x=length1, y=length2)) +
+#   geom_point(color='black') +
+#   xlab('size (cm)') + ylab('size next year') + ggtitle('b) Growth curve') +
+#   ylim(0,13) +
+#   theme_bw()
 
 # Breeding size distribution
 breeding_size_plot <- ggplot(data = recap_first_female, aes(x=size)) +
