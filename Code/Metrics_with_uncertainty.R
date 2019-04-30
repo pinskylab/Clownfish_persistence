@@ -1364,6 +1364,39 @@ ggplot(data = prob_r_vs_RperE, aes(x = prob_r, y=NP)) +
   theme_bw()
 dev.off()
 
+########## Relationships between values - prettier plots to put in manuscript ##########
+# Size at recruitment and LEP
+recruit_size_vs_LEP_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size, y=LEP)) +
+  geom_point(size=2) +
+  xlab("recruit size") + ylab("LEP") + ggtitle("a) Recruit size vs. LEP") +
+  theme_bw()
+  
+# Size at female transition and egg-recruit-surv
+breeding_size_vs_RperE_df <- data.frame(breeding_size = output_uncert_all$metric_vals_with_params$breeding_size,
+                                        recruits_per_egg = output_uncert_all$RperE_out_df$value) 
+breeding_size_vs_RperE_plot <- ggplot(data = breeding_size_vs_RperE_df, aes(x=breeding_size, y=recruits_per_egg)) +
+  geom_point(size=2) +
+  xlab("breeding size (cm)") + ylab("recruits per egg") + ggtitle("b) Breed size vs. egg-recruit surv") +
+  theme_bw()
+
+# LEP_R and NP 
+LRP_vs_NP_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=LEP_R, y=NP)) +
+  geom_point(size=2) +
+  xlab('LRP') + ylab('NP') + ggtitle('c) LRP vs. NP') +
+  theme_bw()
+
+# Prob r and NP
+Prob_r_vs_NP_plot <- ggplot(data = prob_r_vs_RperE, aes(x = prob_r, y=NP)) +
+  geom_point(size=2) +
+  xlab('capture prob (P_c)') + ylab('NP') + ggtitle('d) Capture prob. vs. NP') +
+  theme_bw()
+
+pdf(file = here::here("Plots/FigureDrafts", "Param_metric_relationships.pdf"))
+grid.arrange(recruit_size_vs_LEP_plot, breeding_size_vs_RperE_plot, 
+             LRP_vs_NP_plot, Prob_r_vs_NP_plot, nrow=2)
+dev.off()
+
+
 ########## Comparing different ways of estimating different values ##########
 
 # Prob of catching a fish, made into a distribution two ways and sampling from data
