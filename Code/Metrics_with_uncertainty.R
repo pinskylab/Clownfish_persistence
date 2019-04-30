@@ -39,7 +39,7 @@ load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # all 
 # Figure out where these outputs came from so can source those scripts too!
 # Should have two options: source the files that create these outputs or load them from Data folder
 #load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
-load(file=here::here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model)
+load(file=here::here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model) - not sure this has been udpated since I changed the growth in it? Should check!
 # load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA - moved to Constants common functions script
 
 # load(file=here('Data','surv_egg_recruit_est.RData'))  # now doing this within this script rather than in external script
@@ -74,7 +74,7 @@ start_recruit_sd = 0.1
 # k_allyears_CIl = -1.94  # lower 97.5% confidence interval of k (these aren't symmetric, so not normal? Check with KC how CI were derived)
 
 # Growth (for LEP)
-s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from...
+s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from... should update it with my estimates
 k_growth_mean = mean(growth_info_estimate$k_est)  # from Growth_analysis growth work (very simple)
 Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # from Growth_analysis growth work (very simple)
 #k_growth_mean = 0.9447194  # lowest AIC model
@@ -97,7 +97,7 @@ eall_mean.Phi.size.p.size.plus.dist.results <- as.data.frame(eall_mean.Phi.size.
 Sint_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1]  # survival intercept (on logit scale)
 Sl_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]  # survival slope (on logit scale)
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE, should really use SD...
-Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
+# Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
 #recruits_per_egg = surv_egg_recruit  # right now using Johnson method where have size cutoff or YP or O for parents, multiply by LEP for 3.5cm recruit - should think about this more, talk to MP/KC
@@ -106,10 +106,17 @@ Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, s
 ##### Other parameters that stay static
 
 #################### Functions: ####################
-# Find probability of dispersing distance d with all-years fit
-disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+# # Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
+# disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+#   z = exp(k)
+#   disp = (z/2)*exp(-(z*d)^(theta))
+#   return(disp)
+# }
+
+# Find probability of dispersing distance d with all-years fit (new version, where theta=1)
+disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k)
-  disp = (z/2)*exp(-(z*d)^(theta))
+  disp = z*exp(-(z*d)^(theta))
   return(disp)
 }
 
@@ -229,9 +236,15 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
 calcMetrics <- function(param_set, sites_and_dists, sites) {
   
   # Define function with the right parameters
-  disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  # disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  #   z = exp(param_set$k_connectivity)
+  #   disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
+  #   return(disp)
+  # }
+  
+  disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
     z = exp(param_set$k_connectivity)
-    disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
+    disp = (z)*exp(-(z*d)^(param_set$theta_connectivity))
     return(disp)
   }
   
@@ -367,15 +380,15 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
 }
 
 #################### Running things: ####################
-# Consider moving this to the Constants_database_common_functions script?
+# # Consider moving this to the Constants_database_common_functions script?
 # Combine parentage files (mums, dads, trios) - first rename columns so they match across the files, add a column for match type, then rbind
-parentage_dads <- parentage_dads %>% 
-  dplyr::rename(parent_site = par2_site, nmatches = n_dad, offspring_site = offs_site) %>% 
+parentage_dads <- parentage_dads %>%
+  dplyr::rename(parent_site = par2_site, nmatches = n_dad, offspring_site = offs_site) %>%
   mutate(match_type = rep('dad', dim(parentage_dads)[1]))
-parentage_moms <- parentage_moms %>% 
+parentage_moms <- parentage_moms %>%
   dplyr::rename(parent_site = par1_site, nmatches = n_mum, offspring_site = offs_site) %>%
   mutate(match_type = rep('mom', dim(parentage_moms)[1]))
-parentage_trios <- parentage_trios %>% 
+parentage_trios <- parentage_trios %>%
   dplyr::rename(parent_site = par1_site, nmatches = n_trios, offspring_site = offs_site) %>%
   mutate(match_type = rep('trio', dim(parentage_trios)[1]))
 
@@ -432,9 +445,10 @@ LEP_3.5cm <- findLEP(min_size, max_size, n_bins, t_steps, Sint_mean, Sl_mean,
 # n_parents_parentage <- length(n_parents_parentage_df$gen_id)
 
 # just using the number of parents in KC's parentage file (though at some point should make sure that's the number I pull above minus those with issues from 2012-2015)
-n_parents_parentage = parents_parentage_file  # for now, just using the 2012-2015 parents (913 in KC's parentage file)
+n_parents_parentage = parents_parentage_file  # now, using guess for 2012-2018 parent number, while wait for KC reply (old: for now, just using the 2012-2015 parents (913 in KC's parentage file)
 
 # How many offspring did we find from those tagged parents?
+#n_offspring_parentage <- as.integer((parentage_matches %>% distinct(offs_gen) %>% summarize(n_offs = n()))$n_offs)
 n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring identified via parentage (for 2012-2015) - make sure not double-counting those ided by both mom and dad
 
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
@@ -562,7 +576,9 @@ SP_best_est <- rbind(best_est_metrics_3.5cm$SP %>% mutate(recruit_size = "3.5cm"
 Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
 k_growth_set = growth_info_estimate$k_est  # growth (k)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
-k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # dispersal kernel k (replace should be true, right?)
+k_connectivity_set = k_connectivity_values$V1  # dispersal kernel k (why was I resampling from the vector from KC before? no need to, right? unless nruns changes)
+#k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # dispersal kernel k (replace should be true, right?)
+
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
 
@@ -948,6 +964,7 @@ output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_
 
 ##### What-if calculation 2) What would egg-recruit survival need to be for NP to be 1? 
 
+
 ##### What-if calculation 3) What would egg-recruit survival need to be for one of the patches to be SP? 
 
 ##### What-if calculation 4) What would local retention need to be for one of the patches to be SP?
@@ -1049,93 +1066,93 @@ ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=SP)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
 
-########## Plotting the metrics with different kinds of uncertainty ########## STOPPED SAVING PLOTS HERE
-
-# LEP
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty.pdf"))
-ggplot(data = LEP_uncert, aes(x = value)) +
-  geom_histogram(bins = 50, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
-  facet_wrap(~uncertainty_type) +
-  xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
-  theme_bw()
-dev.off()
-
-# LEP zoomed 
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty_zoomed.pdf"))
-ggplot(data = LEP_uncert, aes(x = value)) +
-  geom_histogram(bins = 50, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
-  ylim(0,500) +
-  facet_wrap(~uncertainty_type) +
-  xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
-  theme_bw()
-dev.off()
-
-# LEP_R
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty.pdf"))
-ggplot(data = LEP_R_uncert, aes(x=value)) +
-  geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
-  facet_wrap(~uncertainty_type) +
-  xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
-  theme_bw()
-dev.off()
-
-# LEP_R zoomed
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty_zoomed.pdf"))
-ggplot(data = LEP_R_uncert, aes(x=value)) +
-  geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
-  ylim(0,500) +
-  facet_wrap(~uncertainty_type) +
-  xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
-  theme_bw()
-dev.off()
-
-# NP
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty.pdf"))
-ggplot(data = NP_uncert, aes(x=value)) +
-  geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept =NP)) +
-  facet_wrap(~uncertainty_type) +
-  xlab("NP") + ggtitle("NP with different types of uncertainty") +
-  theme_bw()
-dev.off()
-
-# NP zoomed
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty_zoomed.pdf"))
-ggplot(data = NP_uncert, aes(x=value)) +
-  geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept =NP)) +
-  ylim(0,750) +
-  facet_wrap(~uncertainty_type) +
-  xlab("NP") + ggtitle("NP with different types of uncertainty") +
-  theme_bw()
-dev.off()
-
-# Recruits-per-egg - why is all different than recruits-per-egg here? Was on old, fixed now?
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty.pdf"))
-ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
-  geom_histogram(bins = 50, color = "gray", fill = "gray") +
-  geom_vline(xintercept = recruits_per_egg_best_est) +
-  facet_wrap(~uncertainty_type) +
-  xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
-dev.off()
-
-# Recruits-per-egg  - zoomed
-pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty_zoomed.pdf"))
-ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
-  geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  geom_vline(xintercept = recruits_per_egg_best_est) +
-  xlim(0,0.0002) +
-  facet_wrap(~uncertainty_type) +
-  xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
-dev.off()
+# ########## Plotting the metrics with different kinds of uncertainty ########## STOPPED SAVING PLOTS HERE
+# 
+# # LEP
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty.pdf"))
+# ggplot(data = LEP_uncert, aes(x = value)) +
+#   geom_histogram(bins = 50, color = "gray", fill = "gray") +
+#   geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
+#   theme_bw()
+# dev.off()
+# 
+# # LEP zoomed 
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_uncertainty_zoomed.pdf"))
+# ggplot(data = LEP_uncert, aes(x = value)) +
+#   geom_histogram(bins = 50, color = "gray", fill = "gray") +
+#   geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
+#   ylim(0,500) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
+#   theme_bw()
+# dev.off()
+# 
+# # LEP_R
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty.pdf"))
+# ggplot(data = LEP_R_uncert, aes(x=value)) +
+#   geom_histogram(bins = 40, color = "gray", fill = "gray") +
+#   geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
+#   theme_bw()
+# dev.off()
+# 
+# # LEP_R zoomed
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "LEP_R_uncertainty_zoomed.pdf"))
+# ggplot(data = LEP_R_uncert, aes(x=value)) +
+#   geom_histogram(bins = 40, color = "gray", fill = "gray") +
+#   geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
+#   ylim(0,500) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab("LEP_R") + ggtitle("LEP_R with different types of uncertainty") +
+#   theme_bw()
+# dev.off()
+# 
+# # NP
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty.pdf"))
+# ggplot(data = NP_uncert, aes(x=value)) +
+#   geom_histogram(bins = 40, color = "gray", fill = "gray") +
+#   geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept =NP)) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab("NP") + ggtitle("NP with different types of uncertainty") +
+#   theme_bw()
+# dev.off()
+# 
+# # NP zoomed
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "NP_uncertainty_zoomed.pdf"))
+# ggplot(data = NP_uncert, aes(x=value)) +
+#   geom_histogram(bins = 40, color = "gray", fill = "gray") +
+#   geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept =NP)) +
+#   ylim(0,750) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab("NP") + ggtitle("NP with different types of uncertainty") +
+#   theme_bw()
+# dev.off()
+# 
+# # Recruits-per-egg - why is all different than recruits-per-egg here? Was on old, fixed now?
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty.pdf"))
+# ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
+#   geom_histogram(bins = 50, color = "gray", fill = "gray") +
+#   geom_vline(xintercept = recruits_per_egg_best_est) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+# dev.off()
+# 
+# # Recruits-per-egg  - zoomed
+# pdf(file = here::here("Plots/PersistenceMetrics/MetricsWithUncertainty", "RperE_uncertainty_zoomed.pdf"))
+# ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("all", "assigned offspring", "assigned offspring and prob r", "breeding size", "growth", "survival")), aes(x=value)) +
+#   geom_histogram(bins = 40, color = "gray", fill = "gray") +
+#   geom_vline(xintercept = recruits_per_egg_best_est) +
+#   xlim(0,0.0002) +
+#   facet_wrap(~uncertainty_type) +
+#   xlab("recruits-per-egg") + ggtitle("RperE with different types of uncertainty") +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+# dev.off()
 
 ########## Plotting inputs (histograms of data inputs) ########## 
 
@@ -1249,7 +1266,7 @@ survivalSint_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, ae
 # Prob r
 probR_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = prob_r)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
-  xlab("prob r") + ggtitle("f) Capture probability") +
+  xlab("P_c") + ggtitle("f) Capture probability") +
   theme_bw()
 
 # Assigned offspring
@@ -1327,16 +1344,21 @@ ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=k_connectivity, y
 dev.off()
 
 # Prob r and recruits-per-egg
+prob_r_vs_RperE <- data.frame(prob_r = output_uncert_all$metric_vals_with_params$prob_r,
+                              recruits_per_egg = output_uncert_all$RperE_out_df$value,
+                              NP = output_uncert_all$NP_out_df$value)
 pdf(file =  here::here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'prob_r_recruits_per_egg_scatter.pdf'))
-ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=prob_r, y=recruits_per_egg)) +
+ggplot(data = prob_r_vs_RperE, aes(x=prob_r, y=recruits_per_egg)) +
   geom_point(size=2) +
-  xlab('prob r') + ylab('recruits-per-egg') + ggtitle('Prob r vs. recruits-per-egg') +
+  xlab('capture probability') + ylab('recruits-per-egg') + ggtitle('P_c vs. recruits-per-egg') +
+  ylim(0,0.00025) +
   theme_bw()
 dev.off()
 
 # Prob r and NP
 pdf(file =  here::here('Plots/PersistenceMetrics/MetricsWithUncertainty', 'prob_r_NP_scatter.pdf'))
-ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=prob_r, y=NP)) +
+#ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=prob_r, y=NP)) +
+ggplot(data = prob_r_vs_RperE, aes(x = prob_r, y=NP)) +
   geom_point(size=2) +
   xlab('prob r') + ylab('NP') + ggtitle('Prob r vs. NP') +
   theme_bw()
@@ -1383,7 +1405,7 @@ dev.off()
 LEP_R_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
   geom_vline(data = LEP_R_best_est_all_offspring, aes(xintercept = LEP_R, color = recruit_size)) +
-  xlab("LEP_R") + ggtitle("a) Recruits per recruit with all offspring") +
+  xlab("recruits") + ggtitle("a) Recruits per recruit with all offspring") +
   theme_bw()
 
 # NP (this plot is "NP_histogram_whatif_all_offspring.pdf")
@@ -1488,7 +1510,7 @@ LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
-  xlab('LEP_R') + ggtitle('c) Lifetime recruit production') +
+  xlab('LRP') + ggtitle('c) Lifetime recruit production') +
   theme_bw()
 
 pdf(file = here('Plots/FigureDrafts', 'LEP_RperE_LRP.pdf'), width=8.5, height=3)
@@ -1540,7 +1562,7 @@ ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size"
   geom_histogram(bins = 50, color = "gray", fill = "gray") +
   geom_vline(data = LEP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP)) +
   facet_wrap(~uncertainty_type) +
-  xlab('LEP') + ggtitle('LEP with different types of uncertainty') +
+  xlab('LEP') + ggtitle('Uncertainty in LEP') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()
@@ -1552,7 +1574,7 @@ ggplot(data = LEP_R_uncert %>% filter(uncertainty_type %in% c("start recruit siz
   geom_histogram(bins = 50, color = "gray", fill = "gray") +
   geom_vline(data = LEP_R_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
   facet_wrap(~uncertainty_type) +
-  xlab('LRP') + ggtitle('LRP with different types of uncertainty') +
+  xlab('LRP') + ggtitle('Uncertainty in LRP') +
   theme_bw()
 dev.off()
 
@@ -1563,7 +1585,7 @@ ggplot(data = RperE_uncert %>% filter(uncertainty_type %in% c("breeding size", "
   geom_histogram(bins = 50, color = "gray", fill = "gray") +
   geom_vline(xintercept = recruits_per_egg_best_est, color='black') +
   facet_wrap(~uncertainty_type) +
-  xlab('recruits-per-egg') + ggtitle('Egg-recruit survival with different types of uncertainty') +
+  xlab('recruits-per-egg') + ggtitle('Uncertainty in egg-recruit survival') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()
@@ -1574,7 +1596,7 @@ ggplot(data = NP_uncert %>% filter(uncertainty_type != "assigned offspring and p
   geom_histogram(bins = 50, color = "gray", fill = "gray") +
   geom_vline(data = NP_best_est %>% filter(recruit_size == "mean offspring"), aes(xintercept = NP)) +
   facet_wrap(~uncertainty_type) +
-  xlab('NP') + ggtitle('Network persistence with different types of uncertainty') +
+  xlab('NP') + ggtitle('Uncertainty in network persistence') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 dev.off()

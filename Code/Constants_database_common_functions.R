@@ -1,12 +1,13 @@
 # Functions and constants used throughout clownfish persistence scripts 
 
 #################### Install packages: ####################
-#library(RCurl) #allows running R scripts from GitHub
+library(RCurl) #allows running R scripts from GitHub - now reading dispersal kernel tables from KC parentage repository
 #library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
 library(lubridate)
 library(stringr)
+library(httr)
 #library(ggplot2)
 #library(RColorBrewer)
 #library(geosphere)
@@ -31,21 +32,34 @@ prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recaptu
             0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
 
 # Load in site_areas
-load(file=here::here('Data','site_areas.RData'))
+# load(file=here::here('Data','site_areas.RData'))
 
-# Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
-k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
-theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
-k_2012 = -2.67
-theta_2012 = 3
-k_2013 = -3.27
-theta_2013 = 3
-k_2014 = -2.38
-theta_2014 = 2
-k_2015 = -2.73
-theta_2015 = 2
+# # Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
+# k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
+# theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
+# k_2012 = -2.67
+# theta_2012 = 3
+# k_2013 = -3.27
+# theta_2013 = 3
+# k_2014 = -2.38
+# theta_2014 = 2
+# k_2015 = -2.73
+# theta_2015 = 2
 
-k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+# k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+
+# Load dispersal kernel fits
+all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
+
+# Find the minimum log-likelihood theta and the k that goes with it
+theta_allyears <- (all_year_kernel_table %>% filter(log_like == min(log_like)))$theta
+k_allyears <- (all_year_kernel_table %>% filter(theta == theta_allyears))$k
+
+# Load bootstrapped k values (values of k within the 95% confidence interval, bootstrapped)
+k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/bootstrapped_k_all.csv?token=AB75SQC6NMJSYF5CUYTCPSK4Y6DTK"), header = T)
+
+# Load parentage matches - waiting to update this
+#parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
 
 # Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
 parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
@@ -55,6 +69,7 @@ parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyea
 # number of parents in parent file
 parents_2012to2015 = 913  # number of parents in parentage file KC is running for 2012-2015
 offspring_2012to2015 = NA  # number of offspring in parentage runs KC is running for 2012-2015
+parents_2012to2018 = 1400 # guessing the number of parents in new parentage runs, will update evenutally
 parents_parentage_file = parents_2012to2015  # setting a new value here so can change easily between years in included in parentage and kernel analysis without dealing with other scripts
 offspring_parentage_file = offspring_2012to2015
 
@@ -70,7 +85,7 @@ egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 6
                         851, 160, 648, 766, 1060, 670, 351, 557)  # from egg_data2018f.csv in Adam's repository
 mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
 
-clutches_per_year_mean = 11.9
+clutches_per_year_mean = 11.9  # from Holtswarth paper
 
 
 #################### Constants, indices, etc. ####################
