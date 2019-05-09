@@ -97,7 +97,7 @@ eall_mean.Phi.size.p.size.plus.dist.results <- as.data.frame(eall_mean.Phi.size.
 Sint_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1]  # survival intercept (on logit scale)
 Sl_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]  # survival slope (on logit scale)
 Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE, should really use SD...
-# Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
+Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, should really use SD...
 
 # Egg-recruit survival (for getting LEP in terms of recruits)
 #recruits_per_egg = surv_egg_recruit  # right now using Johnson method where have size cutoff or YP or O for parents, multiply by LEP for 3.5cm recruit - should think about this more, talk to MP/KC
@@ -117,6 +117,12 @@ Sint_se = eall_mean.Phi.size.p.size.plus.dist.results$se[1]  # for now using SE,
 disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k)
   disp = z*exp(-(z*d)^(theta))
+  return(disp)
+}
+
+disp_theta_3 <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
+  z = exp(k_allyears)
+  disp = (3*z)/(gamma(1/3))*exp(-(z*d)^3)
   return(disp)
 }
 
@@ -241,10 +247,17 @@ calcMetrics <- function(param_set, sites_and_dists, sites) {
   #   disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
   #   return(disp)
   # }
+  # 
+  # disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
+  #   z = exp(param_set$k_connectivity)
+  #   disp = (z)*exp(-(z*d)^(param_set$theta_connectivity))
+  #   return(disp)
+  # }
   
-  disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
+  # for theta = 3
+  disp_allyears <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
     z = exp(param_set$k_connectivity)
-    disp = (z)*exp(-(z*d)^(param_set$theta_connectivity))
+    disp = (3*z)/(gamma(1/3))*exp(-(z*d)^3)
     return(disp)
   }
   
@@ -923,7 +936,7 @@ param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled,
          offspring_assigned_to_parents = n_offspring_genotypes, n_parents = n_parents_parentage)  
@@ -1437,14 +1450,14 @@ dev.off()
 # LEP_R (LEP in terms of recruits) (this is plot "LEP_R_histogram_whatif_all_offspring.pdf") - where are these separate plots? Find and set to whatifs folder
 LEP_R_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
-  geom_vline(data = LEP_R_best_est_all_offspring, aes(xintercept = LEP_R, color = recruit_size)) +
+  geom_vline(data = LEP_R_best_est_all_offspring %>% filter(recruit_size == "mean offspring"), aes(xintercept = LEP_R)) +
   xlab("recruits") + ggtitle("a) Recruits per recruit with all offspring") +
   theme_bw()
 
 # NP (this plot is "NP_histogram_whatif_all_offspring.pdf")
 NP_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
-  geom_vline(data = NP_best_est_all_offspring, aes(xintercept = NP, color = recruit_size)) +
+  geom_vline(data = NP_best_est_all_offspring %>% filter(recruit_size == "mean offspring"), aes(xintercept = NP)) +
   xlab("NP") + ggtitle("b) NP with all offspring") +
   theme_bw()
 

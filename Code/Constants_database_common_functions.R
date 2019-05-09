@@ -49,13 +49,16 @@ prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recaptu
 # k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
 
 # Load dispersal kernel fits
-all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
+#all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
+# now sourcing from the 894 loci kernel folder
+all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/894_loci/results/best_kernel_allyears.csv?token=AB75SQBDKIHDBGZ5WUD7IX24ZOI42"), header = T)
+
 
 # Find the minimum log-likelihood theta and the k that goes with it
 theta_allyears <- (all_year_kernel_table %>% filter(log_like == min(log_like)))$theta
 k_allyears <- (all_year_kernel_table %>% filter(theta == theta_allyears))$k
 
-# Load bootstrapped k values (values of k within the 95% confidence interval, bootstrapped)
+# Load bootstrapped k values (values of k within the 95% confidence interval, bootstrapped) - token is probably happening b/c the repo is private? way to pull just one file from a repo into another? Look into this...
 k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/bootstrapped_k_all.csv?token=AB75SQC6NMJSYF5CUYTCPSK4Y6DTK"), header = T)
 
 # Load parentage matches - waiting to update this
