@@ -10,7 +10,7 @@
 # uncertainty in prop_hab_sampled?
 
 #################### Set-up: ####################
-source(here::here('Code', 'Constants_database_common_functions.R'))
+# source(here::here('Code', 'Constants_database_common_functions.R')) # Just running manually for the day so can load saved allfish_caught file while data base getting reconfigured with gen_id
 
 library(ggplot2)
 library(grid)
@@ -81,7 +81,7 @@ Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # from Growth_analysis g
 #Linf_growth_mean = 10.50670  # lowest AIC model
 #Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
 
-# Eggs (for LEP)
+# Eggs (for LEP) 
 size_fecundity_model = length_count8llEA  # assign here, in case model input from Adam changes, both length and eggs on log scale
 eggs_intercept_log = size_fecundity_model$coefficients[1]  # on log-scale
 eggs_slope_log = size_fecundity_model$coefficients[2]
@@ -107,24 +107,25 @@ Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, s
 
 #################### Functions: ####################
 # # Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
-# disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  z = exp(k)
+  disp = (z/2)*exp(-(z*d)^(theta))
+  return(disp)
+}
+
+# SHOULD FIND A WAY OF CHOOSING BASED ON THETA!
+# # Find probability of dispersing distance d with all-years fit (new version, where theta=1)
+# disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
 #   z = exp(k)
-#   disp = (z/2)*exp(-(z*d)^(theta))
+#   disp = z*exp(-(z*d)^(theta))
 #   return(disp)
 # }
-
-# Find probability of dispersing distance d with all-years fit (new version, where theta=1)
-disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
-  z = exp(k)
-  disp = z*exp(-(z*d)^(theta))
-  return(disp)
-}
-
-disp_theta_3 <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
-  z = exp(k_allyears)
-  disp = (3*z)/(gamma(1/3))*exp(-(z*d)^3)
-  return(disp)
-}
+# 
+# disp_theta_3 <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
+#   z = exp(k_allyears)
+#   disp = (3*z)/(gamma(1/3))*exp(-(z*d)^3)
+#   return(disp)
+# }
 
 # Find beta distribution parameters from mean and variance (mostly for prob_r uncertainty)
 findBetaDistParams <- function(mu, var) {
@@ -242,11 +243,11 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
 calcMetrics <- function(param_set, sites_and_dists, sites) {
   
   # Define function with the right parameters
-  # disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
-  #   z = exp(param_set$k_connectivity)
-  #   disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
-  #   return(disp)
-  # }
+  disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+    z = exp(param_set$k_connectivity)
+    disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
+    return(disp)
+  }
   # 
   # disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
   #   z = exp(param_set$k_connectivity)
@@ -254,13 +255,13 @@ calcMetrics <- function(param_set, sites_and_dists, sites) {
   #   return(disp)
   # }
   
-  # for theta = 3
-  disp_allyears <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
-    z = exp(param_set$k_connectivity)
-    disp = (3*z)/(gamma(1/3))*exp(-(z*d)^3)
-    return(disp)
-  }
-  
+  # # for theta = 3
+  # disp_allyears <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
+  #   z = exp(param_set$k_connectivity)
+  #   disp = (3*z)/(gamma(1/3))*exp(-(z*d)^3)
+  #   return(disp)
+  # }
+  # 
   # Create connectivity matrix
   Cmat <- sites_and_dists %>% select(org_site, dest_site, d1_km, d2_km, org_alpha_order, org_geo_order, dest_alpha_order, dest_geo_order)
   for(i in 1:length(Cmat$org_site)) {
@@ -505,6 +506,76 @@ start_recruit_size = mean_sampled_offspring_size
 ##### 
 ##### Find connectivity matrix
 
+##### Scale up tagged recruits to include areas under the dispersal kernel that we didn't sample
+
+# Find the number of parents at each site (eventually, this parent file pull will go in Constants_database_common_functions). Just putting it here for now b/c going to use original 913, with same distribution as current parents
+all_parents_site <- all_parents %>%
+  group_by(site) %>%
+  summarize(nparents = n()) %>%
+  mutate(prop_parents = nparents/sum(nparents)) %>%
+  mutate(nparents_olddata = round(prop_parents*n_parents_parentage))
+# new number of parents (b/c rounding...)
+n_parents_parentage <- sum(all_parents_site$nparents_olddata)
+n_parents_somesites <- sum((all_parents_site %>% filter(site %in% sites_for_total_areas))$nparents_olddata)   # Just for some sites...
+
+# Total dispersal kernel area (total parents*2 - total area dispersing north of site is 1 and south is 1 for each parent)
+total_parent_kernel_area = n_parents_somesites*2
+
+# Find northern-most edge and southern-most edge
+northern_edge_lat <- (site_width_info %>% filter(site == "Palanas", anem_loc == "north"))$lat
+northern_edge_lon <- (site_width_info %>% filter(site == "Palanas", anem_loc == "north"))$lon
+southern_edge_lat <- (site_width_info %>% filter(site == "Sitio Baybayon", anem_loc == "south"))$lat
+southern_edge_lon <- (site_width_info %>% filter(site == "Sitio Baybayon", anem_loc == "south"))$lon
+
+# Join up anem info with parents
+all_parents_latlon <- left_join(all_parents_site, site_width_info %>% filter(anem_loc == "mid") %>% select(site, site_geo_order, lat, lon), by = "site")
+
+# Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
+disp_allyears_d <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  z = exp(k_allyears)
+  disp = (z/2)*exp(-(z*d)^(theta_allyears))
+  return(disp)
+}
+
+# Find distance to edges (should move this into Site widths and distances script)
+# For now, proceeding just with sites with all the coords - figure out a better way to get coords for center of other sites...
+all_parents_latlon <- all_parents_latlon %>% 
+  filter(!is.na(lon) & !is.na(lat)) %>%
+  mutate(dist_to_N_edge_m = NA,
+         dist_to_S_edge_m = NA,
+         dist_to_N_edge_km = NA,
+         dist_to_S_edge_km = NA,
+         disp_area_N_within_sites = NA,
+         disp_area_S_within_sites = NA)
+
+for(i in 1:length(all_parents_latlon$site)) {
+  all_parents_latlon$dist_to_N_edge_m[i] = distHaversine(c(all_parents_latlon$lon[i], all_parents_latlon$lat[i]),
+                                                       c(northern_edge_lon, northern_edge_lat))
+  all_parents_latlon$dist_to_S_edge_m[i] = distHaversine(c(all_parents_latlon$lon[i], all_parents_latlon$lat[i]),
+                                                       c(southern_edge_lon, southern_edge_lat))
+  all_parents_latlon$dist_to_N_edge_km[i] = all_parents_latlon$dist_to_N_edge_m[i]/1000
+  all_parents_latlon$dist_to_S_edge_km[i] = all_parents_latlon$dist_to_S_edge_m[i]/1000
+  all_parents_latlon$disp_area_N_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_latlon$dist_to_N_edge_km[i])$value
+  all_parents_latlon$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_latlon$dist_to_S_edge_km[i])$value
+}
+
+# Find proportion of total area under dispersal kernel (where total area to INF is 2 - 1 for each side) covered within sample sites
+all_parents_latlon <- all_parents_latlon %>%
+  mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
+         prop_disp_area_within_sites = total_disp_area_within_sites/2,
+         total_parent_area_sampled = total_disp_area_within_sites*nparents)
+all_parents_latlon_summarized <- all_parents_latlon %>%
+  summarize(total_parent_kernel_area = sum(nparents)*2,
+            sampled_parent_kernel_area = sum(total_parent_area_sampled),
+            prop_parent_kernel_area_sampled = sampled_parent_kernel_area/total_parent_kernel_area)
+
+ggplot(data = all_parents_latlon, aes(x = reorder(site, site_geo_order), y = prop_disp_area_within_sites)) + # the geo orders are all off here...
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 2) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+    
 #################### Find metrics for "best estimate" of the various parameters: ####################
 # Put best-estimate parameters into one dataframe
 # "offspring" are 3.5-6.0, what if start at different places?
