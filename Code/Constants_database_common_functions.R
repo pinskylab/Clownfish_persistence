@@ -7,7 +7,7 @@ library(dplyr)
 library(tidyr)
 library(lubridate)
 library(stringr)
-library(httr)
+#library(httr)
 #library(ggplot2)
 #library(RColorBrewer)
 #library(geosphere)
@@ -15,16 +15,20 @@ library(httr)
 #library(reshape)
 library(here)
 
-# source(here::here("Code", "Pull_data_from_database.R"))
+source(here::here("Code", "Pull_data_from_database.R"))
 
 #################### Load saved data from database: ####################
-load(file = here::here("Data/Data_from_database", "anem_db.RData"))
-load(file = here::here("Data/Data_from_database", "fish_db.RData"))
-load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
-load(file = here::here("Data/Data_from_database", "dives_db.RData"))
-load(file = here::here("Data/Data_from_database", "gps_db.RData"))
+# load(file = here::here("Data/Data_from_database", "anem_db.RData"))
+# load(file = here::here("Data/Data_from_database", "fish_db.RData"))
+# load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
+# load(file = here::here("Data/Data_from_database", "dives_db.RData"))
+# load(file = here::here("Data/Data_from_database", "gps_db.RData"))
 
 #################### Data from other analyses: ####################
+
+# Center of sites (eyeballed from QGIS by KC)
+site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_centroids.csv"), header = TRUE)
+
 # Should I make either prob r or site_areas calcs as part of this repo rather than sourcing from KC?
 # Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
@@ -34,35 +38,40 @@ prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recaptu
 # Load in site_areas
 # load(file=here::here('Data','site_areas.RData'))
 
-# # Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
-# k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
-# theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
-# k_2012 = -2.67
-# theta_2012 = 3
-# k_2013 = -3.27
-# theta_2013 = 3
-# k_2014 = -2.38
-# theta_2014 = 2
-# k_2015 = -2.73
-# theta_2015 = 2
+# Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
+k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
+theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
+k_2012 = -2.67
+theta_2012 = 3
+k_2013 = -3.27
+theta_2013 = 3
+k_2014 = -2.38
+theta_2014 = 2
+k_2015 = -2.73
+theta_2015 = 2
 
-# k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
 
-# Load dispersal kernel fits
-#all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
-# now sourcing from the 894 loci kernel folder
-all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/894_loci/results/best_kernel_allyears.csv?token=AB75SQBDKIHDBGZ5WUD7IX24ZOI42"), header = T)
+# COMMENTING OUT FOR NOW UNTIL FIGURE OUT HOW TO SOURCE BETTER, WHILE WORKING ON SCALING UP DISPERSAL CLOUD
+# # Load dispersal kernel fits
+# #all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
+# # now sourcing from the 894 loci kernel folder
+# all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/894_loci/results/best_kernel_allyears.csv?token=AB75SQBDKIHDBGZ5WUD7IX24ZOI42"), header = T)
+# 
+# 
+# # Find the minimum log-likelihood theta and the k that goes with it
+# theta_allyears <- (all_year_kernel_table %>% filter(log_like == min(log_like)))$theta
+# k_allyears <- (all_year_kernel_table %>% filter(theta == theta_allyears))$k
+# 
+# # Load bootstrapped k values (values of k within the 95% confidence interval, bootstrapped) - token is probably happening b/c the repo is private? way to pull just one file from a repo into another? Look into this...
+# k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/bootstrapped_k_all.csv?token=AB75SQC6NMJSYF5CUYTCPSK4Y6DTK"), header = T)
+#
 
+# Load in all parents in the parentage file
+all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
 
-# Find the minimum log-likelihood theta and the k that goes with it
-theta_allyears <- (all_year_kernel_table %>% filter(log_like == min(log_like)))$theta
-k_allyears <- (all_year_kernel_table %>% filter(theta == theta_allyears))$k
-
-# Load bootstrapped k values (values of k within the 95% confidence interval, bootstrapped) - token is probably happening b/c the repo is private? way to pull just one file from a repo into another? Look into this...
-k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/bootstrapped_k_all.csv?token=AB75SQC6NMJSYF5CUYTCPSK4Y6DTK"), header = T)
-
-# Load parentage matches - waiting to update this
-#parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
+# # Load parentage matches - waiting to update this
+# #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
 
 # Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
 parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
@@ -231,7 +240,7 @@ Wangag_mid <- 2734
 Wangag_S <- 2063 #1034 also a good end point
 
 # Put north, south, mid anems at each site into a dataframe
-site_edge_anems <- data.frame(site = site_vec_NS, site_geo_order = c(5, 6, 7, 10, 16, 18, 8, 3, 4, 1, 14, 13, 12, 19, 11, 9, 17, 15, 2),
+site_edge_anems <- data.frame(site = site_vec_NS, site_geo_order = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
                               anem_id = c(Palanas_N, Wangag_N, Magbangon_N_N, Magbangon_S_N, Cabatoan_N, CaridadCemetery_N, CaridadProper_N,
                                           HicgopSouth_N, SitioTugas_N, ElementarySchool_N, SitioLonas_N, SanAgustin_N, PorocSanFlower_N,
                                           PorocRose_N, Visca_N, Gabas_N, TamakinDacot_N, Haina_W, SitioBaybayon_N, Palanas_S, Wangag_S, Magbangon_N_S, Magbangon_S_S, Cabatoan_S, CaridadCemetery_S, CaridadProper_S,
@@ -351,7 +360,8 @@ dives_db <- dives_db %>%
 
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- fish_db %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, sex, size, fish_obs_time, fish_notes) %>%
+  #select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, sex, size, fish_obs_time, fish_notes) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, anem_table_id, recap, tag_id, color, sex, size, fish_obs_time, fish_notes) %>%
   filter(fish_spp == 'APCL') %>%
   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
 
@@ -368,6 +378,9 @@ allfish_dives <- dives_db %>%
 # join together
 allfish_caught <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish_caught <- left_join(allfish_caught, allfish_dives, by="dive_table_id")
+
+# add in the gen_ids (now in a separate gen_id table)
+allfish_caught <- left_join(allfish_caught, fish_obs %>% select(fish_table_id, gen_id), by = "fish_table_id")
 
 # remove intermediate dataframes, just to keep things tidy
 rm(allfish_fish, allfish_anems, allfish_dives) 
@@ -414,6 +427,11 @@ gps_Info <- gps_db %>%
          gps_hour = hour(time),
          gps_min = minute(time),
          gps_sec = second(time))
+
+
+##### Add sites to fish in the parents file - reads in as 1752, this makes it 1768 - not sure why? Looks like a few fish are recoreded at two sites, accounts for at least some of that (like 1103)
+all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
+  distinct(.keep_all = TRUE)
 
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
