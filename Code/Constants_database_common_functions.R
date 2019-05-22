@@ -26,8 +26,13 @@ source(here::here("Code", "Pull_data_from_database.R"))
 
 #################### Data from other analyses: ####################
 
-# Center of sites (eyeballed from QGIS by KC)
-site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_centroids.csv"), header = TRUE)
+##### Center of sites (eyeballed from QGIS by KC)
+site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_centroids.csv"), header = TRUE, stringsAsFactors = FALSE)
+
+# Edit site names to match the ones I use (add spaces in N. Magbangon and S. Magbangon)
+site_centers$site[which(site_centers$site == "N.Magbangon")] = "N. Magbangon"
+site_centers$site[which(site_centers$site == "S.Magbangon")] = "S. Magbangon"
+
 
 # Should I make either prob r or site_areas calcs as part of this repo rather than sourcing from KC?
 # Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
@@ -68,7 +73,7 @@ k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k
 #
 
 # Load in all parents in the parentage file
-all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
+#all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
 
 # # Load parentage matches - waiting to update this
 # #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
