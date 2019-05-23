@@ -73,7 +73,7 @@ k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k
 #
 
 # Load in all parents in the parentage file
-#all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
+all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
 
 # # Load parentage matches - waiting to update this
 # #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
@@ -435,7 +435,9 @@ gps_Info <- gps_db %>%
 
 
 ##### Add sites to fish in the parents file - reads in as 1752, this makes it 1768 - not sure why? Looks like a few fish are recoreded at two sites, accounts for at least some of that (like 1103)
-all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
+# all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
+#   distinct(.keep_all = TRUE)
+all_parents <- left_join(all_parents, allfish_caught %>% select(sample_id, site), by="sample_id") %>%
   distinct(.keep_all = TRUE)
 
 #################### Save files ####################

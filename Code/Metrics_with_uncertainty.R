@@ -18,6 +18,7 @@ library(gridExtra)
 
 ##### Load files from other scripts within this repository or source those scripts (below, commented out)
 
+## NEED TO THINK OF A BETTER WAY THAN HAVING ALL OF THESE FILES SOURCE THE Common constants one - IF THEY EDIT OUTPUT FROM THERE, COULD GET OVERWRITTEN EACH TIME ONE OF THESE OUTPUTS IS SOURCED!
 # Load file with proportion habitat sampled estimates
 load(file = here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # has total anems at each site and proportion habitat sampled at each site in each year
 load(file = here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))  # has total area sampled across time (for egg-recruit survival estimate)
@@ -519,16 +520,10 @@ n_parents_parentage <- sum(all_parents_site$nparents_olddata)
 n_parents_somesites <- sum((all_parents_site %>% filter(site %in% sites_for_total_areas))$nparents_olddata)   # Just for some sites...
 
 # Total dispersal kernel area (total parents*2 - total area dispersing north of site is 1 and south is 1 for each parent)
-total_parent_kernel_area = n_parents_somesites*2
+total_parent_kernel_area = n_parents_parentage*2
 
-# Find northern-most edge and southern-most edge
-northern_edge_lat <- (site_width_info %>% filter(site == "Palanas", anem_loc == "north"))$lat
-northern_edge_lon <- (site_width_info %>% filter(site == "Palanas", anem_loc == "north"))$lon
-southern_edge_lat <- (site_width_info %>% filter(site == "Sitio Baybayon", anem_loc == "south"))$lat
-southern_edge_lon <- (site_width_info %>% filter(site == "Sitio Baybayon", anem_loc == "south"))$lon
-
-# Join up anem info with parents
-all_parents_latlon <- left_join(all_parents_site, site_width_info %>% filter(anem_loc == "mid") %>% select(site, site_geo_order, lat, lon), by = "site")
+# Add in site info
+all_parents_site <- left_join(all_parents_site, site_width_info %>% select(site, site_geo_order, dist_to_N_edge_km, dist_to_S_edge_km), by = "site")
 
 # Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
 disp_allyears_d <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
@@ -537,44 +532,26 @@ disp_allyears_d <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in
   return(disp)
 }
 
-# Find distance to edges (should move this into Site widths and distances script)
-# For now, proceeding just with sites with all the coords - figure out a better way to get coords for center of other sites...
-all_parents_latlon <- all_parents_latlon %>% 
-  filter(!is.na(lon) & !is.na(lat)) %>%
-  mutate(dist_to_N_edge_m = NA,
-         dist_to_S_edge_m = NA,
-         dist_to_N_edge_km = NA,
-         dist_to_S_edge_km = NA,
-         disp_area_N_within_sites = NA,
+# Find area within sampling area to the north and south of each site
+all_parents_site <- all_parents_site %>%
+  mutate(disp_area_N_within_sites = NA,
          disp_area_S_within_sites = NA)
 
-for(i in 1:length(all_parents_latlon$site)) {
-  all_parents_latlon$dist_to_N_edge_m[i] = distHaversine(c(all_parents_latlon$lon[i], all_parents_latlon$lat[i]),
-                                                       c(northern_edge_lon, northern_edge_lat))
-  all_parents_latlon$dist_to_S_edge_m[i] = distHaversine(c(all_parents_latlon$lon[i], all_parents_latlon$lat[i]),
-                                                       c(southern_edge_lon, southern_edge_lat))
-  all_parents_latlon$dist_to_N_edge_km[i] = all_parents_latlon$dist_to_N_edge_m[i]/1000
-  all_parents_latlon$dist_to_S_edge_km[i] = all_parents_latlon$dist_to_S_edge_m[i]/1000
-  all_parents_latlon$disp_area_N_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_latlon$dist_to_N_edge_km[i])$value
-  all_parents_latlon$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_latlon$dist_to_S_edge_km[i])$value
+for(i in 1:length(all_parents_site$site)) {
+  all_parents_site$disp_area_N_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_N_edge_km[i])$value
+  all_parents_site$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_S_edge_km[i])$value
 }
 
 # Find proportion of total area under dispersal kernel (where total area to INF is 2 - 1 for each side) covered within sample sites
-all_parents_latlon <- all_parents_latlon %>%
+all_parents_site <- all_parents_site %>%
   mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
          prop_disp_area_within_sites = total_disp_area_within_sites/2,
          total_parent_area_sampled = total_disp_area_within_sites*nparents)
-all_parents_latlon_summarized <- all_parents_latlon %>%
+
+all_parents_site_summarized <- all_parents_site %>%
   summarize(total_parent_kernel_area = sum(nparents)*2,
             sampled_parent_kernel_area = sum(total_parent_area_sampled),
             prop_parent_kernel_area_sampled = sampled_parent_kernel_area/total_parent_kernel_area)
-
-ggplot(data = all_parents_latlon, aes(x = reorder(site, site_geo_order), y = prop_disp_area_within_sites)) + # the geo orders are all off here...
-  geom_bar(position = "dodge", stat = "identity") +
-  geom_hline(yintercept = 2) +
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-
     
 #################### Find metrics for "best estimate" of the various parameters: ####################
 # Put best-estimate parameters into one dataframe
@@ -1716,6 +1693,17 @@ ggplot(data = NP_uncert %>% filter(uncertainty_type != "assigned offspring and p
   xlab('NP') + ggtitle('Uncertainty in network persistence') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+dev.off()
+
+
+##### Proportion of total kernel area from each site covered by our sampling
+pdf(file = here('Plots/FigureDrafts', 'Prop_of_kernel_area_sampled_by_site.pdf'))
+ggplot(data = all_parents_site, aes(x = reorder(site, site_geo_order), y = prop_disp_area_within_sites)) + # the geo orders are all off here...
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  xlab("site") + ylab("proportion kernel within sampled area") + ggtitle("Proportion of kernel area sampled") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
 ############# STOPPED EDITING HERE 
