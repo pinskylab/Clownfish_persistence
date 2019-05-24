@@ -3,10 +3,17 @@
 #################### Set-up: ####################
 library(grid)
 library(gridExtra)
-library(leaflet)
+#library(leaflet)
 library(maps)
+library(mapdata)
 library(mapview)
+library(rgdal)
+#library(tmap)
+library(maptools)
+library(raster)
+library(here)
 
+#load(here::here('Data', 'Leyte.7z'))
 
 # devtools::install_github('pinskylab/clownfish')  # try installing clownfish package...
 # library(clownfish)
@@ -14,6 +21,11 @@ library(mapview)
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
 load(here::here('Data','AnemAllInfowLatLon.RData'))  # produces a file called 'anem.Processed' - not sure if the lat/lons are right...
+
+#load(here::here('Data/Leyte', 'Leyte.shp'))  # 'Administrative Boundaries' data set, downloaded from http://philgis.org/province-page/leyte on 3/11/19, projection info: WGS 1984, Lat/Long
+
+Leyte_shape <- readOGR(here::here('Data/Leyte'), 'Leyte')
+Philippines_regions <- readOGR(here::here('Data/Regions'), 'Regions')  # check if it already knows the projection, otherwise figure out how to tell it
 
 #################### Functions: ####################
 # # Function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function) rather than anem_table_id
@@ -89,16 +101,57 @@ site_edge_anems_for_map <- site_edge_anems_for_map %>%
   filter(anem_loc != 'mid')
 
 # And map!
-leaflet((data=site_edge_anems_for_map %>% filter(anem_loc == 'north'))) %>% 
-  addTiles() %>%
-  #addMarkers() %>%
-  addRectangles(lng1 = (site_edge_anems_for_map %>% filter(anem_loc == 'north'))$lon, 
-                lat1 = (site_edge_anems_for_map %>% filter(anem_loc == 'north'))$lat,
-                lng2 = (site_edge_anems_for_map %>% filter(anem_loc == 'south'))$lon,
-                lat2 = (site_edge_anems_for_map %>% filter(anem_loc == 'south'))$lat,
-                label = (site_edge_anems_for_map %>% filter(anem_loc == 'north'))$site)
+# Trim Philippines regions to just Leyte (or something) - this doesn't work, maybe I need Philippines_regions to be a raster or something?
+ext <- extent(10,11,123,127)
+cropped_region <- crop(Philippines_regions, ext)
 
-addRectangles(
-  lng1=-118.456554, lat1=34.078039,
-  lng2=-118.436383, lat2=34.062717,
-  fillColor = "transparent"
+plot(Leyte_shape)
+
+plot(Philippines_regions)
+
+plot(cropped_region)
+
+
+points(x in lon, y in lat, color, pch)
+
+
+map('world', region = c('Philippines', 'Malaysia', 'China', 'Indonesia', 'Thailand', 'Cambodia', 'Laos'))
+
+
+map("world", col="grey70", fill=T, border="white", lwd=0.3, xlim=c(90,140), ylim=c(-10,35))
+map.cities(x=world.cities, country = "Philippines", capitals=1)
+
+# not working, plus way too big of a map for that for now...
+points(x=site_edge_anems_for_map$lon, y=site_edge_anems_for_map$lat)
+
+
+
+map.cities(x=world.cities, country = c("Philippines", "Thailand", "Indonesia"), capitals=1)
+                                       
+                                       
+                                       ("cities", cities = c("Manila", "Jakarta", "Bangkok"))
+
+# Plot world countries - from Chris Fig 6
+map("world", col="grey85", fill=T, border="white", lwd=0.3,
+    xlim=xlim, ylim=ylim, add=T)
+
+# And map!
+#map('world', regions = 'Philippines:Leyte')
+
+
+
+
+# # And map!
+# leaflet((data=site_edge_anems_for_map %>% filter(anem_loc == 'north'))) %>% 
+#   addTiles() %>%
+#   #addMarkers() %>%
+#   addRectangles(lng1 = (site_edge_anems_for_map %>% filter(anem_loc == 'north'))$lon, 
+#                 lat1 = (site_edge_anems_for_map %>% filter(anem_loc == 'north'))$lat,
+#                 lng2 = (site_edge_anems_for_map %>% filter(anem_loc == 'south'))$lon,
+#                 lat2 = (site_edge_anems_for_map %>% filter(anem_loc == 'south'))$lat,
+#                 label = (site_edge_anems_for_map %>% filter(anem_loc == 'north'))$site)
+# 
+# addRectangles(
+#   lng1=-118.456554, lat1=34.078039,
+#   lng2=-118.436383, lat2=34.062717,
+#   fillColor = "transparent"
