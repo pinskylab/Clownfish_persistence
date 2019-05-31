@@ -1,24 +1,384 @@
 # Make a site map
 
 #################### Set-up: ####################
-library(grid)
-library(gridExtra)
+# Load relevant libraries
+#library(grid)
+#library(gridExtra)
 #library(leaflet)
-library(maps)
+#library(maps)
 library(mapdata)
-library(mapview)
+#library(mapview)
 library(rgdal)
 #library(tmap)
-library(maptools)
+#library(maptools)
+library(cowplot)
 library(raster)
+library(magick)
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
 library(here)
+
+##### Load anem lat/lons - REDO SO GET THE ANEM INFO FROM DATABASE + A SCRIPT?
+#load(here::here("Data", "AnemAllInfowLatLon2.RData"))
+#load(here::here("Data/Script_outputs", "anems_Processed.RData"))
+# source(here::here('Code', 'Constants_database_common_functions.R'))
+#data = anems.Processed2
+data_anems = as.data.frame(read.csv(here::here("Data", "GPSSurvey.anemlatlong2015-12-16.csv"), row.names=1, stringsAsFactors = FALSE))
+
+##### Load shapefiles for hulls and coast (downloaded from amphiprion, hulls created by Mario in 2016)
+# Site hulls
+patchfiles = list.files(here::here("Data/Map_data/Site_hulls/"), pattern = ".shp")  # get list of files with site hulls
+patches = vector("list", length(patchfiles))
+for(i in 1:length(patches)){
+  temp = readOGR(paste(here::here("Data/Map_data/Site_hulls/"), patchfiles[i], sep=''))
+  patches[[i]] = spTransform(temp, CRS('+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs'))
+  #patches[[i]] = temp
+}
+
+# Coastline
+coast = readOGR(here::here("Data/Map_data/", "PHL_adm3_leyte_studyarea_trimcoastline.shp"))
+
+# Philippines
+# country_border = readOGR(here::here("Data/Map_data/phl_admbnda_adm0_psa_namria_itos_20180130", "phl_admbnda_adm0_psa_namria_itos_20180130.shp"))
+country = readOGR(here::here("Data/Regions/", "Regions.shp"))
+g = map("world", fill = TRUE, col = "grey")
+
+
+##### Set constants
+kmlen = 1/111.12 # length of a km, in °N
+
+#################### Make sub-plots and overall plot: ####################
+# Limits for maps
+xlims = c(124.64, 124.80) # main map
+ylims = c(10.63, 10.87)
+xlims_Alb = c(124.708, 124.718) # Albuera patch box on main map
+ylims_Alb = c(10.867, 10.875)
+#xlims_Mar = c(124.78, 124.79) # Marcos patch box on main map
+#ylims_Mar = c(10.752, 10.762)
+
+# Set colors 
+paste(sort(unique(data$Spp)), collapse=', ')
+colslist = brewer.pal(3, name="Dark2")
+colsnames = c('Open anemone', 'Anemone with A. clarkii')
+cols = colslist[c(1,2,3,3,3,3,3,3)][as.numeric(data$Spp)] # treat all other species as 'other'
+patchfadecol = rgb(t(col2rgb(colslist[3])), maxColorValue=255, alpha=100)
+inds = data$Spp %in% c('', 'APCL')
+
+insetext = c(118,127,6,18) # extent of inset map
+
+
+# Philippines map inset subplot
+g <- plot(country, col = "grey", border = NA)
+
+# Clownfish photo subplot
+photo_plot <- ggdraw() +
+  draw_image(here::here("Data", "Fish.jpg"), scale=0.9)
+
+g <- ggplot(data = country, aes(x = long, y = lat, group = group)) +
+  geom_polygon(colour = "grey", fill = "grey")
+
+
+test <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
+  geom_polygon(colour = "grey", fill = "grey") +
+  geom_polygon(data = patches[[1]], aes(x = long, y = lat, group = group), colour = "blue", fill = "blue")
+
+
+geom_polygon(data = borders, aes(x = long, y = lat, group = group), colour = "black", fill = "white")
+# Map of anemones
+xlims = c(124.64, 124.80) # main map
+ylims = c(10.63, 10.87)
+xlims2 = c(124.775, 124.778) # Punta Baybayon
+ylims2 = c(10.633, 10.63555)
+xlims3 = c(124.78, 124.79) # Marcos
+ylims3 = c(10.752, 10.762)
+xlims4 = c(124.705, 124.73) # Albuera
+ylims4 = c(10.85, 10.876)
+
+
+
+# set up colors
+paste(sort(unique(data$Spp)), collapse=', ')
+colslist = brewer.pal(3, name="Dark2")
+colsnames = c('Open anemone', 'Anemone with A. clarkii')
+cols = colslist[c(1,2,3,3,3,3,3,3)][as.numeric(data$Spp)] # treat all other species as 'other'
+patchfadecol = rgb(t(col2rgb(colslist[3])), maxColorValue=255, alpha=100)
+inds = data$Spp %in% c('', 'APCL')
+
+data_anems <- data_anems %>%
+  filter(Name %in% c("Palanas", "Wangag")) %>%
+  filter(Spp %in% c("","APCL")) %>%
+  mutate(species = case_when(Spp == "" ~ "empty",
+                               Spp == "APCL" ~ "APCL")) %>%
+  mutate(group = 9)
+
+# get google map
+g <- gmap(insetext, type='roadmap', lonlat=TRUE, scale=2)
+
+# map	
+quartz(height=5, width=6.5)
+# pdf(height=5, width=6, file='Figures/anem_map2.pdf')
+par(mai=c(0.4,0.5,0.1, 0.2), las=1, cex.axis=0.8, mgp=c(2.5,0.5,0), tcl=-0.3)
+layout(matrix(c(1,1,1,2,3,4), nrow=3), widths=c(3,2))
+plot(0,0, xlim=xlims, ylim=ylims, xlab='', ylab='')
+#map('worldHires', 'Philippines', add=TRUE, fill=TRUE, col='grey', border=NA)
+plot(coast, col='grey', border=NA, add=TRUE)
+polygon(x=c(124.76, 124.81, 124.81), y=c(10.6, 10.65, 10.6), col='grey', border=NA) # fill in a missing corner
+#plot(patches[[1]], add = TRUE)
+for(i in 1:length(patches)) plot(patches[[i]], add=TRUE, col=colslist[3], border=colslist[3], lwd=2)
+#for(i in 1:5) plot(patches[[i]], add=TRUE, col=colslist[3], border=colslist[3], lwd=2)
+#points(data$lon, data$lat, pch=16, cex=0.4, col=cols)
+lines(x = rep(xlims[1],2), y=c(ylims[1], ylims[1]+5*kmlen), lwd=5, lend=3)
+text(labels="5 km", x=xlims[1]+0.015, y=10.65, cex=1.5)
+polygon(c(xlims2, rev(xlims2)), rep(ylims2, c(2,2)), border='red', lwd=1.5)
+polygon(c(xlims3, rev(xlims3)), rep(ylims3, c(2,2)), border='red', lwd=1.5)
+polygon(c(xlims4, rev(xlims4)), rep(ylims4, c(2,2)), border='red', lwd=1.5)
+mtext(side=1, text='Longitude (°E)', line=1.8, cex=0.8)
+mtext(side=2, text='Latitude (°N)', line=2.5, cex=0.8, las=0)
+legend('topleft', legend='Habitat patch', lwd=3, col=colslist[3], bty='n')
+
+# Albuera
+par(mai=c(0.3,0.4,0.1, 0.1), las=1)
+plot(0,0, xlim=xlims4, ylim=ylims4, xlab='', ylab='')
+for(i in 1:length(patches)) plot(patches[[i]], add=TRUE, col=patchfadecol, border=patchfadecol, lwd=7)
+points(data$lon[inds], data$lat[inds], pch=16, cex=0.8, col=cols[inds])
+#map('worldHires', 'Philippines', add=TRUE, fill=TRUE, col='grey',border=NA)
+plot(coast, col='grey', border=NA, add=TRUE)
+lines(x = rep(xlims4[1],2), y=rep(10.85,2)+c(0,0.5*kmlen), lwd=3, lend=3)
+text(labels="500 m", x=124.708, y=10.852, cex=1)
+
+# Marcos
+plot(0,0, xlim=xlims3, ylim=ylims3, xlab='', ylab='')
+for(i in 1:length(patches)) plot(patches[[i]], add=TRUE, col=patchfadecol, border=NA, lwd=2)
+points(data$lon[inds], data$lat[inds], pch=16, cex=0.8, col=cols[inds])
+#map('worldHires', 'Philippines', add=TRUE, fill=TRUE, col='grey',border=NA)
+plot(coast, col='grey', border=NA, add=TRUE)
+lines(x = rep(xlims3[1],2), y=rep(ylims3[1],2)+c(0,0.1*kmlen), lwd=3, lend=3)
+text(labels="100 m", x=xlims3[1]+0.001, y=ylims3[1]+0.0005, cex=1)
+legend('topleft', legend=c(colsnames, 'Habitat patch'), col=c(colslist[c(1,2)], patchfadecol), pch=c(16, 16, NA), lwd = c(NA, NA, 4), cex=1, text.font=1, bty='o', bg='white', box.col='black')
+
+# Punta
+plot(0,0, xlim=xlims2, ylim=ylims2, xlab='', ylab='')
+for(i in 1:length(patches)) plot(patches[[i]], add=TRUE, col=patchfadecol, border=NA)
+points(data$lon[inds], data$lat[inds], pch=16, cex=0.8, col=cols[inds])
+#map('worldHires', 'Philippines', add=TRUE, fill=TRUE, col='grey', border=NA)
+plot(coast, col='grey', border=NA, add=TRUE)
+lines(x = rep(124.775,2), y=rep(ylims2[1],2)+c(0,0.1*kmlen), lwd=3, lend=3)
+text(labels="100 m", x=124.7753, y=ylims2[1]+0.0005, cex=1)
+
+# inset map
+par(fig = c(0.1, 0.35, 0.35, 0.75), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE) # set inset figure extent
+plot(0,0, xlim=insetext[c(1,2)], ylim=insetext[c(3,4)], xaxt='n', yaxt='n', xlab='', ylab='')
+#plot(g, add=TRUE, interpolate=TRUE)
+#plot(g, add = TRUE)
+plot(inset_map, add=TRUE)
+polygon(x=rep(xlims, c(2,2)), y=c(ylims, rev(ylims)), col=NA, border='red', lwd=2)
+
+plot(patches[[1]], col ="blue")
+
+#################### Trying one with ggplot ####################
+data = read.csv(here::here("Data", "GPSSurvey.anemlatlong2015-12-16.csv"), row.names=1)
+
+##### Load shapefiles for hulls and coast (downloaded from amphiprion, hulls created by Mario in 2016)
+# Site hulls
+patchfiles = list.files(here::here("Data/Map_data/Site_hulls/"), pattern = ".shp")  # get list of files with site hulls
+patches = vector("list", length(patchfiles))
+for(i in 1:length(patches)){
+  temp = readOGR(paste(here::here("Data/Map_data/Site_hulls/"), patchfiles[i], sep=''))
+  patches[[i]] = spTransform(temp, CRS('+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs'))
+  #patches[[i]] = temp
+}
+
+# Coastline
+coast = readOGR(here::here("Data/Map_data/", "PHL_adm3_leyte_studyarea_trimcoastline.shp"))
+
+# Philippines
+# country_border = readOGR(here::here("Data/Map_data/phl_admbnda_adm0_psa_namria_itos_20180130", "phl_admbnda_adm0_psa_namria_itos_20180130.shp"))
+country = readOGR(here::here("Data/Regions/", "Regions.shp"))
+
+
+##### Set coordinates
+inset_point_coords <- data.frame(lat=ylims[1], long=xlims[1], group =10)
+
+# Inset map of Philippines
+inset_map <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
+  coord_fixed(xlim = c(118,127), ylim = c(6,18), 1.3) +
+  geom_polygon(colour = "black", fill = "light grey") +
+  theme(axis.title=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(), 
+        axis.line=element_blank()) +
+  geom_point(data = inset_point_coords, aes(x = long, y = lat, group=group), colour="red", cex = 3) +
+  annotate(geom = 'text', x = 120.5, y = 8.3, label = 'Philippines', cex=3) 
+
+# Site area map
+corner_coords = data.frame(long = c(124.76, 124.81, 124.81), lat = c(10.6, 10.65, 10.6), group = 5)
+km_line_coords = data.frame(long = rep(xlims[1],2), lat=c(ylims[1], ylims[1]+5*kmlen), group = 6)
+red_box_coords = data.frame(long = c(xlims_Alb[1], xlims_Alb[2], xlims_Alb[2], xlims_Alb[1]), 
+                            lat= c(ylims_Alb[1], ylims_Alb[1], ylims_Alb[2], ylims_Alb[2]), group = 7)
+hab_line_coords = data.frame(long = rep(xlims[1], 2), lat = c(10.85, 10.90), group = 8)
+  
+site_area <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
+  coord_fixed(xlim = xlims, ylim = ylims, 1.3) +
+  geom_polygon(colour = "grey", fill = "grey") +
+  geom_polygon(data = corner_coords, aes(x = long, y = lat, group = group), fill = "grey", colour = "grey") +
+  geom_polygon(data = patches[[1]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[2]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[3]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[4]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[5]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[6]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[7]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[8]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[9]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[10]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[11]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[12]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[13]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[14]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[15]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_polygon(data = patches[[16]], aes(x = long, y = lat, group = group), fill = "blue", colour = "blue") +
+  geom_line(data = km_line_coords, aes(x = long, y = lat, group = group), color = "black", lwd = 2) +
+  annotate(geom = 'text', x = xlims[1]+0.025, y = 10.65, label = '5 km', size = 4) +
+  xlab("Longitude (°E)") + ylab('Latitude (°N)') +
+  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
+  geom_line(data = hab_line_coords, aes(x = long, y = lat, group = group), color = "blue", lwd = 2) +
+  annotate(geom = "text", x = xlims[1]+0.033, y = 10.865, label = "Habitat \n patches", size = 4)
+
+# Example habitat patch - patch 7 is Palanas, patch 16 is Wangag
+#Palanas_patch <- patchfiles[which("Palanas Hull.shp")]
+Palanas_patch <- 7
+Wangag_patch <- 16
+red_box_coords_zoomed <- data.frame(long = c(124.7085, 124.7174, 124.7174, 124.7085),
+                                    lat = c(10.867, 10.867, 10.875, 10.875),
+                                    group = 7)
+Albuera_patch <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
+  coord_fixed(xlim = xlims_Alb, ylim = ylims_Alb, 1.3) +
+  geom_polygon(color = "grey", fill = "grey") +
+  geom_polygon(data = patches[[Palanas_patch]], aes(x = long, y = lat, group = group), color = "blue", fill = "blue", alpha = 0.2) +  # Palanas
+  geom_polygon(data = patches[[Wangag_patch]], aes(x = long, y = lat, group = group), color = "blue", fill = "blue", alpha = 0.2) +  # Wangag
+  geom_polygon(data = red_box_coords_zoomed, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
+  geom_point(data = data_anems, aes(x = lon, y = lat, group = group, color = species), alpha=0.7) +
+  scale_color_manual(values = colslist[1:2]) +
+  theme(legend.position = c(0.2, 0.3)) +
+  #theme(panel.background = element_rect(colour = "red", fill = NA)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  xlab("") + ylab("")
+  
+# Clownfish picture
+photo_plot <- ggdraw() +
+  draw_image(here::here("Data", "Fish.jpg"))
+  
+
+##### Arrange all together
+site_with_inset <- ggdraw() +
+  draw_plot(site_area, 0,0,0.5,1) +
+  draw_plot(inset_map, 0.02,0.3,0.55,0.5)
+
+site_with_inset <- ggdraw() +
+  draw_plot(site_area + theme(legend.justification = "bottom"), 0,0,1,1) +
+  draw_plot(inset_map + theme(legend.justification = "top"), 0.5, 0.52, 0.5, 0.5)
+
+site_with_inset <- ggdraw(site_area) + 
+  draw_plot(inset_map + theme(legend.justification = "top"), 0.3, 0.3, 0.5, 0.5)
+
+
+ggdraw() +
+  draw_plot(plot.diamonds + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
+  draw_plot(plot.mpg + scale_color_viridis(discrete = TRUE) + 
+              theme(legend.justification = "top"), 0.5, 0.52, 0.5, 0.4) +
+  draw_plot_label(c("A", "B"), c(0, 0.5), c(1, 0.92), size = 15)
+
+right_column <- plot_grid(Albuera_patch, photo_plot, labels = c("b", "c"), ncol = 1, align = "v", rel_heights = c(1.5, 1))
+
+pdf(file=here::here("Plots/FigureDrafts", "Map_and_photo.pdf"))
+plot_grid(site_with_inset, right_column, labels = c("a", ""), ncol = 2)
+dev.off()
+
+# bottom_row <- plot_grid(plot.mpg, plot.diamonds, labels = c('B', 'C'), align = 'h', rel_widths = c(1, 1.3))
+# plot_grid(plot.iris, bottom_row, labels = c('A', ''), ncol = 1, rel_heights = c(1, 1.2))
+
+
+
+p <- qplot(1:10, 1:10)
+# draw into the top-right corner of a larger plot area
+ggdraw() + draw_plot(p, .6, .6, .4, .4)
+
+# Albuera
+par(mai=c(0.3,0.4,0.1, 0.1), las=1)
+plot(0,0, xlim=xlims4, ylim=ylims4, xlab='', ylab='')
+for(i in 1:length(patches)) plot(patches[[i]], add=TRUE, col=patchfadecol, border=patchfadecol, lwd=7)
+points(data$lon[inds], data$lat[inds], pch=16, cex=0.8, col=cols[inds])
+#map('worldHires', 'Philippines', add=TRUE, fill=TRUE, col='grey',border=NA)
+plot(coast, col='grey', border=NA, add=TRUE)
+lines(x = rep(xlims4[1],2), y=rep(10.85,2)+c(0,0.5*kmlen), lwd=3, lend=3)
+text(labels="500 m", x=124.708, y=10.852, cex=1)
+
+lines(x = rep(xlims[1],2), y=c(ylims[1], ylims[1]+5*kmlen), lwd=5, lend=3)
+text(labels="5 km", x=xlims[1]+0.015, y=10.65, cex=1.5) 
+  
+ggplot(data = patches[[1]], aes(x=long, y=lat, group=group)) +
+  geom_polygon(colour="blue", fill="blue")
+
+
+
+
+
+par(mai=c(0.4,0.5,0.1, 0.2), las=1, cex.axis=0.8, mgp=c(2.5,0.5,0), tcl=-0.3)
+layout(matrix(c(1,1,1,2,3,4), nrow=3), widths=c(3,2))
+plot(0,0, xlim=xlims, ylim=ylims, xlab='', ylab='')
+#map('worldHires', 'Philippines', add=TRUE, fill=TRUE, col='grey', border=NA)
+plot(coast, col='grey', border=NA, add=TRUE)
+polygon(x=c(124.76, 124.81, 124.81), y=c(10.6, 10.65, 10.6), col='grey', border=NA) # fill in a missing corner
+#plot(patches[[1]], add = TRUE)
+for(i in 1:length(patches)) plot(patches[[i]], add=TRUE, col=colslist[3], border=colslist[3], lwd=2)
+#for(i in 1:5) plot(patches[[i]], add=TRUE, col=colslist[3], border=colslist[3], lwd=2)
+#points(data$lon, data$lat, pch=16, cex=0.4, col=cols)
+lines(x = rep(xlims[1],2), y=c(ylims[1], ylims[1]+5*kmlen), lwd=5, lend=3)
+text(labels="5 km", x=xlims[1]+0.015, y=10.65, cex=1.5)
+polygon(c(xlims2, rev(xlims2)), rep(ylims2, c(2,2)), border='red', lwd=1.5)
+polygon(c(xlims3, rev(xlims3)), rep(ylims3, c(2,2)), border='red', lwd=1.5)
+polygon(c(xlims4, rev(xlims4)), rep(ylims4, c(2,2)), border='red', lwd=1.5)
+mtext(side=1, text='Longitude (°E)', line=1.8, cex=0.8)
+mtext(side=2, text='Latitude (°N)', line=2.5, cex=0.8, las=0)
+legend('topleft', legend='Habitat patch', lwd=3, col=colslist[3], bty='n')
+
+inset_coords <- data.frame(lat = ylims, long = xlims, group = 10)
+
+inset_coords <- data.frame(lat = xlims[1], x2 = xlims[2], y1 = ylims[1], y2 = ylims[2], group=1)
+xlims = c(124.64, 124.80) # main map
+ylims = c(10.63, 10.87)
+
+eom_rect(data=d, mapping=aes(xmin=x1, xmax=x2, ymin=y1, ymax=y2, fill=t), color="black", alpha=0.5)
+
+pdf(file=here::here('Manuscript','Fig1.pdf')) 
+ggplot(data = land, aes(x = long, y = lat, group = group)) + 
+  coord_fixed(xlim = c(-125,-115), ylim = c(33.5, 42), 1.3) +
+  geom_polygon(colour = "black", fill = "white") +
+  #geom_polygon(data = land, aes(x = long, y = lat, group = group), colour = "black", fill = "white") +
+  geom_polygon(data = borders, aes(x = long, y = lat, group = group), colour = "black", fill = "white") +
+  geom_line(data = rivers_3, aes(x = long, y = lat, group = group), colour = "gray") +
+  geom_line(data = rivers_2, aes(x = long, y = lat, group = group), colour = "gray") +
+  geom_line(data = rivers, aes(x = long, y = lat, group = group), colour = "gray") +
+  geom_point(data = hatch_map_df %>% filter(group %in% c(11,12,13,14,15,16,17)), mapping = aes(color = Hatchery, shape = Hatchery), stroke = 2.5, size = 4) +
+  scale_shape_manual(values = hatchery_shapes) +
+  scale_color_manual(values = hatchery_palette) +
+  geom_point(data = hatch_map_df %>% filter(group %in% c(21, 22)), fill = 'black', size = 3) +
+  annotate(geom = 'text', x = -123.7034, y = 37.6989, label = 'San \n Francisco', size = 4) +
+  annotate(geom = 'text', x = -116.6010, y = 33.9734, label = 'Los Angeles', size = 4) +
+  xlab("longitude") + ylab("latitude") +
+  #geom_polygon(data = ca_df, aes(x = long, y = lat, group = group), colour = "black", fill = "white") +
+  theme_bw() +
+  theme(text = element_text(size=15))
+dev.off()
+
 
 #load(here::here('Data', 'Leyte.7z'))
 
 # devtools::install_github('pinskylab/clownfish')  # try installing clownfish package...
 # library(clownfish)
 
-source(here::here('Code', 'Constants_database_common_functions.R'))
+
 
 load(here::here('Data','AnemAllInfowLatLon.RData'))  # produces a file called 'anem.Processed' - not sure if the lat/lons are right...
 
@@ -63,6 +423,14 @@ Philippines_regions <- readOGR(here::here('Data/Regions'), 'Regions')  # check i
 #   return(anem)
 # 
 # }
+
+
+
+
+
+
+
+
 
 #################### Running things: ####################
 ##### Get anem lat/lon info for edge anems at each site
