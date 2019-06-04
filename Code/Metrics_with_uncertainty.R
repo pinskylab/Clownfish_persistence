@@ -163,10 +163,10 @@ scaleTaggedRecruits = function(offspring_assigned_to_parents, total_prop_hab_sam
   return(recruited_tagged_offspring_total)
 }
 
-# # Find recruits per egg (using Johnson et al. like method)
-# findRecruitsPerTaggedEgg = function(tagged_recruits, tagged_eggs) {
-#   tagged_recruits/tagged_eggs
-# }
+# Find recruits per egg (using Johnson et al. like method)
+findRecruitsPerTaggedEgg = function(tagged_recruits, tagged_eggs) {
+  tagged_recruits/tagged_eggs
+}
 
 # Find LEP (SHOULD CHECK, UPDATE THIS!)
 findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, eggs_per_clutch, clutches_per_year, 
@@ -507,6 +507,9 @@ tagged_eggs_3.5cm <- n_parents_parentage*LEP_3.5cm
 # How many offspring did we find from those tagged parents?
 n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring identified via parentage (for 2012-2015) - make sure not double-counting those ided by both mom and dad
 
+# Find the total prop habitat sampled over time
+total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r)  # scale up by proportion of habitat sampled and probability of catching a fish
+
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
 recruited_tagged_offspring_oursites <- n_offspring_parentage/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 
@@ -548,7 +551,7 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
-         total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est) 
+         total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est) 
 
 # # "offspring" are 3.5-6.0, what if start at different places?
 # # start at 3.5cm
@@ -704,7 +707,7 @@ param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in growth only (both Linf and k)
@@ -716,7 +719,7 @@ param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in survival only
@@ -728,7 +731,7 @@ param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_set,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in breeding size only
@@ -740,7 +743,7 @@ param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_set, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in offspring assigned to parents (affects recruits-per-egg)
@@ -752,7 +755,7 @@ param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage) 
 
 # Uncertainty in probability catching a fish (affects recruits-per-egg)
@@ -764,7 +767,7 @@ param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in both offspring assigned to parents and probability catching a fish (affects recruits-per-egg)
@@ -776,7 +779,7 @@ param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage) 
 
 # Uncertainty in dispersal only
@@ -788,7 +791,7 @@ param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
 
 # Uncertainty in all parameters included for now 
@@ -800,7 +803,7 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage)  
 
 # # Without uncertainty in survival, growth for now
@@ -1141,17 +1144,24 @@ dev.off()
 
 ##### Metrics: Self persistence by site
 pdf(file = here::here("Plots/FigureDrafts", "SP_hists_by_site_noSLSTCP.pdf"))
-ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %in% sites_for_total_areas), aes(x=SP)) +
-  geom_histogram(binwidth=0.001, color='gray', fill='gray') +
-  #geom_histogram(binwidth=0.0005, color='gray', fill='gray') +
-  #geom_vline(data=(SP_best_est %>% filter(recruit_size == "mean offspring") %>% filter(site %in% sites_for_total_areas)), 
-  #           aes(xintercept=SP_value), color='black') +   
-  geom_vline(data = SP_best_est, aes(xintercept = SP_value), color = "black") +
-  facet_wrap(~reorder(site, org_geo_order)) +
-  xlab('SP') + ggtitle('Self-persistence by site') +
+ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %in% sites_for_total_areas), aes(x=reorder(site, org_geo_order), y=SP)) +
+  geom_violin(fill="grey") +
+  geom_point(data = SP_best_est %>% filter(site %in% sites_for_total_areas), aes(x = site, y = SP_value), color = "black") +
+  xlab("Site") + ylab("SP") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
+
+# ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %in% sites_for_total_areas), aes(x=SP)) +
+#   geom_histogram(binwidth=0.001, color='gray', fill='gray') +
+#   #geom_histogram(binwidth=0.0005, color='gray', fill='gray') +
+#   #geom_vline(data=(SP_best_est %>% filter(recruit_size == "mean offspring") %>% filter(site %in% sites_for_total_areas)), 
+#   #           aes(xintercept=SP_value), color='black') +   
+#   geom_vline(data = SP_best_est, aes(xintercept = SP_value), color = "black") +
+#   facet_wrap(~reorder(site, org_geo_order)) +
+#   xlab('SP') + ggtitle('Self-persistence by site') +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
 ##### Inputs 
 # Start-recruit size

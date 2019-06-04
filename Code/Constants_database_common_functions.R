@@ -433,6 +433,16 @@ gps_Info <- gps_db %>%
          gps_min = minute(time),
          gps_sec = second(time))
 
+# Attach lat/lons to anems - takes a long time to run...
+# anems_Processed_latlon <- anems_Processed %>%
+#   mutate(lat = NA,
+#          lon = NA)
+# 
+# for(i in 1:length(anems_Processed_latlon$anem_table_id)) {
+#   output = anemid_latlong(anems_Processed_latlon$anem_table_id[i], anems_Processed, gps_Info)
+#   anems_Processed_latlon$lat[i] = output$lat
+#   anems_Processed_latlon$lon[i] = output$lon
+# }
 
 ##### Add sites to fish in the parents file - reads in as 1752, this makes it 1768 - not sure why? Looks like a few fish are recoreded at two sites, accounts for at least some of that (like 1103)
 # all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
@@ -442,6 +452,7 @@ all_parents <- left_join(all_parents, allfish_caught %>% select(sample_id, site)
 
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
+save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))
 
 
 
