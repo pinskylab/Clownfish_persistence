@@ -124,12 +124,16 @@ anemOcc_2017_nonAPCLclownperc = sum((anemOcc_2017$anems_Cspp %>% filter(Var1 %in
 anemOcc_2017_nonAPCLperc = sum((anemOcc_2017$anems_Cspp %>% filter(Var1 %in% non_APCL_clown_and_UNOC))$Perc)
 anemOcc_2017_APCLperc = sum((anemOcc_2017$anems_Cspp %>% filter(Var1 %in% APCL_clown))$Perc)
 
-anems_APCL_and_not <- data.frame(year = c(2015, 2017), 
+anems_APCL_and_not_byyear <- data.frame(year = c(2015, 2017), 
                                      perc_APCL = c(anemOcc_2015_W$anems_Cspp$Perc[1], anemOcc_2017_APCLperc), 
                                      perc_non_APCL_clown = c(0, anemOcc_2017_nonAPCLclownperc),
                                      perc_UNOC = c(as.numeric((anemOcc_2015_W$anems_Cspp %>% filter(Var1 == "UNOC"))$Perc), as.numeric((anemOcc_2017$anems_Cspp %>% filter(Var1 == "UNOC"))$Perc)),
                                      perc_non_APCL_clown_or_UNOC = c(0, anemOcc_2017_nonAPCLperc))
 
+# currently averaging between 2015W and 2017 values (but 2015W ones have some issues b/c not seeing any spp other than APCL in the data but did before...)
+anems_APCL_and_not <- data.frame(perc_hab = c("APCL", "UNOC"), 
+                                 value = c(mean(anems_APCL_and_not_byyear$perc_APCL),
+                                           mean(anems_APCL_and_not_byyear$perc_UNOC)))
 
 #################### Save output: ####################
 saveRDS(anems_APCL_and_not, here::here("Data/Script_outputs", "anems_APCL_and_not.RData"))

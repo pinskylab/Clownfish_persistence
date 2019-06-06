@@ -31,6 +31,11 @@ load(file = here::here("Data/Script_outputs", "site_width_info.RData"))
 load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
 # source(here::here("Code", "Site_widths_and_distances.R"))
 
+# Load density dependence estimates
+anems_APCL_and_not = readRDS(file=here::here("Data/Script_outputs", "anems_APCL_and_not.RData"))
+perc_APCL_val = (anems_APCL_and_not %>% filter(perc_hab == "APCL"))$value
+perc_UNOC_val = (anems_APCL_and_not %>% filter(perc_hab == "UNOC"))$value
+
 # Load simple VBL growth analysis
 load(file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
 load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # all recap pairs a year apart, for plotting purposes
@@ -163,6 +168,12 @@ scaleTaggedRecruits = function(offspring_assigned_to_parents, total_prop_hab_sam
   return(recruited_tagged_offspring_total)
 }
 
+# Find scaled number of tagged recruits by open habitat, density dependence
+scaleTaggedRecruitsDD = function(recruited_tagged_offspring, perc_UNOC, perc_APCL) {
+  recruited_tagged_offspring_total_DD = ((perc_APCL+perc_UNOC)/perc_UNOC)*recruited_tagged_offspring  # scale as if currently-occupied APCL habitat is open
+  return(recruited_tagged_offspring_total_DD)
+}
+
 # Find recruits per egg (using Johnson et al. like method)
 findRecruitsPerTaggedEgg = function(tagged_recruits, tagged_eggs) {
   tagged_recruits/tagged_eggs
@@ -288,8 +299,13 @@ calcMetrics <- function(param_set, sites_and_dists, sites) {
                         param_set$breeding_size, 6.0, param_set$start_recruit_sd, 
                         param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
   tagged_eggs_val = param_set$n_parents*LEP_parents
+  if(param_set$DD == "TRUE"){
+    tagged_recruits_val_scaled = scaleTaggedRecruitsDD(tagged_recruits_val, param_set$perc_UNOC, param_set$perc_APCL)
+  } else {
+    tagged_recruits_val_scaled = tagged_recruits_val
+  }
   #recruits_per_egg = findRecruitsPerTaggedEgg(tagged_recruits_val, tagged_eggs_val)
-  recruits_per_egg = tagged_recruits_val/tagged_eggs_val
+  recruits_per_egg = tagged_recruits_val_scaled/tagged_eggs_val
   
   # # Find egg-recruit survival (recruits/egg) - RIGHT NOW, USING JOHNSON-LIKE ESTIMATE BUT COULD MAKE THIS A DISTRIBUTION TOO
   # recruits_per_egg = param_set$recruits_per_egg
@@ -457,6 +473,8 @@ parentage_trios <- parentage_trios %>%
 parentage_matches_raw <- rbind(parentage_dads, parentage_moms, parentage_trios)
 
 ##### How much of the dispersal kernel area from each site did we actually sample? (So can scale up "tagged" recruits found to account for areas they might have gone that weren't in our sites)
+n_parents_parentage = parents_parentage_file
+
 # Find the number of parents at each site (eventually, this parent file pull will go in Constants_database_common_functions). Just putting it here for now b/c going to use original 913, with same distribution as current parents
 all_parents_site <- all_parents %>%
   group_by(site) %>%
@@ -551,7 +569,21 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
-         total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est) 
+         total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         perc_APCL = NA, perc_UNOC = NA, DD = FALSE) 
+
+# with DD scaling
+param_best_est_mean_collected_offspring_DD <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, DD = TRUE) 
 
 # # "offspring" are 3.5-6.0, what if start at different places?
 # # start at 3.5cm
@@ -596,11 +628,18 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
 # best_est_metrics_4.75cm <- calcMetrics(param_best_est_4.75, site_dist_info, site_vec_order$site_name)
 # best_est_metrics_6.0cm <- calcMetrics(param_best_est_6.0, site_dist_info, site_vec_order$site_name)
 best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name)
+best_est_metrics_mean_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring_DD, site_dist_info, site_vec_order$site_name)
 
 LEP_best_est <- best_est_metrics_mean_offspring$LEP
 LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R
 NP_best_est <- best_est_metrics_mean_offspring$NP
 SP_best_est <- best_est_metrics_mean_offspring$SP
+
+LEP_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP
+LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R
+NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
+SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
+
 
 # # Save as separate items, for plotting ease
 # LEP_best_est <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
@@ -697,7 +736,7 @@ recruits_per_egg_uncertainty <- data.frame(recruits_per_egg = c(recruits_per_egg
 # recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
 
 ##### Do runs with uncertainty
-### Make parameter set with different kinds of uncertainty included
+### Make parameter set with different kinds of uncertainty included 
 # Uncertainty in start recruit size only
 param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
