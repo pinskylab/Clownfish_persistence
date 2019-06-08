@@ -55,7 +55,7 @@ theta_2014 = 2
 k_2015 = -2.73
 theta_2015 = 2
 
-k_connectivity_values <- as.vector(readRDS(file=here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+k_connectivity_values <- as.vector(readRDS(file=here::here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
 
 # COMMENTING OUT FOR NOW UNTIL FIGURE OUT HOW TO SOURCE BETTER, WHILE WORKING ON SCALING UP DISPERSAL CLOUD
 # # Load dispersal kernel fits
@@ -79,9 +79,9 @@ all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katca
 # #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
 
 # Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
-parentage_moms <- read.csv(file=here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
-parentage_dads <- read.csv(file=here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
-parentage_trios <- read.csv(file=here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
+parentage_moms <- read.csv(file=here::here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
+parentage_dads <- read.csv(file=here::here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
+parentage_trios <- read.csv(file=here::here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
 
 # number of parents in parent file
 parents_2012to2015 = 913  # number of parents in parentage file KC is running for 2012-2015
@@ -95,7 +95,7 @@ years_parentage <- c(2012, 2013, 2014, 2015)  # not all field seasons included i
 
 ##### Fecundity info from Adam
 # Size-fecundity model
-load(file=here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA
+load(file=here::here('Data', 'loglogFecunditySizeModel.RData'))  # size-fecundity output for best-fit model from Adam, called length_count8llEA
 
 # Raw egg counts from photos
 egg_counts_AY_data <- c(479, 590, 586, 305, 679, 683, 387, 720, 427, 688, 169, 655, 414, 352, 1102, 265, 1886, 904,
@@ -265,9 +265,23 @@ tag_sample_years = c(2015,2016,2017,2018)
 # months by season
 winter_months <- c(1,2)  # to pull out winter 2015 surveys - check that they didn't go into March too
 spring_months <- c(3,4,5,6,7,8)  # to pull out non-winter 2015 surveys
+#all_months <- c(1,2,3,4,5,6,7,8,9,10,11,12)  # for use in anemone occupancy function
 
 # dive types where clownfish were sampled (check this with Michelle and Malin)
-clown_sample_dive_types <- c("0","A","C","D","E","F","M")  # everything but R
+clown_sample_dive_types <- c("0","A","C","D","E","F","M")  # everything but R (note to self, probably not true, depending what I mean by "sampled" - might just be C,D,E,(A?))
+#anem_occ_dives <- c("A","C","D","E","F","M","R","0")  # use all dive types for now (think through this more)
+
+# #
+# # Dive types
+# months_all <- c(1,2,3,4,5,6,7,8,9,10,11,12)
+# dives_all <- c("A","C","D","E","F","M","R","0") 
+# dives_no0 <- c("A","C","D","E","F","M","R") 
+# dives_no0orR <-  c("A","C","D","E","F","M") 
+# #A=anemone survey dive, C=clownfish collection dive, D=clownfish collection dive with transet (2012), E=clownfish collection with transect and mapping fish survey (2012), 
+# #F=fish transet with quadrats for coral survey, M=mapping fish survey with transect (2012), R=recapture survey, 0=none of the above
+# winter_2015 <- c(1,2) #this is the season that was focused anemone surveys
+# spring_2015 <- c(5,6)
+# dives_2015 <- c("A","C")
 
 #################### Functions: ####################
 # # Functions from Michelle's GitHub helpers script
@@ -389,6 +403,8 @@ allfish_caught <- left_join(allfish_caught, fish_obs %>% select(fish_table_id, g
 
 # remove intermediate dataframes, just to keep things tidy
 rm(allfish_fish, allfish_anems, allfish_dives) 
+
+##### Pull out all fish seen in the "clown_sightings" data base (fish_seen_db)
 
 ##### Create list of sites and the years they were sampled
 # Summarize sites sampled each year
