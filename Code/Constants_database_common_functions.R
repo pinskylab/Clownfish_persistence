@@ -2,17 +2,10 @@
 
 #################### Install packages: ####################
 library(RCurl) #allows running R scripts from GitHub - now reading dispersal kernel tables from KC parentage repository
-#library(RMySQL) #might need to load this to connect to the database?
 library(dplyr)
 library(tidyr)
 library(lubridate)
 library(stringr)
-#library(httr)
-#library(ggplot2)
-#library(RColorBrewer)
-#library(geosphere)
-#library(varhandle)
-#library(reshape)
 library(here)
 
 source(here::here("Code", "Pull_data_from_database.R"))
@@ -33,45 +26,11 @@ site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_cen
 site_centers$site[which(site_centers$site == "N.Magbangon")] = "N. Magbangon"
 site_centers$site[which(site_centers$site == "S.Magbangon")] = "S. Magbangon"
 
-# Should I make either prob r or site_areas calcs as part of this repo rather than sourcing from KC?
-
 ##### Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
             0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
             0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
-
-# Load in site_areas
-# load(file=here::here('Data','site_areas.RData'))
-
-# ###### Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
-# k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
-# theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
-# k_2012 = -2.67
-# theta_2012 = 3
-# k_2013 = -3.27
-# theta_2013 = 3
-# k_2014 = -2.38
-# theta_2014 = 2
-# k_2015 = -2.73
-# theta_2015 = 2
-# 
-# k_connectivity_values <- as.vector(readRDS(file=here::here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
-# 
-# COMMENTING OUT FOR NOW UNTIL FIGURE OUT HOW TO SOURCE BETTER, WHILE WORKING ON SCALING UP DISPERSAL CLOUD
-# # Load dispersal kernel fits
-# #all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
-# # now sourcing from the 894 loci kernel folder
-# all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/894_loci/results/best_kernel_allyears.csv?token=AB75SQBDKIHDBGZ5WUD7IX24ZOI42"), header = T)
-# 
-# 
-# # Find the minimum log-likelihood theta and the k that goes with it
-# theta_allyears <- (all_year_kernel_table %>% filter(log_like == min(log_like)))$theta
-# k_allyears <- (all_year_kernel_table %>% filter(theta == theta_allyears))$k
-# 
-# # Load bootstrapped k values (values of k within the 95% confidence interval, bootstrapped) - token is probably happening b/c the repo is private? way to pull just one file from a repo into another? Look into this...
-# k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/bootstrapped_k_all.csv?token=AB75SQC6NMJSYF5CUYTCPSK4Y6DTK"), header = T)
-#
-
+# Should I make either prob r or site_areas calcs as part of this repo rather than sourcing from KC?
 
 ###### Dispersal kernel and parentage files
 # Years included in parentage analyses
@@ -79,59 +38,24 @@ years_parentage <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)
 
 # Kernel summary - kernel fits, n_offspring_genotyped, n_matched
 kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T, stringsAsFactors = F)
-#kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T)
 
 # List of all parents put into parentage analysis (so can match to site, done below)
 all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents_corrected.txt"), header = T, stringsAsFactors = F)
-#all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents.txt"), header = T)
 
 # List of all offspring put into parentage analysis
 all_offspring <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_offspring_corrected.txt"), header = T, stringsAsFactors = F)
+
 # Vector of bootstrapped k values
 k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/bootstrapped_k_allyears.csv"), header = T, stringsAsFactors = F)
 
-# # Summary of offspring and parent inputs to parentage analysis
-# parentage_summary_file <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/input_summary.txt"), header = T)
-# 
-# # Parentage matches results
-# parentage_matches <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/results/dispersal_raw_results.txt"), header = T)
-
 # Pull out number of parents, number of offspring genotyped, number of offspring matched
 n_offspring_genotyped <- (kernel_summary %>% filter(year == "all years"))$n_offs_sampled
-#n_offspring_genotyped <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_offs_sampled)
 n_offspring_matched <- (kernel_summary %>% filter(year == "all years"))$n_parentage_matches
-#n_offspring_matched <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_parentage_matches)
 n_parents_genotyped <- length((all_parents %>% distinct(fish_indiv))$fish_indiv)
-#n_parents <- length((all_parents %>% distinct(gen_id))$gen_id)
 
 # Pull out kernel fits
 theta_allyears <- (kernel_summary %>% filter(year == "all years"))$best_theta
 k_allyears <- (kernel_summary %>% filter(year == "all years"))$best_k
-
-# n_parents <- (parentage_summary_file %>% filter(year == "all_years"))$n_parents  # number of parents total that went into parentage analysis
-# n_offspring_genotyped <- (parentage_summary_file %>% filter(year == "all_years"))$n_offspring  # number of offspring total that went into parentage analysis 
-# n_offspring_matched <- sum(parentage_matches$n_offs_matched)
-
-# # Load in all parents in the parentage file
-# all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
-# 
-# # # Load parentage matches - waiting to update this
-# # #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
-# 
-# # Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
-# parentage_moms <- read.csv(file=here::here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
-# parentage_dads <- read.csv(file=here::here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
-# parentage_trios <- read.csv(file=here::here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
-# 
-# # number of parents in parent file
-# parents_2012to2015 = 913  # number of parents in parentage file KC is running for 2012-2015
-# offspring_2012to2015 = NA  # number of offspring in parentage runs KC is running for 2012-2015
-# parents_2012to2018 = 1400 # guessing the number of parents in new parentage runs, will update evenutally
-# parents_parentage_file = parents_2012to2015  # setting a new value here so can change easily between years in included in parentage and kernel analysis without dealing with other scripts
-# offspring_parentage_file = offspring_2012to2015
-# 
-# # years included in parentage analyses
-# years_parentage <- c(2012, 2013, 2014, 2015)  # not all field seasons included in parentage and dispersal kernel analyses yet
 
 ##### Fecundity info from Adam
 # Size-fecundity model
@@ -161,26 +85,6 @@ sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 
                            'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
                            'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
                            'Visca', 'Wangag', 'S. Magbangon')  
-
-# Cabatoan <- 1
-# CaridadCemetery <- 2
-# CaridadProper <- 3
-# ElementarySchool <- 4
-# Gabas <- 5
-# Haina <- 6
-# HicgopSouth <- 7
-# N_Magbangon <- 8
-# S_Magbangon <- 9
-# Palanas <- 10
-# PorocRose <- 11
-# PorocSanFlower <- 12
-# SanAgustin <- 13
-# SitioBaybayon <- 14
-# SitioLonas <- 15
-# SitioTugas <- 16
-# TamakinDacot <- 17
-# Visca <- 18
-# Wangag <- 19
 
 # vector of sites from north to south (does not include Sitio Hicgop, which has no fish)
 site_vec_NS <- c('Palanas', 'Wangag', 'N. Magbangon', 'S. Magbangon' , 'Cabatoan',
@@ -311,25 +215,9 @@ spring_months <- c(3,4,5,6,7,8)  # to pull out non-winter 2015 surveys
 clown_sample_dive_types <- c("0","A","C","D","E","F","M")  # everything but R (note to self, probably not true, depending what I mean by "sampled" - might just be C,D,E,(A?))
 #anem_occ_dives <- c("A","C","D","E","F","M","R","0")  # use all dive types for now (think through this more)
 
-# #
-# # Dive types
-# months_all <- c(1,2,3,4,5,6,7,8,9,10,11,12)
-# dives_all <- c("A","C","D","E","F","M","R","0") 
-# dives_no0 <- c("A","C","D","E","F","M","R") 
-# dives_no0orR <-  c("A","C","D","E","F","M") 
-# #A=anemone survey dive, C=clownfish collection dive, D=clownfish collection dive with transet (2012), E=clownfish collection with transect and mapping fish survey (2012), 
-# #F=fish transet with quadrats for coral survey, M=mapping fish survey with transect (2012), R=recapture survey, 0=none of the above
-# winter_2015 <- c(1,2) #this is the season that was focused anemone surveys
-# spring_2015 <- c(5,6)
-# dives_2015 <- c("A","C")
-
 #################### Functions: ####################
-# # Functions from Michelle's GitHub helpers script
-# #field_helpers (similar idea to helpers, in field repository) - this might be the newer version of the helpers collection?
-# script <- getURL("https://raw.githubusercontent.com/pinskylab/field/master/scripts/field_helpers.R", ssl.verifypeer = FALSE)
-# eval(parse(text = script))
 
-#function to make vector of strings for column names for something done each year (like columns for sampling each year or minimum distance sampled to each anem each year, etc.)
+# Function to make vector of strings for column names for something done each year (like columns for sampling each year or minimum distance sampled to each anem each year, etc.)
 makeYearlyColNames <- function(start.Year, end.Year, descriptor) { #start.Year is first year of sampling, end.Year is final year of sampling, descriptor is string to go before year in column name (like "min_dist_" if want columns like "min_dist_2012")
   
   if (start.Year > end.Year) {
@@ -387,31 +275,6 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
 
 }
 
-# Function with myconfig file info in it, for some reason new version of R/RStudio can't find the database...
-# read_db <- function(x) {
-#   db <- src_mysql(dbname = x,
-#                   port = 3306,
-#                   create = F,
-#                   host = "amphiprion.deenr.rutgers.edu",
-#                   user = "allisond",
-#                   password = "fish!NM?717")
-#   return(db)
-# }
-
-#################### Process database info: ####################
-# ##### Rename the corrections-related columns (should be unnecessary soon)
-# anem_db <- anem_db %>%
-#   dplyr::rename(anem_correction = correction,
-#                 anem_corr_date = corr_date,
-#                 anem_corr_editor = corr_editor,
-#                 anem_corr_message = corr_message)
-# 
-# dives_db <- dives_db %>%
-#   dplyr::rename(dive_correction = correction,
-#                 dive_corr_date = corr_date,
-#                 dive_corr_editor = corr_editor,
-#                 dive_corr_message = corr_message)
-
 ##### Pull out year and month into a separate column in dives_db
 dives_db <- dives_db %>%
   mutate(year = as.integer(substring(date,1,4))) %>%
@@ -419,7 +282,6 @@ dives_db <- dives_db %>%
 
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- fish_db %>%
-  #select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, sex, size, fish_obs_time, fish_notes) %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, anem_table_id, recap, tag_id, color, sex, size, fish_obs_time, fish_notes) %>%
   filter(fish_spp == 'APCL') %>%
   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
@@ -500,11 +362,7 @@ gps_Info <- gps_db %>%
 #   anems_Processed_latlon$lon[i] = output$lon
 # }
 
-##### Add sites to fish in the parents file - stays 1752 
-# all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
-#   distinct(.keep_all = TRUE)
-# all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(sample_id, site), by="sample_id") %>%
-#   distinct(gen_id, .keep_all = TRUE)
+##### Add sites to fish in the parents file
 # Make fish_indiv a character so can mesh with allfish_caught
 all_parents <- all_parents %>%
   mutate(fish_indiv = as.character(fish_indiv))
@@ -517,230 +375,5 @@ all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(fish_ind
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
 save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))
 
-
-
-# ####### Attempts at joining together APCL seen and caught on the same anems from the two tables, for Hannah,... see Katrina's email about how she did this for Adriana
-# 
-# # joining dives + anems to all fish from clownfish database for Hannah
-# allfish_fishdb <- fish_db %>%
-#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) 
-#   
-# allfish_caught_anems <- anem_db %>%
-#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_spp, anem_dia, anem_obs_time, notes) %>%
-#   filter(anem_table_id %in% allfish_fishdb$anem_table_id)
-# 
-# allfish_caught_dives <- dives_db %>%
-#   select(dive_table_id, dive_type, date, site, gps) %>%
-#   filter(dive_table_id %in% allfish_caught_anems$dive_table_id)
-# 
-# allfish_caught <- left_join(allfish_fishdb, allfish_caught_anems, by='anem_table_id')
-# allfish_caught <- left_join(allfish_caught, allfish_caught_dives, by='dive_table_id') %>%
-#   mutate(year = substring(date,1,4))
-# 
-# # joining dives + anems to all fish from clown_sighted database for Hannah
-# allfish_seendb <- fish_seen_db %>%
-#   select(est_table_id, anem_table_id, fish_spp, size, notes, collector) 
-# 
-# allfish_seen_anems <- anem_db %>%
-#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_obs_time) %>%
-#   filter(anem_table_id %in% allfish_seendb$anem_table_id)
-# 
-# allfish_seen_dives <- dives_db %>%
-#   select(dive_table_id, dive_type, date, site, gps) %>%
-#   filter(dive_table_id %in% allfish_seen_anems$dive_table_id)
-# 
-# allfish_seen <- left_join(allfish_seendb, allfish_seen_anems, by='anem_table_id')
-# allfish_seen <- left_join(allfish_seen, allfish_seen_dives, by='dive_table_id') %>%
-#   mutate(year = substring(date,1,4))
-# 
-# 
-# # Try joining the two by anem_table_id - just presence/absence of fish spp
-# allfish_seen_fish_spp <- allfish_seen %>%
-#   dplyr::distinct(anem_table_id, fish_spp, .keep_all=TRUE)
-# 
-# allfish_caught_fish_spp <- allfish_caught %>%
-#   distinct(anem_table_id, fish_spp, .keep_all=TRUE)
-# 
-# allfish_fish_spp_PA <- rbind(allfish_seen_fish_spp %>% select(anem_table_id, fish_spp, year, site),
-#                             allfish_caught_fish_spp %>% select(anem_table_id, fish_spp, year, site))
-#       
-# 
-# # Keeping anem_ids in the mix (b/c otherwise, how can track anems through time?) - doesn't filter out any differently...
-# allfish_seen_fish_spp_anem_id <- allfish_seen %>%
-#   dplyr::distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
-# 
-# allfish_caught_fish_spp_anem_id <- allfish_caught %>%
-#   distinct(anem_table_id, fish_spp, anem_id, .keep_all=TRUE)
-# 
-# # Are there any overlapping anem_table_ids between the two dfs? (shouldn't be, right?)
-# test3 <- allfish_caught_fish_spp %>% filter(anem_table_id %in% allfish_seen_fish_spp)
-# 
-# # This data frame 
-# allfish_fish_spp_PA_distinct <- allfish_fish_spp_PA %>%
-#   distinct(anem_table_id, fish_spp, year, site)
-# 
-# allfish_fish_spp_PA %>%
-#   filter(!anem_table_id %in% allfish_fish_spp_PA_distinct$anem_table_id)
-# 
-# !where_case_travelled_1 %in%
-# 
-# test2 <- as.data.frame(table(allfish_fish_spp_PA$anem_table_id))
-# 
-# ###################
-# 
-#   
-# allAPCL_fish <- leyte %>% 
-#   tbl("clownfish") %>%
-#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
-#   collect() %>%
-#   filter(fish_spp == "APCL")
-# 
-# allAPCL_anems <- leyte %>%
-#   tbl("anemones") %>%
-#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
-#   collect() %>%
-#   filter(anem_table_id %in% allAPCL_fish$anem_table_id)
-# 
-# allAPCL_dives <- leyte %>%
-#   tbl("diveinfo") %>%
-#   select(dive_table_id, dive_type, date, site, gps) %>%
-#   collect() %>%
-#   filter(dive_table_id %in% allAPCL_anems$dive_table_id)
-# 
-# # pull out just the year and put that in a separate column
-# allAPCL_dives$year <- as.integer(substring(allAPCL_dives$date,1,4))
-# allAPCL_dives$month <- as.integer(substring(allAPCL_dives$date,6,7))
-# 
-# # join together
-# allAPCL <- left_join(allAPCL_fish, allAPCL_anems, by="anem_table_id")
-# allAPCL <- left_join(allAPCL, allAPCL_dives, by="dive_table_id")
-# 
-# allAPCL$size <- as.numeric(allAPCL$size) #make size numeric (rather than a chr) so can do means and such
-# 
-# #pull out just tagged fish
-# taggedfish <- allAPCL %>% filter(!is.na(tag_id))
-# 
-# # all anems that had APCL at some point (have a tag)
-# anems_tagged <- anem_db %>%
-#   filter(!is.na(anem_id) | !is.na(anem_obs)) %>%
-#   mutate(anem_id_unq = if_else(is.na(anem_obs), paste('id',anem_id,sep=''), paste('obs',anem_obs,sep='')))
-# 
-
-# #################### Save files ####################
-# save(leyte, file = here::here("Data/Database_backups", "leyte.RData"))
-# save(anem_db, file = here::here("Data/Database_backups", "anem_db.RData"))
-# save(fish_db, file = here::here("Data/Database_backups", "fish_db.RData"))
-# save(fish_seen_db, file = here::here('Data/Database_backups', 'fish_seen_db.RData'))
-# save(dives_db, file = here::here("Data/Database_backups", "dives_db.RData"))
-# save(gps_db, file = here::here("Data/Database_backups", "gps_db.RData"))
-# 
-# save(allAPCL, file=here::here('Data', 'allAPCL.RData'))
-# save(taggedfish, file=here::here('Data', 'taggedfish.RData'))
-# 
-# 
-# # Data for Hannah
-# save(anems_tagged, file=here::here('Data','anems_tagged.RData'))
-# save(allfish_caught, file=here::here('Data','allfish_caught.RData'))
-# save(allfish_seen, file=here::here('Data','allfish_seen.RData'))
-# 
-# load(file = here("Data", "anem_db.RData"))
-# load(file = here("Data", "fish_db.RData"))
-# load(file = here("Data", "dives_db.RData"))
-# load(file = here("Data", "gps_db.RData"))
-
-# # Function to attach 2018 anems to anems previously seen (since right now, anem_obs hasn't been extended to all of them), from AnemLocations.R script originally, this version from TotalAnemsAtSite.R script
-# attach2018anems <- function(anemdf) {
-#   
-#   #make anem_id numeric, create anem_id_unq
-#   anemdf <- anemdf %>%
-#     mutate(anem_id = as.numeric(anem_id)) %>% #make anem_id numeric to make future joins/merges easier
-#     mutate(anem_id_unq = ifelse(is.na(anem_obs), paste("id", anem_id, sep=""), paste("obs", anem_obs, sep="")))  #add unique anem id so can track anems easier (has obs or id in front of whichever number it is reporting: eg. obs192)
-#   
-#   #filter out anems that might be repeat visits (2018, tag_id less than the new tags for 2018 or new tag and old tag present) and don't already have an anem_obs
-#   anems2018 <- anemdf %>% #646
-#     filter(year == 2018) %>%
-#     filter(anem_id < tag1_2018 | (anem_id >= tag1_2018 & !is.na(old_anem_id))) %>% #filter out the ones that could could have other anem_ids (sighting of existing anem_id tag or new tag with old_anem_id filled in), checked this (below) and think it is filtering out correctly...
-#     filter(is.na(anem_obs)) #some anem_obs already filled in so take those out... 
-#     
-#   #other 2018 anems that aren't candidates for repeat obs (so can add back in later)
-#   anems2018_2 <- anemdf %>% #270
-#     filter(year == 2018) %>%
-#     filter(anem_id >= tag1_2018 & is.na(old_anem_id))
-#   
-#   #other 2018 anems that already have an anem_obs (so can add back in later) - checked (once...) that anems2018, anems2018_2, and anems2018_3 covers all 2018 anems
-#   anems2018_3 <- anemdf %>%
-#     filter(year == 2018) %>%
-#     filter(!is.na(anem_obs))
-#   
-#   #filter out anems that are candidates for revisits (just anything from before 2018...), and that will get added back into final df later
-#   otheranems <- anemdf %>% #4068
-#     filter(year != 2018)
-#   
-#   #the filtering above covers all anems except anem_table_id 10473 with anem_id 2535, which has no year associated with it
-#   #test <- anemdf %>% filter(!year %in% c(2012,2013,2014,2015,2016,2017,2018)) #this is how I found that anem
-#   
-#   #go through anems2018 that might be revisits and see if there are anems from previous years that match
-#   for (i in 1:length(anems2018$anem_id)) {
-#     
-#     testid <- anems2018$anem_id[i] #pull out anem_id to compare
-#     testoldid <- anems2018$old_anem_id[i] #pull out old_anem_id
-#     
-#     matchanem <- filter(otheranems, anem_id == testid)  #does the anem_id match an anem_id record from the past?
-#     matcholdanem <- filter(otheranems, anem_id == testoldid) #does the old_anem_id match an anem_id from the past?
-#     
-#     # does the anem_id match an anem_id from the past? 
-#     if (length(matchanem$anem_id) > 0) { #if the anem_id matches an old one
-#       # if so, does the site match?
-#       if (matchanem$site[1] == anems2018$site[i]) { #make sure the site matches
-#         anems2018$anem_id_unq[i] = matchanem$anem_id_unq[1] #if there are multiple records from the past that match, take the first one
-#       } else {
-#         print(paste("Site does not match for anem_id", testid)) #print message if site doesn't match
-#       }
-#       # if not, does an old_anem_id match an anem_id from the past?
-#     } else if (length(matcholdanem$anem_id) > 0) { #if the old_anem_id matches one from the past
-#       # if so, does the site match?
-#       if (matcholdanem$site[1] == anems2018$site[i]) { #check site
-#         anems2018$anem_id_unq[i] = matcholdanem$anem_id_unq[1]
-#       } else {
-#         print(paste("Site does not match for old_anem_id", testoldid, "and anem_id", testid))
-#       }
-#     } else {
-#       anems2018$anem_id_unq[i] = anems2018$anem_id_unq[i]
-#       print(paste("No past anem matches found for testid", testid, "and testoldid", testoldid))
-#     }
-#   }
-#   out <- rbind(anems2018, anems2018_2, anems2018_3, otheranems)
-#   
-#   if(length(out$anem_table_id) == (length(anemdf$anem_table_id)-1)) { #1 anem (anem_table_id 10473, anem_id 2535 has no year listed - investigate further later) (maybe one of those 3 anems I sighted that used to get lost in the filtering b/c not have a year associated with them (NA)?)
-#     print("All anems accounted for.")
-#   } else {
-#     print("Some anems missing or double-counted.")
-#     print(length(out$anem_table_id))
-#     print(length(anemdf$anem_table_id))
-#   }
-#   return(out)
-# }
-
-# ##### Pull all APCL caught or otherwise in the clownfish table (back when doing it directly from database)
-# allfish_fish <- leyte %>% 
-#   tbl("clownfish") %>%
-#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, fish_obs_time, fish_notes) %>%
-#   collect() %>%
-#   filter(fish_spp == 'APCL') %>%
-#   mutate(size = as.numeric(size))  # make the size numeric (rather than chr) so can do means and such
-# 
-# # and their corresponding anemones
-# allfish_anems <- leyte %>%
-#   tbl("anemones") %>%
-#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id, anem_notes) %>%
-#   collect() %>%
-#   filter(anem_table_id %in% allfish_fish$anem_table_id)
-# 
-# # and the corresponding dive info
-# allfish_dives <- leyte %>%
-#   tbl("diveinfo") %>%
-#   select(dive_table_id, dive_type, date, site, gps, dive_notes) %>%
-#   collect() %>%
-#   filter(dive_table_id %in% allfish_anems$dive_table_id) 
 
 
