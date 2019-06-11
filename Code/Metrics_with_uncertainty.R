@@ -111,27 +111,34 @@ Sl_se = eall_mean.Phi.size.p.size.plus.dist.results$se[2]  # for now using SE, s
 ##### Other parameters that stay static
 
 #################### Functions: ####################
-# Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
-disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+# # Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
+# disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+#   z = exp(k)
+#   disp = (z/2)*exp(-(z*d)^(theta))
+#   return(disp)
+# }
+# 
+# # Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
+# disp_allyears_d <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+#   z = exp(k_allyears)
+#   disp = (z/2)*exp(-(z*d)^(theta_allyears))
+#   return(disp)
+# }
+
+# SHOULD FIND A WAY OF CHOOSING BASED ON THETA!
+# Find probability of dispersing distance d with all-years fit (new version, where theta=1)
+disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k)
-  disp = (z/2)*exp(-(z*d)^(theta))
+  disp = z*exp(-(z*d)^(theta))
   return(disp)
 }
 
 # Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
-disp_allyears_d <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+disp_allyears_d <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k_allyears)
-  disp = (z/2)*exp(-(z*d)^(theta_allyears))
+  disp = z*exp(-(z*d)^(theta_allyears))
   return(disp)
 }
-
-# SHOULD FIND A WAY OF CHOOSING BASED ON THETA!
-# # Find probability of dispersing distance d with all-years fit (new version, where theta=1)
-# disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
-#   z = exp(k)
-#   disp = z*exp(-(z*d)^(theta))
-#   return(disp)
-# }
 # 
 # disp_theta_3 <- function(d) {  # theta = 3, equation for p(d) in eqn. 6b in Bode et al. 2018
 #   z = exp(k_allyears)
@@ -459,28 +466,30 @@ LEP_3.5cm <- findLEP(min_size, max_size, n_bins, t_steps, Sint_mean, Sl_mean,
 
 #################### Estimate survival from egg to recruit (method similar to Johnson et al. 2018): ####################
 ##### Process parentage data
-# Combine parentage files (mums, dads, trios) - first rename columns so they match across the files, add a column for match type, then rbind
-parentage_dads <- parentage_dads %>%
-  dplyr::rename(parent_site = par2_site, nmatches = n_dad, offspring_site = offs_site) %>%
-  mutate(match_type = rep('dad', dim(parentage_dads)[1]))
-parentage_moms <- parentage_moms %>%
-  dplyr::rename(parent_site = par1_site, nmatches = n_mum, offspring_site = offs_site) %>%
-  mutate(match_type = rep('mom', dim(parentage_moms)[1]))
-parentage_trios <- parentage_trios %>%
-  dplyr::rename(parent_site = par1_site, nmatches = n_trios, offspring_site = offs_site) %>%
-  mutate(match_type = rep('trio', dim(parentage_trios)[1]))
-
-parentage_matches_raw <- rbind(parentage_dads, parentage_moms, parentage_trios)
+# # Combine parentage files (mums, dads, trios) - first rename columns so they match across the files, add a column for match type, then rbind
+# parentage_dads <- parentage_dads %>%
+#   dplyr::rename(parent_site = par2_site, nmatches = n_dad, offspring_site = offs_site) %>%
+#   mutate(match_type = rep('dad', dim(parentage_dads)[1]))
+# parentage_moms <- parentage_moms %>%
+#   dplyr::rename(parent_site = par1_site, nmatches = n_mum, offspring_site = offs_site) %>%
+#   mutate(match_type = rep('mom', dim(parentage_moms)[1]))
+# parentage_trios <- parentage_trios %>%
+#   dplyr::rename(parent_site = par1_site, nmatches = n_trios, offspring_site = offs_site) %>%
+#   mutate(match_type = rep('trio', dim(parentage_trios)[1]))
+# 
+# parentage_matches_raw <- rbind(parentage_dads, parentage_moms, parentage_trios)
 
 ##### How much of the dispersal kernel area from each site did we actually sample? (So can scale up "tagged" recruits found to account for areas they might have gone that weren't in our sites)
-n_parents_parentage = parents_parentage_file
+#n_parents_parentage = parents_parentage_file
+n_parents_parentage = n_parents
 
 # Find the number of parents at each site (eventually, this parent file pull will go in Constants_database_common_functions). Just putting it here for now b/c going to use original 913, with same distribution as current parents
-all_parents_site <- all_parents %>%
+all_parents_site <- all_parents_by_site %>%
   group_by(site) %>%
   summarize(nparents = n()) %>%
-  mutate(prop_parents = nparents/sum(nparents)) %>%
-  mutate(nparents_olddata = round(prop_parents*n_parents_parentage))
+  mutate(prop_parents = nparents/sum(nparents)) 
+# %>%
+#  mutate(nparents_olddata = round(prop_parents*n_parents_parentage))
 # new number of parents (b/c rounding...)
 n_parents_parentage <- sum(all_parents_site$nparents_olddata)
 n_parents_somesites <- sum((all_parents_site %>% filter(site %in% sites_for_total_areas))$nparents_olddata)   # Just for some sites...

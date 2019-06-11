@@ -33,9 +33,9 @@ site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_cen
 site_centers$site[which(site_centers$site == "N.Magbangon")] = "N. Magbangon"
 site_centers$site[which(site_centers$site == "S.Magbangon")] = "S. Magbangon"
 
-
 # Should I make either prob r or site_areas calcs as part of this repo rather than sourcing from KC?
-# Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
+
+##### Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
 prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
             0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
             0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
@@ -43,20 +43,20 @@ prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recaptu
 # Load in site_areas
 # load(file=here::here('Data','site_areas.RData'))
 
-# Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
-k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
-theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
-k_2012 = -2.67
-theta_2012 = 3
-k_2013 = -3.27
-theta_2013 = 3
-k_2014 = -2.38
-theta_2014 = 2
-k_2015 = -2.73
-theta_2015 = 2
-
-k_connectivity_values <- as.vector(readRDS(file=here::here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
-
+# ###### Dispersal kernels (connectivity estimates from Dec. 18 KC paper draft, will get updated once parentage re-run)
+# k_allyears = -1.36  # with 2012-2015 data (and incorrect parentage)
+# theta_allyears = 0.5  # with 2012-2015 data (and incorrect parentage)
+# k_2012 = -2.67
+# theta_2012 = 3
+# k_2013 = -3.27
+# theta_2013 = 3
+# k_2014 = -2.38
+# theta_2014 = 2
+# k_2015 = -2.73
+# theta_2015 = 2
+# 
+# k_connectivity_values <- as.vector(readRDS(file=here::here('Data', 'avg_bootstrapped_k.rds')))  # values of k within the 95% confidence interval, bootstrapped - downloaded from KC parentage repository on 2/27/19
+# 
 # COMMENTING OUT FOR NOW UNTIL FIGURE OUT HOW TO SOURCE BETTER, WHILE WORKING ON SCALING UP DISPERSAL CLOUD
 # # Load dispersal kernel fits
 # #all_year_kernel_table <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/best_kernel_allyears.csv?token=AB75SQC4BGL5BNA7IT6524K4Y6DRW"), header = T)
@@ -72,26 +72,59 @@ k_connectivity_values <- as.vector(readRDS(file=here::here('Data', 'avg_bootstra
 # k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/697_loci/bootstrapped_k_all.csv?token=AB75SQC6NMJSYF5CUYTCPSK4Y6DTK"), header = T)
 #
 
-# Load in all parents in the parentage file
-all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
 
-# # Load parentage matches - waiting to update this
-# #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
+###### Dispersal kernel and parentage files
+# Years included in parentage analyses
+years_parentage <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)  
 
-# Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
-parentage_moms <- read.csv(file=here::here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
-parentage_dads <- read.csv(file=here::here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
-parentage_trios <- read.csv(file=here::here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
+# Kernel summary - kernel fits, n_offspring_genotyped, n_matched
+kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T)
 
-# number of parents in parent file
-parents_2012to2015 = 913  # number of parents in parentage file KC is running for 2012-2015
-offspring_2012to2015 = NA  # number of offspring in parentage runs KC is running for 2012-2015
-parents_2012to2018 = 1400 # guessing the number of parents in new parentage runs, will update evenutally
-parents_parentage_file = parents_2012to2015  # setting a new value here so can change easily between years in included in parentage and kernel analysis without dealing with other scripts
-offspring_parentage_file = offspring_2012to2015
+# List of all parents put into parentage analysis (so can match to site, done below)
+all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents.txt"), header = T)
 
-# years included in parentage analyses
-years_parentage <- c(2012, 2013, 2014, 2015)  # not all field seasons included in parentage and dispersal kernel analyses yet
+# Vector of bootstrapped k values
+k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/bootstrapped_k_allyears.csv"), header = T)
+
+# # Summary of offspring and parent inputs to parentage analysis
+# parentage_summary_file <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/input_summary.txt"), header = T)
+# 
+# # Parentage matches results
+# parentage_matches <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/results/dispersal_raw_results.txt"), header = T)
+
+# Pull out number of parents, number of offspring genotyped, number of offspring matched
+n_offspring_genotyped <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_offs_sampled)
+n_offspring_matched <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_parentage_matches)
+n_parents <- length((all_parents %>% distinct(gen_id))$gen_id)
+
+# Pull out kernel fits
+theta_allyears <- (kernel_summary %>% filter(year == "all years"))$best_theta
+k_allyears <- (kernel_summary %>% filter(year == "all years"))$best_k
+
+# n_parents <- (parentage_summary_file %>% filter(year == "all_years"))$n_parents  # number of parents total that went into parentage analysis
+# n_offspring_genotyped <- (parentage_summary_file %>% filter(year == "all_years"))$n_offspring  # number of offspring total that went into parentage analysis 
+# n_offspring_matched <- sum(parentage_matches$n_offs_matched)
+
+# # Load in all parents in the parentage file
+# all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190422_894loci/input/all_parents.txt"), header = T)
+# 
+# # # Load parentage matches - waiting to update this
+# # #parentage_matches <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190320_697loci/parentage_results_allyears.csv?token=AB75SQEIUT7BOG2TPA2CDO24Y57Y2"), header = T)
+# 
+# # Load all parentage matches (as of Nov 2018, N and S Mag separated but before 2016, 2017, 2018 genotypes are in)
+# parentage_moms <- read.csv(file=here::here('Data','20181017colony_migest_mums_allyears.csv'), stringsAsFactors = FALSE)
+# parentage_dads <- read.csv(file=here::here('Data','20181017colony_migest_dads_allyears.csv'), stringsAsFactors = FALSE)
+# parentage_trios <- read.csv(file=here::here('Data','20181017colony_migest_trios_allyears.csv'), stringsAsFactors = FALSE)
+# 
+# # number of parents in parent file
+# parents_2012to2015 = 913  # number of parents in parentage file KC is running for 2012-2015
+# offspring_2012to2015 = NA  # number of offspring in parentage runs KC is running for 2012-2015
+# parents_2012to2018 = 1400 # guessing the number of parents in new parentage runs, will update evenutally
+# parents_parentage_file = parents_2012to2015  # setting a new value here so can change easily between years in included in parentage and kernel analysis without dealing with other scripts
+# offspring_parentage_file = offspring_2012to2015
+# 
+# # years included in parentage analyses
+# years_parentage <- c(2012, 2013, 2014, 2015)  # not all field seasons included in parentage and dispersal kernel analyses yet
 
 ##### Fecundity info from Adam
 # Size-fecundity model
@@ -460,11 +493,12 @@ gps_Info <- gps_db %>%
 #   anems_Processed_latlon$lon[i] = output$lon
 # }
 
-##### Add sites to fish in the parents file - reads in as 1752, this makes it 1768 - not sure why? Looks like a few fish are recoreded at two sites, accounts for at least some of that (like 1103)
+##### Add sites to fish in the parents file - stays 1752 
 # all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
 #   distinct(.keep_all = TRUE)
-all_parents <- left_join(all_parents, allfish_caught %>% select(sample_id, site), by="sample_id") %>%
-  distinct(.keep_all = TRUE)
+all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(sample_id, site), by="sample_id") %>%
+  distinct(gen_id, .keep_all = TRUE)
+
 
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
