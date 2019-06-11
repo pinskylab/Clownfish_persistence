@@ -300,7 +300,7 @@ allfish_dives <- dives_db %>%
 allfish_caught <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish_caught <- left_join(allfish_caught, allfish_dives, by="dive_table_id")
 
-# add in the gen_ids (now in a separate gen_id table)
+# add in the gen_ids and fish_indiv (now in a separate gen_id table) - gen_id only comes in the time the fish was sequenced, not at all captures
 allfish_caught <- left_join(allfish_caught, fish_obs %>% select(fish_table_id, gen_id, fish_indiv), by = "fish_table_id")
 
 # remove intermediate dataframes, just to keep things tidy
