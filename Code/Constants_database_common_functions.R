@@ -78,13 +78,17 @@ prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recaptu
 years_parentage <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)  
 
 # Kernel summary - kernel fits, n_offspring_genotyped, n_matched
-kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T)
+kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T, stringsAsFactors = F)
+#kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T)
 
 # List of all parents put into parentage analysis (so can match to site, done below)
-all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents.txt"), header = T)
+all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents_corrected.txt"), header = T, stringsAsFactors = F)
+#all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents.txt"), header = T)
 
+# List of all offspring put into parentage analysis
+all_offspring <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_offspring_corrected.txt"), header = T, stringsAsFactors = F)
 # Vector of bootstrapped k values
-k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/bootstrapped_k_allyears.csv"), header = T)
+k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/bootstrapped_k_allyears.csv"), header = T, stringsAsFactors = F)
 
 # # Summary of offspring and parent inputs to parentage analysis
 # parentage_summary_file <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/input_summary.txt"), header = T)
@@ -93,9 +97,12 @@ k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.c
 # parentage_matches <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/results/dispersal_raw_results.txt"), header = T)
 
 # Pull out number of parents, number of offspring genotyped, number of offspring matched
-n_offspring_genotyped <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_offs_sampled)
-n_offspring_matched <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_parentage_matches)
-n_parents <- length((all_parents %>% distinct(gen_id))$gen_id)
+n_offspring_genotyped <- (kernel_summary %>% filter(year == "all years"))$n_offs_sampled
+#n_offspring_genotyped <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_offs_sampled)
+n_offspring_matched <- (kernel_summary %>% filter(year == "all years"))$n_parentage_matches
+#n_offspring_matched <- sum((kernel_summary %>% filter(year %in% years_parentage))$n_parentage_matches)
+n_parents_genotyped <- length((all_parents %>% distinct(fish_indiv))$fish_indiv)
+#n_parents <- length((all_parents %>% distinct(gen_id))$gen_id)
 
 # Pull out kernel fits
 theta_allyears <- (kernel_summary %>% filter(year == "all years"))$best_theta
@@ -432,7 +439,7 @@ allfish_caught <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
 allfish_caught <- left_join(allfish_caught, allfish_dives, by="dive_table_id")
 
 # add in the gen_ids (now in a separate gen_id table)
-allfish_caught <- left_join(allfish_caught, fish_obs %>% select(fish_table_id, gen_id), by = "fish_table_id")
+allfish_caught <- left_join(allfish_caught, fish_obs %>% select(fish_table_id, gen_id, fish_indiv), by = "fish_table_id")
 
 # remove intermediate dataframes, just to keep things tidy
 rm(allfish_fish, allfish_anems, allfish_dives) 
@@ -496,9 +503,15 @@ gps_Info <- gps_db %>%
 ##### Add sites to fish in the parents file - stays 1752 
 # all_parents <- left_join(all_parents, allfish_caught %>% select(gen_id, site), by="gen_id") %>%
 #   distinct(.keep_all = TRUE)
-all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(sample_id, site), by="sample_id") %>%
-  distinct(gen_id, .keep_all = TRUE)
+# all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(sample_id, site), by="sample_id") %>%
+#   distinct(gen_id, .keep_all = TRUE)
+# Make fish_indiv a character so can mesh with allfish_caught
+all_parents <- all_parents %>%
+  mutate(fish_indiv = as.character(fish_indiv))
 
+# Then join the two so parents have site assigned to them
+all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(fish_indiv, site), by = "fish_indiv") %>%
+  distinct(fish_indiv, .keep_all = TRUE)
 
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL

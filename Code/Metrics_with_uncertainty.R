@@ -268,11 +268,17 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
 calcMetrics <- function(param_set, sites_and_dists, sites) {
   
   # Define function with the right parameters
-  disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
     z = exp(param_set$k_connectivity)
-    disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
+    disp = z*exp(-(z*d)^(param_set$theta_connectivity))
     return(disp)
   }
+  
+  # disp_allyears <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
+  #   z = exp(param_set$k_connectivity)
+  #   disp = (z/2)*exp(-(z*d)^(param_set$theta_connectivity))
+  #   return(disp)
+  # }
   # 
   # disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
   #   z = exp(param_set$k_connectivity)
@@ -481,7 +487,7 @@ LEP_3.5cm <- findLEP(min_size, max_size, n_bins, t_steps, Sint_mean, Sl_mean,
 
 ##### How much of the dispersal kernel area from each site did we actually sample? (So can scale up "tagged" recruits found to account for areas they might have gone that weren't in our sites)
 #n_parents_parentage = parents_parentage_file
-n_parents_parentage = n_parents
+#n_parents_parentage = n_parents
 
 # Find the number of parents at each site (eventually, this parent file pull will go in Constants_database_common_functions). Just putting it here for now b/c going to use original 913, with same distribution as current parents
 all_parents_site <- all_parents_by_site %>%
@@ -491,11 +497,11 @@ all_parents_site <- all_parents_by_site %>%
 # %>%
 #  mutate(nparents_olddata = round(prop_parents*n_parents_parentage))
 # new number of parents (b/c rounding...)
-n_parents_parentage <- sum(all_parents_site$nparents_olddata)
-n_parents_somesites <- sum((all_parents_site %>% filter(site %in% sites_for_total_areas))$nparents_olddata)   # Just for some sites...
+#n_parents_parentage <- sum(all_parents_site$nparents_olddata)
+#n_parents_somesites <- sum((all_parents_site %>% filter(site %in% sites_for_total_areas))$nparents_olddata)   # Just for some sites...
 
 # Total dispersal kernel area (total parents*2 - total area dispersing north of site is 1 and south is 1 for each parent)
-total_parent_kernel_area = n_parents_parentage*2
+total_parent_kernel_area = n_parents_genotyped*2
 
 # Add in site info
 all_parents_site <- left_join(all_parents_site, site_width_info %>% select(site, site_geo_order, dist_to_N_edge_km, dist_to_S_edge_km), by = "site")
@@ -510,7 +516,7 @@ for(i in 1:length(all_parents_site$site)) {
   all_parents_site$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_S_edge_km[i])$value
 }
 
-# Find proportion of total area under dispersal kernel (where total area to INF is 2 - 1 for each side) covered within sample sites
+# Find proportion of total area under dispersal kernel (where total area to INF is 2 (1 for each side)) covered within sample sites
 all_parents_site <- all_parents_site %>%
   mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
          prop_disp_area_within_sites = total_disp_area_within_sites/2,
@@ -525,20 +531,20 @@ prop_total_disp_area_sampled_best_est <- all_parents_site_summarized$prop_parent
 
 ##### Egg-recruit survival using Johnson method, scaled by proportion habitat sampled (within our sites) and proportion of kernel area sampled
 # How many potential parents did we genotype? (Use the number of parents in KC's parentage file, rather than calculating on my own to make sure genotype issues are included)
-n_parents_parentage = parents_parentage_file  # now, using guess for 2012-2018 parent number, while wait for KC reply (old: for now, just using the 2012-2015 parents (913 in KC's parentage file)
+#n_parents_parentage = parents_parentage_file  # now, using guess for 2012-2018 parent number, while wait for KC reply (old: for now, just using the 2012-2015 parents (913 in KC's parentage file)
 
 # How many potential offspring (eggs) were produced by those potential parents ("tagged" adults b/c genetically marked)?
-tagged_eggs_6cm <- n_parents_parentage*LEP_6cm  # Use LEP from what size here? How to avoid double-counting if those parents mated together?
-tagged_eggs_3.5cm <- n_parents_parentage*LEP_3.5cm
+tagged_eggs_6cm <- n_parents_genotyped*LEP_6cm  # Use LEP from what size here? How to avoid double-counting if those parents mated together?
+tagged_eggs_3.5cm <- n_parents_genotyped*LEP_3.5cm
 
-# How many offspring did we find from those tagged parents?
-n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring identified via parentage (for 2012-2015) - make sure not double-counting those ided by both mom and dad
+# How many offspring did we find from those tagged parents? - called n_offspring_matched, pulled in in Constants_database_common_functions
+#n_offspring_parentage <- sum(parentage_matches_raw$nmatches)  # all offspring identified via parentage (for 2012-2015) - make sure not double-counting those ided by both mom and dad
 
-# Find the total prop habitat sampled over time
-total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r)  # scale up by proportion of habitat sampled and probability of catching a fish
+# Find the total prop habitat sampled over time - need to update this to have the other sites...
+total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r)  # scale up by proportion of habitat sampled and probability of catching a fish
 
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
-recruited_tagged_offspring_oursites <- n_offspring_parentage/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
+recruited_tagged_offspring_oursites <- n_offspring_matched/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 
 # Scale up by the proportion of the kernel area included within our sites (assuming patchiness of habitat outside our sites is the same as within)
 recruited_tagged_offspring <- recruited_tagged_offspring_oursites/prop_total_disp_area_sampled_best_est
@@ -546,21 +552,22 @@ recruited_tagged_offspring <- recruited_tagged_offspring_oursites/prop_total_dis
 # Estimate survival from eggs-recruits by seeing how many "tagged" offspring we found out of eggs "tagged" parents produced
 recruits_per_egg_best_est <- recruited_tagged_offspring/tagged_eggs_6cm
 
-
 ##### How many potential offspring did we genotype? What is the assignment rate? (For "what if" calculations and including assignment in RperE uncertainty)
-# How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 - update this to just use offspring file from KC (earlier said: update it so it pulls using size and sex, rather than tail color)
-n_offspring_genotypes_df <- allfish_caught %>%
-  filter(year %in% years_parentage) %>%
-  filter(!is.na(gen_id)) %>%  # NEED TO ALSO FILTER OUT THOSE WITH ISSUES THAT DIDN'T GO INTO PARENTAGE!
-  filter(size < min_breeding_M_size & color != "YP" & color != "O") %>%  # any genotyped individuals that didn't meet the parent criteria
-  distinct(gen_id, .keep_all = TRUE)
+#assignment_rate = ((kernel_summary %>% filter(year == "all years"))$percent_assigned)/100
+# # How many offspring did we genotype (for doing "what if" calculations?), for now just for 2012-2015 - update this to just use offspring file from KC (earlier said: update it so it pulls using size and sex, rather than tail color)
+# n_offspring_genotypes_df <- allfish_caught %>%
+#   filter(year %in% years_parentage) %>%
+#   filter(!is.na(gen_id)) %>%  # NEED TO ALSO FILTER OUT THOSE WITH ISSUES THAT DIDN'T GO INTO PARENTAGE!
+#   filter(size < min_breeding_M_size & color != "YP" & color != "O") %>%  # any genotyped individuals that didn't meet the parent criteria
+#   distinct(gen_id, .keep_all = TRUE)
+# 
+# n_offspring_genotypes = length(n_offspring_genotypes_df$gen_id)  # saying 767 for 2012-2015 (now 548 - accidentally had size <- min_breeding, rather than size <)
 
-n_offspring_genotypes = length(n_offspring_genotypes_df$gen_id)  # saying 767 for 2012-2015 (now 548 - accidentally had size <- min_breeding, rather than size <)
-
-assignment_rate = n_offspring_parentage/n_offspring_genotypes  # proportion of genotyped offspring that were assigned to parents in parentage analysis
+assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of genotyped offspring that were assigned to parents in parentage analysis
 
 ##### How big are the offspring? What size should we use for recruits?
-mean_sampled_offspring_size <- mean(n_offspring_genotypes_df$size, rm.na = TRUE)  # this is just one of the obs of each of these fish... not sure how many duplicates there are, should really check...
+mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  # might be duplicate observations of fish in here, but I don't think so - should check
+#mean_sampled_offspring_size <- mean(n_offspring_genotypes_df$size, rm.na = TRUE)  # this is just one of the obs of each of these fish... not sure how many duplicates there are, should really check...
 
 start_recruit_size = mean_sampled_offspring_size
 
@@ -577,7 +584,7 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents,
          total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          perc_APCL = NA, perc_UNOC = NA, DD = FALSE) 
 
@@ -590,7 +597,7 @@ param_best_est_mean_collected_offspring_DD <- data.frame(t_steps = n_tsteps) %>%
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage,
+         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents,
          total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, DD = TRUE) 
 
@@ -671,14 +678,14 @@ SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
 Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
 k_growth_set = growth_info_estimate$k_est  # growth (k)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
-#k_connectivity_set = k_connectivity_values
+k_connectivity_set = k_connectivity_values$V1
 #k_connectivity_set = k_connectivity_values$V1  # dispersal kernel k (why was I resampling from the vector from KC before? no need to, right? unless nruns changes)
-k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # dispersal kernel k (replace should be true, right?)
+#k_connectivity_set = sample(k_connectivity_values, n_runs, replace = TRUE)  # dispersal kernel k (replace should be true, right?)
 
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
 
-# probability of capturing a fish
+# probability of capturing a fish (NEED TO TIDY THIS!)
 prob_r_beta_params = findBetaDistParams(mean(prob_r), var(prob_r))  # find beta distribution parameters for prob r distrubtion from normal mean and variance
 prob_r_set_fodder = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # should the non-centrality parameter be 0?
 
@@ -719,20 +726,20 @@ start_recruit_size_options <- data.frame(recruit_size = c('3.5cm', '4.75cm', '6.
 
 # Uncertainty in recruits-per-egg - two ways
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
-n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotypes, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
+n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotyped, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
 
 # I think the rest of this is now incorporated into the calcMetrics function
-scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_mean, prop_total_disp_area_sampled_best_est)
+scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_mean, prop_total_disp_area_sampled_best_est)
 # recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)  # this was the problem!! Accidentally put that those tagged recruits came from one tagged parent's egg output, not all the tagged parents
 recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, tagged_eggs_6cm)
 
 # Way two: uncertainty in probability of capturing a fish (so number of offspring we find from the tagged parents) - is this worth it?
-scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_parentage, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
+scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_matched, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
 # recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, LEP_6cm)
 recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, tagged_eggs_6cm)
 
 # Way three: both together
-scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2015"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
+scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
 # recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, LEP_6cm)
 recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, tagged_eggs_6cm)
 
@@ -756,7 +763,7 @@ param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped) 
 
 # Uncertainty in growth only (both Linf and k)
 param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -768,7 +775,7 @@ param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped) 
 
 # Uncertainty in survival only
 param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -780,7 +787,7 @@ param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped) 
 
 # Uncertainty in breeding size only
 param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -792,7 +799,7 @@ param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_set, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped) 
 
 # Uncertainty in offspring assigned to parents (affects recruits-per-egg)
 param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -804,7 +811,7 @@ param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped) 
 
 # Uncertainty in probability catching a fish (affects recruits-per-egg)
 param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -816,7 +823,7 @@ param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped) 
 
 # Uncertainty in both offspring assigned to parents and probability catching a fish (affects recruits-per-egg)
 param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -828,7 +835,7 @@ param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped) 
 
 # Uncertainty in dispersal only
 param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -840,7 +847,7 @@ param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_mean, 
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage, n_parents = n_parents_parentage) 
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped) 
 
 # Uncertainty in all parameters included for now 
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -852,7 +859,7 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_parentage)  
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped)  
 
 # # Without uncertainty in survival, growth for now
 # param_set_full_no_surv_no_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
