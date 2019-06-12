@@ -6,11 +6,11 @@ source(here::here('Code', 'Constants_database_common_functions.R'))
 # #Load relevant libraries
 # library(RCurl) #allows running R scripts from GitHub
 # library(RMySQL) #might need to load this to connect to the database?
-# library(dplyr)
+library(dplyr)
 # library(tidyr)
 library(RMark)
 # library(lubridate)
-# library(geosphere)
+library(geosphere)
 # #library(dbplyr)
 # library(ggplot2)
 # library(here)
@@ -31,8 +31,8 @@ load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))
 load(file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
 
 # Find mean Linf and K from those runs
-Linf_mean <- mean(growth_info_estimate$Linf_est)  # 10.58
-k_mean <- mean(growth_info_estimate$k_est)  # 0.928
+Linf_mean <- mean(growth_info_estimate$Linf_est)  # 10.71 (old: 10.58)
+k_mean <- mean(growth_info_estimate$k_est)  # 0.864 (old: 0.928)
 
 # # From grow_1pair1month$results in Methods_notes.pdf
 # Linf_Faber <- 10.62
@@ -78,12 +78,12 @@ CreateEncounterSummary <- function(start.year, end.year, tagged.fish) { #start.y
     var.name <- paste("sighted", as.character(sample.years[i]), sep=".") #create dynamic column names for encounters - sighted.[samplingyear]
     
     encounters[[i]] <- tagged.fish %>% #create data frames for each year that have a vector of fish_ids and a vector of encountered (1) or didn't (0) in 
-      group_by(fish_id) %>% 
+      group_by(fish_indiv) %>% 
       summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #encounter history
   }
   
   encounters.out <- as.data.frame(encounters[[1]]) #seed summary data frame with list of tag ids and encounter in 1st year
-  colnames(encounters.out)<- c("fish_id","encounter.hist") #rename the columns so the encounter.hist column can be pasted to iteratively in next step
+  colnames(encounters.out)<- c("fish_indiv","encounter.hist") #rename the columns so the encounter.hist column can be pasted to iteratively in next step
   
   for (i in 2:length(sample.years)) {
     encounters.out$encounter.hist <- paste(encounters.out$encounter.hist, encounters[[i]][[2]], sep="") #paste on the other encounter 1/0s so get overall encounter histories as strings
@@ -164,6 +164,8 @@ addLatLons <- function(encounters_df, anemdf, latorlon) {
   return(out)
 }
     
+encounters_all$dist_2012 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2012, site_visits)
+
 # Find the min distance from the anem where the fish was caught or last caught to a recorded GPS point in each year - from AnemDistFromDiveTrack.R
 findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampleyear, site_visits){
   out <- rep(NA, length(sitevec))
@@ -180,26 +182,31 @@ findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampley
         visited <- site_visits$sampled[which(site_visits$site == testsite & site_visits$year == sampleyear)] # pull out the sampled value from this year and site
         if(visited == 1) { # if the sample site was visited that year, pull the dives from that site
           relevantdives <- divedf %>%
-            filter(site == testsite, year == sampleyear)
+            filter(site == testsite, as.numeric(year) == sampleyear)
         } else { #if not, pull dives from sites 1 to the north and south
           site_N <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) - 1] #site to the north
           site_S <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) + 1] #site to the south
           
           relevantdives <- divedf %>%
-            filter(site %in% c(site_N, site_S), year == sampleyear)
+            filter(site %in% c(site_N, site_S), as.numeric(year) == sampleyear)
         }
        
         #filter out gps points from those dives
+        # relevantgps <- gpxdf %>%
+        #   filter(gps_date %in% relevantdives$date & gps_year == sampleyear)
         relevantgps <- gpxdf %>%
-          filter(date %in% relevantdives$date, year == sampleyear)
+          filter(gps_date %in% relevantdives$dive_date)
         
         distvec <- rep(NA, length(relevantgps$lat)) #set a place to store distances
+        #distvec2 <- rep(NA, length(relevantgps$lat))
         
         for(j in 1:length(distvec)) { #go through the list of coordinates
+          #distvec2[j] = distGeo(c(testlon, testlat), c(relevantgps$lon[j], relevantgps$lat[j]))
           distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
           #print(paste(j, "of", length(distvec)))
         }
         out[i] = min(distvec)
+        #print(min(distvec2))
       }
     } else {
       out[i] = NA
@@ -209,63 +216,69 @@ findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampley
   return(out)
 }
 
+# library(geosphere)
+# mat <- distm(list1[,c('longitude','latitude')], list2[,c('longitude','latitude')], fun=distVincentyEllipsoid)
+# 
+# # Create a distance column in meters from a data.frame that has both points 
+# loc.df$dist <- distGeo(loc.df[,c('lon1', 'lat1')], loc.df[,c('lon2', 'lat2')])
+
 #################### Running things: ####################
 
-#### I think I can comment out the stuff between this and the next comment like this - check! (line 263)
-##### Pulling and setting up data
-leyte <- read_db("Leyte")
-
-# Pull all clownfish observations from the caught-clownfish table (don't need the ones only observed b/c won't be able to link them, right?)
-allfish_fish <- leyte %>%
-  tbl('clownfish') %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, notes) %>%
-  collect() %>%
-  filter(fish_spp == 'APCL')
-
-# and their corresponding anemones
-allfish_anems <- leyte %>%
-  tbl('anemones') %>%
-  select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
-  collect() %>%
-  filter(anem_table_id %in% allfish_fish$anem_table_id)
-  
-# and the corresponding dives
-allfish_dives <- leyte %>%  
-  tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  collect() %>%
-  filter(dive_table_id %in% allfish_anems$dive_table_id) %>%
-  mutate(year = as.integer(substring(date, 1, 4)))
-  
-# then join them together
-allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
-allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
-
-# Make size numeric (rather than a chr) so can do means and such
-allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
-
-# Pull out dive info (for assigning distances to anems each year)
-dive.Info <- leyte %>%
-  tbl("diveinfo") %>%
-  select(dive_table_id, dive_type, date, site, gps) %>%
-  collect() %>%
-  mutate(year = as.integer(substring(date,1,4))) 
-
-# Pull out GPS info (for assigning distances to anems each year)
-gps.Info <- leyte %>%
-  tbl("GPX") %>%
-  select(lat, lon, time, unit) %>%
-  collect(n = Inf) %>%
-  mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
-  mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
-         day = day(obs_time), 
-         hour = hour(obs_time), 
-         min = minute(obs_time), 
-         sec = second(obs_time), 
-         year = year(obs_time)) %>%
-  separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
-
-##### I think I can comment out the stuff above this line... check!
+# #### I think I can comment out the stuff between this and the next comment like this - check! (line 263)
+# ##### Pulling and setting up data
+# leyte <- read_db("Leyte")
+# 
+# # Pull all clownfish observations from the caught-clownfish table (don't need the ones only observed b/c won't be able to link them, right?)
+# allfish_fish <- leyte %>%
+#   tbl('clownfish') %>%
+#   select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size, notes) %>%
+#   collect() %>%
+#   filter(fish_spp == 'APCL')
+# 
+# # and their corresponding anemones
+# allfish_anems <- leyte %>%
+#   tbl('anemones') %>%
+#   select(anem_table_id, dive_table_id, anem_obs, anem_id, old_anem_id) %>%
+#   collect() %>%
+#   filter(anem_table_id %in% allfish_fish$anem_table_id)
+#   
+# # and the corresponding dives
+# allfish_dives <- leyte %>%  
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   collect() %>%
+#   filter(dive_table_id %in% allfish_anems$dive_table_id) %>%
+#   mutate(year = as.integer(substring(date, 1, 4)))
+#   
+# # then join them together
+# allfish <- left_join(allfish_fish, allfish_anems, by="anem_table_id")
+# allfish <- left_join(allfish, allfish_dives, by="dive_table_id")
+# 
+# # Make size numeric (rather than a chr) so can do means and such
+# allfish$size <- as.numeric(allfish$size) #make size numeric (rather than a chr) so can do means and such
+# 
+# # Pull out dive info (for assigning distances to anems each year)
+# dive.Info <- leyte %>%
+#   tbl("diveinfo") %>%
+#   select(dive_table_id, dive_type, date, site, gps) %>%
+#   collect() %>%
+#   mutate(year = as.integer(substring(date,1,4))) 
+# 
+# # Pull out GPS info (for assigning distances to anems each year)
+# gps.Info <- leyte %>%
+#   tbl("GPX") %>%
+#   select(lat, lon, time, unit) %>%
+#   collect(n = Inf) %>%
+#   mutate(obs_time = force_tz(ymd_hms(time), tzone = "UTC")) %>% #tell it that it is in UTC time zone
+#   mutate(month = month(obs_time), #and separate out useful components of the time (this and line above largely from Michelle's assign_db_gpx function)
+#          day = day(obs_time), 
+#          hour = hour(obs_time), 
+#          min = minute(obs_time), 
+#          sec = second(obs_time), 
+#          year = year(obs_time)) %>%
+#   separate(time, into = c("date", "time"), sep = " ") #pull out date separately as a chr string too
+# 
+# ##### I think I can comment out the stuff above this line... check!
 
 ##### Join together recaptures of the same fish, whether through genetic recapture or tag recapture
 
@@ -287,35 +300,41 @@ gps.Info <- leyte %>%
 #   mutate(fish_id = case_when(tag_id != 'NA' ~ paste('tag', tag_id, sep=''), #if has a tag_id, use it in the fish_id
 #                              tag_id == 'NA' & !is.na(gen_id) ~ paste('gen', gen_id, sep=''))) # %>% #if it doesn't have a tag_id, use the gen_id in the fish_id - but some of these fish might later have a tag_id
 
-allfish_mark <- allfish_caught %>%  # edited to use allfish_caught (which is generated by Constants_database_common_functions)
-  filter(!is.na(gen_id) | (tag_id != 'NA' & !is.na(tag_id))) %>%  # pull out fish "tagged" in any way, either PIT or via genetic sample
-  mutate(fish_id = case_when(gen_id != 'NA' ~ paste('gen', gen_id, sep=''),  # if fish has a gen_id, use that as the fish_id
-                             is.na(gen_id) ~ paste('tag', tag_id, sep='')))  # f it doesn't have a gen_id, use the tag_id
+# allfish_mark <- allfish_caught %>%  # edited to use allfish_caught (which is generated by Constants_database_common_functions)
+#   filter(!is.na(gen_id) | (tag_id != 'NA' & !is.na(tag_id))) %>%  # pull out fish "tagged" in any way, either PIT or via genetic sample
+#   mutate(fish_id = case_when(gen_id != 'NA' ~ paste('gen', gen_id, sep=''),  # if fish has a gen_id, use that as the fish_id
+#                              is.na(gen_id) ~ paste('tag', tag_id, sep='')))  # f it doesn't have a gen_id, use the tag_id
 
+# Pull out all fish marked in some way
+marked_fish <- allfish_caught %>%
+  filter(!is.na(fish_indiv)) 
+saveRDS(marked_fish, file = here::here("Data/Script_outputs", "marked_fish.RData"))
 
 # Exploring recaptures - gen_id 1394 gets genetically id-ed 3 times (2015, May 2016, June 2016), getting a new PIT tag each time, then gets recaught with the third tag again in 2018... nuts!
 
-mark_set <- as.data.frame(table((allfish_mark %>% group_by(gen_id))$gen_id))
-
-#### Set one: all recaptures, genetic + tag, only certain (non-site-switching) genetic recaps
-allfish_set1 <- allfish_mark
-
-# Link up genetic ids with tagged ones, if posible - this time, going to switch to the gen_id rather than the tag, since seems like fish sometimes have multiple tags... should look into how common that is...
-for(i in 1:length(allfish_set1$fish_id)) {
-  if(substring(allfish_set1$fish_id[i],1,3) == 'tag') {  # if it has a fish_id based on tag_id rather than gen_id...
-    tag_id_val <- allfish_set1$tag_id[i]  # pull out the tag_id
-    
-    matches <- allfish_set1 %>%
-      filter(tag_id == tag_id_val)  # filter out any other cases that match that tag_id
-    
-    for(j in 1:length(matches$fish_id)) {
-     if(!is.na(matches$gen_id[j])) {  # if any of the captures with that tag_id have a gen_id
-       allfish_set1$fish_id[i] <- matches$fish_id[j]  # update the fish_id to the fish_id based on the match with a gen_id
-     }
-    }
-  }
-}
-
+# mark_set <- as.data.frame(table((allfish_mark %>% group_by(gen_id))$gen_id))
+# 
+# #### Set one: all recaptures, genetic + tag, only certain (non-site-switching) genetic recaps
+# allfish_set1 <- allfish_mark
+# 
+# # Link up genetic ids with tagged ones, if posible - this time, going to switch to the gen_id rather than the tag, since seems like fish sometimes have multiple tags... should look into how common that is...
+# for(i in 1:length(allfish_set1$fish_id)) {
+#   if(substring(allfish_set1$fish_id[i],1,3) == 'tag') {  # if it has a fish_id based on tag_id rather than gen_id...
+#     tag_id_val <- allfish_set1$tag_id[i]  # pull out the tag_id
+#     
+#     matches <- allfish_set1 %>%
+#       filter(tag_id == tag_id_val)  # filter out any other cases that match that tag_id
+#     
+#     for(j in 1:length(matches$fish_id)) {
+#      if(!is.na(matches$gen_id[j])) {  # if any of the captures with that tag_id have a gen_id
+#        allfish_set1$fish_id[i] <- matches$fish_id[j]  # update the fish_id to the fish_id based on the match with a gen_id
+#      }
+#     }
+#   }
+# }
+# 
+# marked_fish <- allfish_set1
+# saveRDS(marked_fish, file = here::here("Data/Script_outputs", "marked_fish.RData"))
 # This seems to be working pretty well at catching all tags that have the same gen_id at some point, still 721 tag observations (617 individual tags) that are not associated with gen_ids (looks like sequencing failed on first capture, then didn't take samples after that b/c was tagged)
 # For fish that still have a tag_id-based fish_id, see if other captures of that tag
   
@@ -323,44 +342,46 @@ for(i in 1:length(allfish_set1$fish_id)) {
 # for those cases, put the fish_id as the gen_id
 # need to go through each of those tag_ids and find cases when fish got caught just based on the tag
   
-# Do some spot-checking
-allfish_set1 %>% filter(gen_id == 1394) %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1394') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-
-set1 <- as.data.frame(table(allfish_set1$fish_id))
-
-allfish_set1 %>% filter(substring(fish_id,1,3) == 'tag') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)  # still about 720 with tags but no gen_id - looks like cases where samples were taken but genotyping failed?
-
-# Spot-checking, looks like in these cases, the gen_id as fish_id percolates through multiple tags so long they are linked to the gen_id at some point
-allfish_set1 %>% filter(fish_id == 'gen1015') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(tag_id == '986112100170625') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(tag_id == '985153000406699') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1019') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(tag_id == '982000411818704') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(tag_id == '985153000404653') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1020') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1065') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1071') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1499') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-allfish_set1 %>% filter(fish_id == 'gen1496') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
-
-# For cases that still have a tag_id-based fish_id, double-check that there aren't other captures of those fish with that tag that have a gen_id
-tag_set1 <- allfish_set1 %>% filter(substring(fish_id,1,3) == 'tag')  # still about 720 with tags but no gen_id - looks like cases where samples were taken but genotyping failed?
-tag_set1_table <- as.data.frame(table(tag_set1$fish_id))  # 617 individual fish (or tags...)
-tag_set1 %>% filter(fish_id == "tag982000411818572")
-tag_set1 %>% filter(!is.na(gen_id))  # none that have a gen_id
-
-tag_ids_set1 <- allfish_set1 %>%
-  filter(tag_id %in% tag_set1$tag_id)  # pull out any fish with the tags that are in the tag_set1 tag_ids
-tag_ids_set1 %>% filter(!is.na(gen_id))  # do any of them have a gen_id at any point? - looks like no
-  
+# # Do some spot-checking
+# allfish_set1 %>% filter(gen_id == 1394) %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1394') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# 
+# set1 <- as.data.frame(table(allfish_set1$fish_id))
+# 
+# allfish_set1 %>% filter(substring(fish_id,1,3) == 'tag') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)  # still about 720 with tags but no gen_id - looks like cases where samples were taken but genotyping failed?
+# 
+# # Spot-checking, looks like in these cases, the gen_id as fish_id percolates through multiple tags so long they are linked to the gen_id at some point
+# allfish_set1 %>% filter(fish_id == 'gen1015') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(tag_id == '986112100170625') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(tag_id == '985153000406699') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1019') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(tag_id == '982000411818704') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(tag_id == '985153000404653') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1020') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1065') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1071') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1499') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# allfish_set1 %>% filter(fish_id == 'gen1496') %>% select(-fish_spp, -dive_table_id, -notes, -gps, -fish_table_id, -anem_table_id)
+# 
+# # For cases that still have a tag_id-based fish_id, double-check that there aren't other captures of those fish with that tag that have a gen_id
+# tag_set1 <- allfish_set1 %>% filter(substring(fish_id,1,3) == 'tag')  # still about 720 with tags but no gen_id - looks like cases where samples were taken but genotyping failed?
+# tag_set1_table <- as.data.frame(table(tag_set1$fish_id))  # 617 individual fish (or tags...)
+# tag_set1 %>% filter(fish_id == "tag982000411818572")
+# tag_set1 %>% filter(!is.na(gen_id))  # none that have a gen_id
+# 
+# tag_ids_set1 <- allfish_set1 %>%
+#   filter(tag_id %in% tag_set1$tag_id)  # pull out any fish with the tags that are in the tag_set1 tag_ids
+# tag_ids_set1 %>% filter(!is.na(gen_id))  # do any of them have a gen_id at any point? - looks like no
+#   
   
 
 ##### Prep data for MARK - make encounter histories  - haven't done tag-only yet so commented out for now
 # Pull out all the fish_ids and their encounter history from 2012-2018, including new genetic data, add column to see which fish are IDed by gen at any point (gen) or just tag (tag) - set 1 above
-encounters_all <- CreateEncounterSummary(2012, 2018, allfish_set1) %>%  # use function to get encounter history - gives 3222 fish encountered (was 3049 before 2016-2018 genetic data added in)
-  mutate(id_type = case_when(substring(fish_id,1,1) == "t" ~ "tag", #1122 (gen at some point)
-                             substring(fish_id,1,1) == "g" ~ "gen")) #1927 (tag only)
+# encounters_all <- CreateEncounterSummary(2012, 2018, allfish_set1) %>%  # use function to get encounter history - gives 3222 fish encountered (was 3049 before 2016-2018 genetic data added in)
+#   mutate(id_type = case_when(substring(fish_id,1,1) == "t" ~ "tag", #1122 (gen at some point)
+#                              substring(fish_id,1,1) == "g" ~ "gen")) #1927 (tag only)
+
+encounters_all <- CreateEncounterSummary(2012, 2018, marked_fish)
 
 #encounters_tag <- CreateEncounterSummary(2015, 2018, allfish_tag) #use function to get encounter history - gives 1927 fish encountered
 
@@ -412,26 +433,27 @@ encounters_all_table <- as.data.frame(table(encounters_all$encounter.hist)) %>%
 
 # Find fish traits: site, tail color, size, life stage (all at first time captured), join with encounter histories 
 #first, for genetic and tagged fish combined
-trait_info <- allfish_set1 %>% 
-  group_by(fish_id) %>%
+trait_info <- marked_fish %>% 
+  group_by(fish_indiv) %>%
   arrange(year) %>%
   summarize(site = site[1],
             first_capture_year = min(year), #year this fish was first captured
             capture_size = size[1], #earlier did min(size) and didn't arrange by year, could go either way
             capture_color = color[1],
-            capture_stage = case_when(capture_color == "YP" ~ "female", #matches breeding F color + rough size - should re-evaluate these capture stage cutoffs at some point
-                                      capture_size >= min_breeding_F_size & capture_color == "Y" ~ "female", #matches breeding F color but undifferentiated, rough size
-                                      capture_color == "O" ~ "male", #matches breeding M color
-                                      capture_color != "YP" & capture_color != "Y" & capture_color != "YR" & capture_color != "WR" & capture_size >= min_breeding_M_size ~ "male", #this is the most fishy...
-                                      capture_size < min_breeding_M_size & capture_color != "YP" & capture_color != "O" ~ "juvenile", #small, not breeding colors
-                                      is.na(capture_color) & capture_size <= min_breeding_M_size ~ 'juvenile',
-                                      is.na(capture_color) & capture_size > min_breeding_M_size & capture_size <= female_size_cutoff ~ 'unknown',
-                                      is.na(capture_color) & capture_size > female_size_cutoff ~ 'female',
-                                      capture_color == "YR" & capture_size >= breeding_F_YR_cutoff ~ 'female',
-                                      capture_color == "YR" & capture_size < breeding_F_YR_cutoff ~ 'juvenile',
-                                      is.na(capture_color) & is.na(capture_size) ~ 'unknown',
-                                      is.na(capture_size) & capture_color == "Y" ~ 'unknown'
-                                      ))
+            capture_stage = sex[1])
+            # capture_stage = case_when(capture_color == "YP" ~ "female", #matches breeding F color + rough size - should re-evaluate these capture stage cutoffs at some point
+            #                           capture_size >= min_breeding_F_size & capture_color == "Y" ~ "female", #matches breeding F color but undifferentiated, rough size
+            #                           capture_color == "O" ~ "male", #matches breeding M color
+            #                           capture_color != "YP" & capture_color != "Y" & capture_color != "YR" & capture_color != "WR" & capture_size >= min_breeding_M_size ~ "male", #this is the most fishy...
+            #                           capture_size < min_breeding_M_size & capture_color != "YP" & capture_color != "O" ~ "juvenile", #small, not breeding colors
+            #                           is.na(capture_color) & capture_size <= min_breeding_M_size ~ 'juvenile',
+            #                           is.na(capture_color) & capture_size > min_breeding_M_size & capture_size <= female_size_cutoff ~ 'unknown',
+            #                           is.na(capture_color) & capture_size > female_size_cutoff ~ 'female',
+            #                           capture_color == "YR" & capture_size >= breeding_F_YR_cutoff ~ 'female',
+            #                           capture_color == "YR" & capture_size < breeding_F_YR_cutoff ~ 'juvenile',
+            #                           is.na(capture_color) & is.na(capture_size) ~ 'unknown',
+            #                           is.na(capture_size) & capture_color == "Y" ~ 'unknown'
+            #                           ))
 # #and now just for tagged fish...
 # trait_info_tag <- allfish_tag %>% 
 #   group_by(fish_id) %>%
@@ -454,25 +476,38 @@ trait_info <- allfish_set1 %>%
 #                             is.na(capture_size) & capture_color == "Y" ~ 'unknown'))
 
 # Join trait info with encounter histories
-encounters_all <- left_join(encounters_all, trait_info, by="fish_id") #gen+tag recaps
+encounters_all <- left_join(encounters_all, trait_info, by="fish_indiv") #gen+tag recaps
 # encounters_tag <- left_join(encounters_tag, trait_info_tag, by="fish_id") #tag-only recaps
 
 ##### Find distance from anemone in previous years
 encounters_all <- encounters_all %>%
-  mutate(capture_anem_id = rep(NA, length(fish_id)), #anem_id of anem where fish was first captured
-         capture_anem_table_id = rep(NA, length(fish_id)), #anem_table_id of anem where fish was first captured
-         capture_anem_lat = rep(NA, length(fish_id)), #lat coordinates of first-capture anem
-         capture_anem_lon = rep(NA, length(fish_id)), #lon coordinates of first-capture anem
-         dist_2012 = rep(NA, length(fish_id)), 
-         dist_2013 = rep(NA, length(fish_id)),
-         dist_2014 = rep(NA, length(fish_id)),
-         dist_2015 = rep(NA, length(fish_id)),
-         dist_2016 = rep(NA, length(fish_id)),
-         dist_2017 = rep(NA, length(fish_id)),
-         dist_2018 = rep(NA, length(fish_id))) 
+  mutate(capture_anem_id = NA,
+         capture_anem_table_id = NA,
+         capture_anem_lat = NA,
+         capture_anem_lon = NA,
+         dist_2012 = NA,
+         dist_2013 = NA,
+         dist_2014 = NA,
+         dist_2015 = NA,
+         dist_2016 = NA,
+         dist_2017 = NA,
+         dist_2018 = NA)
+
+# encounters_all <- encounters_all %>%
+#   mutate(capture_anem_id = rep(NA, length(fish_indiv)), #anem_id of anem where fish was first captured
+#          capture_anem_table_id = rep(NA, length(fish_indiv)), #anem_table_id of anem where fish was first captured
+#          capture_anem_lat = rep(NA, length(fish_indiv)), #lat coordinates of first-capture anem
+#          capture_anem_lon = rep(NA, length(fish_indiv)), #lon coordinates of first-capture anem
+#          dist_2012 = rep(NA, length(fish_id)), 
+#          dist_2013 = rep(NA, length(fish_id)),
+#          dist_2014 = rep(NA, length(fish_id)),
+#          dist_2015 = rep(NA, length(fish_id)),
+#          dist_2016 = rep(NA, length(fish_id)),
+#          dist_2017 = rep(NA, length(fish_id)),
+#          dist_2018 = rep(NA, length(fish_id))) 
            
 # Go through list of tagged fish, find distance from anem where first caught for all years after capture (originally, updated anem each year to where it had been caught (code in AmenDistFromDiveTrack) but doesn't that bias fish that have been recaught to have lower distances?)
-for(i in 1:length(encounters_all$fish_id)) {
+for(i in 1:length(encounters_all$fish_indiv)) {
   
   # #Check for multiple anems recorded in capture year, print message if find some - this just records mulitple observations, not actually different anem_ids... amend to fix that...
   # if(length((allfish_mark %>% filter(fish_id == encounters_all$fish_id[i], year == encounters_all$first_capture_year[i]))$anem_id) > 1) { 
@@ -483,11 +518,12 @@ for(i in 1:length(encounters_all$fish_id)) {
   # }
   
   # Record capture anem (id and anem_table_id) in first capture year and find lat/lon coordinates
-  encounters_all$capture_anem_id[i] = (allfish_mark %>% filter(fish_id == encounters_all$fish_id[i], year == encounters_all$first_capture_year[i]))$anem_id[1] #record the anem where fish was first captured
-  encounters_all$capture_anem_table_id[i] = (allfish_mark %>% filter(fish_id == encounters_all$fish_id[i], year == encounters_all$first_capture_year[i]))$anem_table_id[1]
+  encounters_all$capture_anem_id[i] = (marked_fish %>% filter(fish_indiv == encounters_all$fish_indiv[i], year == encounters_all$first_capture_year[i]))$anem_id[1] #record the anem where fish was first captured
+  encounters_all$capture_anem_table_id[i] = (marked_fish %>% filter(fish_indiv == encounters_all$fish_indiv[i], year == encounters_all$first_capture_year[i]))$anem_table_id[1]
 }
 
 # Now fill in the lat/lon coordinates for the capture anem
+#encounters_all$capture_anem_lat <- addLatLons(encounters_all, anems_Processed, "lat")
 encounters_all$capture_anem_lat <- addLatLons(encounters_all, anem.Processed_full, "lat") #now 5 anems without coordinates (which seems much more reasonable) and same ones for both lat and lon: anem_table_id 363, 364, 365, 366, 8094, none with anem_id
 encounters_all$capture_anem_lon <- addLatLons(encounters_all, anem.Processed_full, "lon")
 # talked to Michelle about these ones - probably from when the battery died at one point (2012) or the gps unit was submerged (2016)
@@ -497,15 +533,17 @@ site_visits$sampled[is.na(site_visits$sampled)] <- 0
 
 ## NEED TO RUN THESE OVERNIGHT - TOO SLOW TO DO DURING THE DAY!
 # Calculate the distances from tracks in each year to the capture anem (NA for years prior to first capture year) - at some point, should check into why they're not all 0 or NA in 2012...
-encounters_all$dist_2012 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2012, site_visits)
-encounters_all$dist_2013 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2013, site_visits)
-encounters_all$dist_2014 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2014, site_visits)
-encounters_all$dist_2015 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2015, site_visits)
-encounters_all$dist_2016 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2016, site_visits)
-encounters_all$dist_2017 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2017, site_visits)
-encounters_all$dist_2018 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year,gps.Info, dive.Info, 2018, site_visits)
+encounters_all$dist_2012 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2012, site_visits)
+encounters_all$dist_2013 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2013, site_visits)
+encounters_all$dist_2014 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2014, site_visits)
+encounters_all$dist_2015 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2015, site_visits)
+encounters_all$dist_2016 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2016, site_visits)
+encounters_all$dist_2017 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2017, site_visits)
+encounters_all$dist_2018 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2018, site_visits)
 
+#test <- findDist(encounters_all$site[1:10], encounters_all$capture_anem_lat[1:10], encounters_all$capture_anem_lon[1:10], encounters_all$first_capture_year[1:10], gps_Info, dives_db, 2012, site_visits)
 #save(encounters_all, file=here('Data','encounters_all.RData'))
+saveRDS(encounters_all, file=here('Data','encounters_all_with_dist.RData'))
 
 ########## LOAD encounters_all AND START HERE!!!
 load(file=here('Data', 'encounters_all.RData'))
@@ -518,54 +556,54 @@ encounters_all <- encounters_all %>% dplyr::rename(ch = encounter.hist)
 ### Add in sizes
 
 # First, find sizes for captured fish
-size_2012 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2012 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2012) %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2012 = mean(size, rm.na = TRUE))
 
-size_2013 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2013 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2013) %>%
   filter(size != 'NA') %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2013 = mean(size, rm.na = TRUE))
 
-size_2014 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2014 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2014) %>%
   filter(size != 'NA') %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2014 = mean(size, rm.na = TRUE))
 
-size_2015 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2015 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2015) %>%
   filter(size != 'NA') %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2015 = mean(size, rm.na = TRUE))
 
-size_2016 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2016 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2016) %>%
   filter(size != 'NA') %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2016 = mean(size, rm.na = TRUE))
 
-size_2017 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2017 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2017) %>%
   filter(size != 'NA') %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2017 = mean(size, rm.na = TRUE))
 
-size_2018 <- allfish_set1 %>% filter(fish_id %in% encounters_all$fish_id) %>%
+size_2018 <- marked_fish %>% filter(fish_indiv %in% encounters_all$fish_indiv) %>%
   filter(year == 2018) %>%
   filter(size != 'NA') %>%
-  group_by(fish_id) %>%
+  group_by(fish_indiv) %>%
   summarize(size_2018 = mean(size, rm.na = TRUE))
 
-encounters_all <- left_join(encounters_all, size_2012, by='fish_id')
-encounters_all <- left_join(encounters_all, size_2013, by='fish_id')
-encounters_all <- left_join(encounters_all, size_2014, by='fish_id')
-encounters_all <- left_join(encounters_all, size_2015, by='fish_id')
-encounters_all <- left_join(encounters_all, size_2016, by='fish_id')
-encounters_all <- left_join(encounters_all, size_2017, by='fish_id')
-encounters_all <- left_join(encounters_all, size_2018, by='fish_id')
+encounters_all <- left_join(encounters_all, size_2012, by='fish_indiv')
+encounters_all <- left_join(encounters_all, size_2013, by='fish_indiv')
+encounters_all <- left_join(encounters_all, size_2014, by='fish_indiv')
+encounters_all <- left_join(encounters_all, size_2015, by='fish_indiv')
+encounters_all <- left_join(encounters_all, size_2016, by='fish_indiv')
+encounters_all <- left_join(encounters_all, size_2017, by='fish_indiv')
+encounters_all <- left_join(encounters_all, size_2018, by='fish_indiv')
 
 # Fill in estimated sizes for unrecaptured (or unmeasured?) fish
 mean_size <- mean(c(size_2012$size_2012, size_2013$size_2013, size_2014$size_2014, size_2015$size_2015, size_2016$size_2016, size_2017$size_2017, size_2018$size_2018))
@@ -1499,6 +1537,10 @@ dev.off()
 ###### Comparing Phi and p across models
 
 #################### Saving files and output ####################
+saveRDS(encounters_all_means, file=here::here("Data/Script_outputs", "encounters_all_means.RData"))
+saveRDS(eall_mean.Phi.size.p.size.plus.dist.results, file=here::here("Data/Script_outputs","eall_mean_Phi_size_p_size_plus_dist.RData"))
+saveRDS(model_comp_mean, file=here::here("Data/Script_outputs","model_comp_mean.RData"))
+
 save(encounters_all, file=here("Data", "encounters_all.RData"))
 save(encounters_all_means, file=here("Data", "encounters_all_means.RData"))
 save(encounters_all_0s, file=here("Data", "encounters_all_0s.RData"))
