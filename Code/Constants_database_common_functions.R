@@ -278,7 +278,8 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
 ##### Pull out year and month into a separate column in dives_db
 dives_db <- dives_db %>%
   mutate(year = as.integer(substring(date,1,4))) %>%
-  mutate(month = as.integer(substring(date,6,7)))
+  mutate(month = as.integer(substring(date,6,7))) %>%
+  mutate(dive_date = date(date))
 
 ##### Pull all APCL caught or otherwise in the clownfish table
 allfish_fish <- fish_db %>%
@@ -349,7 +350,9 @@ gps_Info <- gps_db %>%
          gps_day = day(time),
          gps_hour = hour(time),
          gps_min = minute(time),
-         gps_sec = second(time))
+         gps_sec = second(time),
+         gps_year = year(time),
+         gps_month = month(time))
 
 # Attach lat/lons to anems - takes a long time to run...
 # anems_Processed_latlon <- anems_Processed %>%
