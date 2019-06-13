@@ -1541,6 +1541,7 @@ saveRDS(encounters_all_means, file=here::here("Data/Script_outputs", "encounters
 saveRDS(eall_mean.Phi.size.p.size.plus.dist.results, file=here::here("Data/Script_outputs","eall_mean_Phi_size_p_size_plus_dist.RData"))
 saveRDS(model_comp_mean, file=here::here("Data/Script_outputs","model_comp_mean.RData"))
 
+
 save(encounters_all, file=here("Data", "encounters_all.RData"))
 save(encounters_all_means, file=here("Data", "encounters_all_means.RData"))
 save(encounters_all_0s, file=here("Data", "encounters_all_0s.RData"))
