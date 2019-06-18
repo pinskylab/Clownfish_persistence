@@ -123,7 +123,7 @@ If $LRP \geq 1$, the population has the possibility for replacement; indviduals 
 
 \paragraph*{Self-persistence}  % EDIT THIS SECTION WITH MALIN'S COMMENTS FROM WHEN IT WAS LOWER - THIS NEEDS WORK, ESPECIALLY IN FIGURING OUT WHETHER/HOW TO EXPLAIN LOCAL RETENTION!
 
-A patch is able to persist in isolation (self-persistent) if individuals produce enough offspring (LRP) that disperse back to the natal patch and survive to recruitment to be able to replace themselves (LR): $\text{LRP} \times \text{LR} \geq 1$ \citep[][modified so that egg-to-recruit survival is included in the LEP term instead of the probability of dispersing component of LR]{burgess2014beyond}. We include survival from egg to recruit ($S_e$) separately from the probability of dispersal to assess whether a particular patch $i$ is self-persistent: %Our dispersal kernel represents the probability that a recruit disperses a distance conditional on it recruiting somewhere, rather than the probability of a larva dispersing and recruiting to a particular patch, which implicitly encompasses mortality from egg to recruitment. We modify the equation to fit our data and include survival from egg to recruit to assess whether a particular patch $i$ is self-persistent: 
+A patch is able to persist in isolation (self-persistent) if individuals produce enough offspring (LRP) that disperse back to the natal patch and survive to recruitment to be able to replace themselves (local retention (LR) - the number of surviving recruits that disperse back to the natal patch divided by the number of eggs produced at the natal patch): $\text{LEP} \times \text{LR} \geq 1$ \citep[][modified so that egg-to-recruit survival is included in the LEP term instead of the probability of dispersing component of LR]{burgess2014beyond}. We include survival from egg to recruit ($S_e$) separately from the probability of dispersal to assess whether a particular patch $i$ is self-persistent: %Our dispersal kernel represents the probability that a recruit disperses a distance conditional on it recruiting somewhere, rather than the probability of a larva dispersing and recruiting to a particular patch, which implicitly encompasses mortality from egg to recruitment. We modify the equation to fit our data and include survival from egg to recruit to assess whether a particular patch $i$ is self-persistent: 
 \begin{equation}
 \begin{split}
 SP_i &= \text{LEP} \times \frac{\text{recruits}}{\text{egg}} \times \frac{p_{i,i} \times \text{\# recruits from patch i}}{\frac{\text{recruits}}{\text{egg}} \times \text{\# eggs produced by patch i}} \\ 
@@ -268,7 +268,7 @@ S_e = \frac{\frac{R_m}{P_h P_c P_d}}{N_g \text{LEP}_p}. \label{EQN_EggRecruitSur
 
 \paragraph*{Accounting for density-dependence}  % Should this be its own section or part of the survival from egg to recruit?
 
-Ideally we would assess persistence metrics when the population is at low abundance and not limited by density-dependence, so we attempt to account for the effects of density-dependence in the early life stages when it is likely strongest. Clownfish have strong social hierarchies and in other clownfish species, juveniles that have already settled on an anemone will prevent others from settling there as well \citep{buston2003forcible}. Each anenome, therefore, can only house one settling clownfish, so having anemones already occupied by \textit{A. clarkii} reduces the survival from egg to recruit if potential settlers get evicted by resident juveniles when they try to settle. We attempt to account for this density-dependent mortality by multiplying our estimate of settling recruits (the numerator of eqn.\ \ref{EQN_EggRecruitSurv}) by the proportional increase ($\text{DD}$) in unoccupied anemones at our sites if all of the \textit{A. clarkii} anemones were unoccupied, where $p_\text{APCL}$ is the proportion of anemones occupied by \textit{A. clarkii} and $p_\text{UNOC}$ is the proportion of unoccupied anemones: $\text{DD} = \frac{(p_\text{UNOC} + p_\text{APCL})}{p_\text{UNOC}}. We present results both with and without this density-dependence modification.
+Ideally we would assess persistence metrics when the population is at low abundance and not limited by density-dependence, so we attempt to account for the effects of density-dependence in the early life stages when it is likely strongest. Clownfish have strong social hierarchies and in other clownfish species, juveniles that have already settled on an anemone will prevent others from settling there as well \citep{buston2003forcible}. Each anenome, therefore, can only house one settling clownfish, so having anemones already occupied by \textit{A. clarkii} reduces the survival from egg to recruit if potential settlers get evicted by resident juveniles when they try to settle. We attempt to account for this density-dependent mortality by multiplying our estimate of settling recruits (the numerator of eqn.\ \ref{EQN_EggRecruitSurv}) by the proportional increase ($\text{DD}$) in unoccupied anemones at our sites if all of the \textit{A. clarkii} anemones were unoccupied, where $p_A$ is the proportion of anemones occupied by \textit{A. clarkii} and $p_U$ is the proportion of unoccupied anemones: $\text{DD} = \frac{(p_U + p_A)}{p_U}$. We present results both with and without this density-dependence modification.
 
 
 % \paragraph*{Defining recruit and census stage} % Not quite sure where to put this section... or if it should even be it's own section
@@ -433,6 +433,57 @@ Based on our estimates of LRP, SP, and NP, we do not expect that our set of site
 
 \section*{Discussion}
 
+We do not see evidence for persistence in our metric estimates, neither self-persistence where an individual site could persist alone nor network persistence accounting for exchange among sites. The abundances through time at our sites are relatively constant, however, suggesting that the population at our sites is stable but relies on input of recruits from outside sites to persist. The portion of coastline we sampled is likely a sink portion of a larger metapopulation. % This tackles item one below, need to do rest of sensitivity tests to get 2 and 3 
+
+For our sites to be able to persist as a network on their own, the number of surviving recruits produced by an average recruit - LRP - would need to be higher. With our estimated connectivity among the sites, LRP would need to be at least XXX to see network persistence among our sites, about XXX times higher than our best estimate and XXX times higher than the top of our range of uncertainty. To achieve that value of LRP, either production of eggs would need to increase to an LEP of XX or egg-recruit survival would need to be at least XX. Our estimate of LEP is XXX compared to estimates for similar fish (e.g. CITATIONS) and our estimate of egg-recruit survival is XXX compared to other estimates (e.g. CITATIONS), making a rise of XX for either XX. Since LRP is less than one for our sites - the average recruit only replaces itself with XX of a surviving recruit of the same stage - no amount of increased retention or connectivity, even retaining all of the recruits produced from our sites, would lead to network persistence. Similarly, if other surrounding patch populations had a similar LRP, increasing the area of the network to include them would also not achieve network persistence. If nearby sites have higher egg production or survival to recruit, however, it might not take much of an increase in area considered to create a persistence network. Nearby sites such as Quatros Islaes and XX have higher quality habitat and could be contributing recruits to our sites.
+
+% Paragraph 3: uncertainty
+
+% Paragraph 4: reconcile with dispersal distance
+
+We were surprised that our estimates of persistence are so far from the threshold for network persistence for our sites because previous estimates of the mean dispersal distance of \textit{A. clarkii} \citep[10 km][]{pinsky2010using} and those from our 2012-2018 samples \citep[range from XX - XX km for individual-year kernels, XX for all-years kernel, which is used in this analysis]{catalanoInPrepconnectivity} are well within the 30 km span of our sites. Our below-replacement estimate for LRP, however, suggests that lack of persistence in these sites is not due to excessive dispersal out of the area but due to low production and survival of offspring. The reef health and habitat quality in our sites in generally low, due anthropgenic effects such as pollution and silt from a nearby gravel mining operations and habitat disturbance due to storms. Our sites are in an area that was hit by Typhoon XX, the strongest typhoon ever to make landfall, early in our sampling period, which destroyed much of the reef habitat in some of our northern sampling areas. WRAP-UP, CONCLUDING SENTENCE OR TWO!
+
+
+% Outline: \\
+% 1) Overview paragraph:
+% \begin{itemize}
+% 	\item Don't see evidence for persistence but see relatively stable population through time
+% 	\item Suggests our sites are part of a larger metapopulation but locally are a sink, would not be able to persist on their own without outside recruits
+% 	\item Any other main takehomes?
+% \end{itemize}
+
+% 2) What would it take for our sites to persist?
+% \begin{itemize}
+% 	\item Since LRP is < 1 for our sites, no amount of retention could make them able to persist in isolation - even if all recruits produced were retained at our sites, wouldn't see persistence
+% 	\item Higher survival of recruits could enable persistence however, which could be acheived with higher LEP (would need to be XX), due to higher adult survival or higher fecundity. Or higher egg-recruit survival (would need to be XX).
+% 	\item Might not need much more area, depending on the survival and production of sites outside our sampled area - if there are some highly productive sites nearby that send over recruits, which there likely are - Quatros Isles - that could be enough.
+% \end{itemize}
+
+3) Uncertainty in our estimates and why we need to consider it
+\begin{itemize}
+	\item Try to consider uncertainty in a variety of our inputs, hard to estimate in the field
+	\item Important to do this b/c not going to get a point estimate
+	\item Think more about what the point of this paragraph is
+\end{itemize}
+
+4) How do we reconcile this with the finding that mean dispersal distance is within the reach of our sites but they don't persist as a contained metapopulation?
+\begin{itemize}
+	\item They can both be true at the same time - mabye fish from our sites don't disperse very far but others in sites nearby have access to different currents, etc. send recruits farther and into our sites. 
+	\item It's a linear coastline but within a big bay - could have some interesting connectivity patterns via currents/eddies/etc. (reference how far the drifters went?) Are there some citations on this?
+\end{itemize}
+
+5) Caveats paragraph
+\begin{itemize}
+	\item Density-dependence - likely plays a larger role througout the life cycle, not just at early life - particularly important in this species (and others with strong social hierarchies)
+	\item Site-specific demographic rates - coming in the future as get more of a handle on predator densities and such. Not have enough data from some of the sites and some of the params (fecundity) to get site-specific rates, though those have been interesting/important in other systems. If our larger sites had higher production/survival, might see persistence.
+\end{itemize}
+
+6) Wrap-up paragraph
+\begin{itemize}
+	\item How does this contribute to our understanding of metapopulation persistence? Where do we go from here?
+\end{itemize}
+
+
 We do not see evidence for persistence in our metric estimates, either self-persistence where an individual site could persist alone or network persistence with exchange among sites. The abundances through time at our sites are relatively constant, however, suggesting that the population at our sites is stable but relies on input of recruits from outside sites to persist. The portion of coastline we sampled is likely a portion of a larger metapopulation. % This tackles item one below, need to do rest of sensitivity tests to get 2 and 3 
 
 Big picture: What do our results mean for persistence in this system and our understanding of metapopulations generally?
@@ -442,7 +493,7 @@ Big picture: What do our results mean for persistence in this system and our und
 	\item Sensitivity - how would our parameters need to change to see persistence? Egg-recruit survival is a big one. Discuss limitations of how we calculated it (offspring going outside our pops not included - though we might change this), what we see for persistence when estimate recruits/recruits instead. Contextualize this with what other studies have found for these parameters, how reasonable it would be to get better estimates in the field.
 \end{itemize}
 
-Persistence criteria, such as those detailed in \cite{hastings_persistence_2006} and \cite{burgess2014beyond}, ask whether a population at low abundance can grow and recover rather than going extinct. Density-dependence is assumed to not exist at low abundances (CITATIONS, with the exception of xx density-dependence, like the allee effect) so is not explicitly considered in persistence metrics. In real populations, however, it can be challenging to estimate density-independent demographic rates, as density-dependence is occuring in the population as it is sampled. In \textit{A. clarkii}, density-dependence is likely most important in early life stages, as for many fish species, but could play an important role throughout the life history due to the social hierarchies in colonies of clownfish (CITATIONS). In other species of clownfish, individuals on the same anemone maintain strict size spacing, restricting their food intake and growth to avoid encroaching on the position of another fish and being attacked or evicted (CITATIONS). This suggests that while fish are in the pre-reproductive queue, density-dependence may lower growth rates compared to the growth of fish alone on an anemone, as would be the case in a population at low abundance. We attempt to account for the primary effect of density-dependence on our estimate of egg-recruit survival but other estimates, particularly growth and survival, would also likely be higher in the absence of density-dependence, which would increase LRP.
+Persistence criteria, such as those detailed in \cite{hastings_persistence_2006} and \cite{burgess2014beyond}, ask whether a population at low abundance can grow and recover rather than going extinct. Density-dependence is assumed to not exist at low abundances (CITATIONS, with the exception of xx density-dependence, like the allee effect) so is not explicitly considered in persistence metrics. In real populations, however, it can be challenging to estimate density-independent demographic rates, as density-dependence is occuring in the population as it is sampled. In \textit{A. clarkii}, density-dependence is likely most important in early life stages, as for many fish species, but could play an important role throughout the life history due to the social hierarchies in colonies of clownfish (CITATIONS). In other species of clownfish, individuals on the same anemone maintain strict size spacing, restricting their food intake and growth to avoid encroaching on the position of another fish and being attacked or evicted (CITATIONS). This suggests that while fish are in the pre-reproductive queue, density-dependence may lower growth rates compared to the growth of fish alone on an anemone, as would be the case in a population at low abundance. We attempt to account for the primary effect of density-dependence on our estimate of egg-recruit survival but other estimates, particularly growth and survival, would also likely be higher in the absence of density-dependence and increase LRP.
 
 Our estimates of survival probabilities are similar to those estimated for other species of clownfish, particulary our relationship with size where small fish have a low annual survival and the largest fish have a high annual survival (CITATIONS, Buston paper, also compare to Salles et al. 2015). Our fecundity estimates are lower than those for \textit{A. clarkii} in temperate areas, almost XX times lower (CITATIONS, Ochi papers - 17,500 eggs/yr/female, from Bell 1976).
 
