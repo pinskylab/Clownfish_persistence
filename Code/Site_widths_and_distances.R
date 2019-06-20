@@ -48,6 +48,11 @@ northern_edge_lon <- (site_edges_info %>% filter(site == "Palanas", anem_loc == 
 southern_edge_lat <- (site_edges_info %>% filter(site == "Sitio Baybayon", anem_loc == "south"))$lat
 southern_edge_lon <- (site_edges_info %>% filter(site == "Sitio Baybayon", anem_loc == "south"))$lon
 
+# Put in a data frame so can save
+sampling_area_edges <- data.frame(edge = c("north", "south"),
+                                  lat = c(northern_edge_lat, southern_edge_lat),
+                                  lon = c(northern_edge_lon, southern_edge_lon))
+
 ##### Find the width of each site and distance to edges of sampling area
 # Calculate the distance between the edge anems for each site
 site_width_info <- site_edges_info %>%
@@ -284,7 +289,7 @@ site_dist_info <- site_dist_info %>%
 #################### Saving output: ####################
 save(site_width_info, file=here::here("Data/Script_outputs", "site_width_info.RData"))  # width of sites, distance to edges of sampling area
 save(site_dist_info, file=here::here("Data/Script_outputs", "site_dist_info.RData"))  # distances between pairs of sites for kernel integration
-
+save(sampling_area_edges, file=here::here("Data/Script_outputs", "sampling_area_edges.RData"))  # coordinates of northern-most anem and southern-most anem of sampling area
 
 
 

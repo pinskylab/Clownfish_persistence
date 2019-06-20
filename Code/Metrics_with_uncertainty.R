@@ -22,9 +22,10 @@ load(file = here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  #
 load(file = here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))  # has total area sampled across time (for egg-recruit survival estimate)
 # source(here::here("Code", "Total_anems_proportion_hab_sampled.R"))
 
-# Load file with site widths and distances between sites
+# Load file with site widths and distances between sites and coordinates of N/S edges of sampling area
 load(file = here::here("Data/Script_outputs", "site_width_info.RData"))
 load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
+load(file = here::here("Data/Script_outputs", "sampling_area_edges.RData"))
 # source(here::here("Code", "Site_widths_and_distances.R"))
 
 # Load density dependence estimates
@@ -391,7 +392,12 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
 
 #################### Running things: ####################
 
-# Estimate some of the "best estimates" of metrics/parameters
+##### Find proportion of sampling area that is habitat so can scale egg-recruit survival to avoid counting dispersal to non-habitat mortality twice
+total_range_of_sampling_area <- geosphere::distHaversine()
+
+distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
+
+##### Estimate some of the "best estimates" of metrics/parameters
 breeding_size_mean <- mean(recap_first_female$size)
 prob_r_mean <- mean(prob_r)  # average value of prob r from each recap dive
 
@@ -793,23 +799,25 @@ param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_all_offspring,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area (right?)
-         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped)  
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area (right?)
+         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
 
 # Calculate the metrics for the best estimates
-best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_dist_info, site_vec_order$site_name)
+best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_dist_info, site_vec_order$site_name, FALSE)
+best_est_metrics_mean_offspring_all_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_dist_info, site_vec_order$site_name, TRUE)
 
 # Save as separate items, for plotting ease
-LEP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-                           LEP = c(best_est_metrics_3.5cm_all_offspring$LEP, best_est_metrics_4.75cm_all_offspring$LEP, best_est_metrics_6.0cm_all_offspring$LEP, best_est_metrics_mean_offspring_all_offspring$LEP), stringsAsFactors = FALSE)
-LEP_R_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-                             LEP_R = c(best_est_metrics_3.5cm_all_offspring$LEP_R, best_est_metrics_4.75cm_all_offspring$LEP_R, best_est_metrics_6.0cm_all_offspring$LEP_R, best_est_metrics_mean_offspring_all_offspring$LEP_R), stringsAsFactors = FALSE)
-NP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-                          NP = c(best_est_metrics_3.5cm_all_offspring$NP, best_est_metrics_4.75cm_all_offspring$NP, best_est_metrics_6.0cm_all_offspring$NP, best_est_metrics_mean_offspring_all_offspring$NP), stringsAsFactors = FALSE)
-SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% mutate(recruit_size = "3.5cm"),
-                                   best_est_metrics_4.75cm_all_offspring$SP %>% mutate(recruit_size = "4.75cm"),
-                                   best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"),
-                                   best_est_metrics_mean_offspring_all_offspring$SP %>% mutate(recruit_size = "mean offspring"))
+# LEP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+#                            LEP = c(best_est_metrics_3.5cm_all_offspring$LEP, best_est_metrics_4.75cm_all_offspring$LEP, best_est_metrics_6.0cm_all_offspring$LEP, best_est_metrics_mean_offspring_all_offspring$LEP), stringsAsFactors = FALSE)
+# LEP_R_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+#                              LEP_R = c(best_est_metrics_3.5cm_all_offspring$LEP_R, best_est_metrics_4.75cm_all_offspring$LEP_R, best_est_metrics_6.0cm_all_offspring$LEP_R, best_est_metrics_mean_offspring_all_offspring$LEP_R), stringsAsFactors = FALSE)
+# NP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
+#                           NP = c(best_est_metrics_3.5cm_all_offspring$NP, best_est_metrics_4.75cm_all_offspring$NP, best_est_metrics_6.0cm_all_offspring$NP, best_est_metrics_mean_offspring_all_offspring$NP), stringsAsFactors = FALSE)
+# SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% mutate(recruit_size = "3.5cm"),
+#                                    best_est_metrics_4.75cm_all_offspring$SP %>% mutate(recruit_size = "4.75cm"),
+#                                    best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"),
+#                                    best_est_metrics_mean_offspring_all_offspring$SP %>% mutate(recruit_size = "mean offspring"))
 
 # Do uncertainty run with those parameters
 # Uncertainty in all parameters included for now 
@@ -821,12 +829,37 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled, prop_total_disp_area_sampled_best = 1,
-         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped)  
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
+         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val)  
 
-output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff")
+output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff", FALSE)
+output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff", TRUE)
 
-##### What-if calculation 2) What would egg-recruit survival need to be for NP to be 1? 
+##### What-if calculation 2) What would LRP need to be for NP to be 1? 
+#egg_recruit_survival_vec_WI2 <- seq(from = recruits_per_egg_best_est, to = 0.001, by = 0.00001)
+LRP_vec_WI2 =seq(from=0.1, to=5.0, by=0.01) 
+NP_output_vec_WI2  <- rep(NA, length(LRP_vec_WI2))
+
+for(i in 1:length(NP_output_vec_WI2)) {
+  conn_matR_WI2 = best_est_metrics_mean_offspring$conn_matrix*LRP_vec_WI2[i]
+  eig_CR_WI2 = eigen(conn_matR_WI2)
+  #NP_WI2 = Re(eig_cR_WI2$values[1])
+  NP_output_vec_WI2[i] = eig_CR_WI2$values[1]
+}
+
+LRP_for_NP = LRP_vec_WI2[which(NP_output_vec_WI2 >= 1)[1]]  # 3.99
+
+##### What-if calculation 3) To get the required LRP for NP, what do egg-recruit survival (for our LEP) and LEP (for our egg-recruit-survival) need to be?
+egg_recruit_survival_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$LEP
+
+LEP_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$recruits_per_egg
+
+LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
+
+##### What-if calculation 4) For the largest patch to be SP (highest p(i,i)), what would LRP need to be? And then what would LEP and egg-recruit survival need to be to acheive that LRP?
+highest_self_disp <- max(best_est)
+
 
 ##### What-if calculation 3) What would egg-recruit survival need to be for one of the patches to be SP? 
 
@@ -1313,7 +1346,7 @@ breeding_size_vs_RperE_df <- data.frame(breeding_size = output_uncert_all$metric
                                         recruits_per_egg = output_uncert_all$RperE_out_df$value) 
 breeding_size_vs_RperE_plot <- ggplot(data = breeding_size_vs_RperE_df, aes(x=breeding_size, y=recruits_per_egg)) +
   geom_point(size=2) +
-  xlab("breeding size (cm)") + ylab("recruits per egg") + ggtitle("Female size vs. egg-recruit surv") +
+  xlab("breeding size (cm)") + ylab("recruits per egg") + ggtitle("Female size vs. \n egg-recruit survival") +
   theme_bw()
 
 # LEP_R and NP 
@@ -1344,9 +1377,46 @@ Start_recruit_vs_LRP <- ggplot(data = output_uncert_all$metric_vals_with_params,
   theme_bw()
 
 pdf(file = here::here("Plots/FigureDrafts", "Param_metric_relationships.pdf"))
-plot_grid(recruit_size_vs_LEP_plot, breeding_size_vs_RperE_plot, LRP_vs_NP_plot, 
+plot_grid(breeding_size_vs_RperE_plot, LRP_vs_NP_plot, 
           Prob_r_vs_NP_plot, Sint_vs_LEP_plot, Start_recruit_vs_LRP, 
-          labels = c("a","b","c","d","e","f"), nrow=2)
+          labels = c("a","b","c","d","e"), nrow=2)
+dev.off()
+
+
+########### What-if calcs ##########
+########## What-if #1: what if all the offspring we genotype were from our sites? ##########
+
+# LEP_R (LEP in terms of recruits) (this is plot "LEP_R_histogram_whatif_all_offspring.pdf") - where are these separate plots? Find and set to whatifs folder
+LEP_R_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = best_est_metrics_mean_offspring_all_offspring$LEP_R) +
+  xlab("recruits") + ggtitle("Recruits per recruit \n with all offspring") +
+  theme_bw()
+
+# LEP_R accounting for DD
+LEP_R_histogram_whatif_all_offspring_DD <- ggplot(data = output_uncert_all_offspring_all_DD$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  geom_vline(xintercept = best_est_metrics_mean_offspring_all_offspring_DD$LEP_R) +
+  xlab("recruits") + ggtitle("Recruits per recruit \n with all offspring \n accounting for DD") +
+  theme_bw()
+
+# NP (this plot is "NP_histogram_whatif_all_offspring.pdf")
+NP_histogram_whatif_all_offspring <- ggplot(data = output_uncert_all_offspring_all$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = best_est_metrics_mean_offspring_all_offspring$NP) +
+  xlab("NP") + ggtitle("NP with all offspring") +
+  theme_bw()
+
+# NP accounting for DD
+NP_histogram_whatif_all_offspring_DD <- ggplot(data = output_uncert_all_offspring_all_DD$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = best_est_metrics_mean_offspring_all_offspring_DD$NP) +
+  xlab("NP") + ggtitle("NP with all offspring \n accounting for DD") +
+  theme_bw()
+
+pdf(file = here::here("Plots/PersistenceMetrics/Whatifs", "LEP_R_and_NP_histograms_whatif_all_offspring.pdf"), width=7, height=6)
+plot_grid(LEP_R_histogram_whatif_all_offspring, NP_histogram_whatif_all_offspring, LEP_R_histogram_whatif_all_offspring_DD, NP_histogram_whatif_all_offspring_DD,
+          labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
 # ########## STOPPED RE-ORDERING, MOVING FIGURE AND APPENDIX PLOTS UP, HERE! ##########
