@@ -393,9 +393,13 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
 #################### Running things: ####################
 
 ##### Find proportion of sampling area that is habitat so can scale egg-recruit survival to avoid counting dispersal to non-habitat mortality twice
-total_range_of_sampling_area <- geosphere::distHaversine()
+# Right now this assumes the whole sampling region and all sites are totally in a line, which they are not...
+total_range_of_sampling_area <- geosphere::distHaversine(c((sampling_area_edges %>% filter(edge == "north"))$lon, (sampling_area_edges %>% filter(edge == "north"))$lat),
+                                                         c((sampling_area_edges %>% filter(edge == "south"))$lon, (sampling_area_edges %>% filter(edge == "south"))$lat))
 
-distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
+total_sum_of_site_widths <- sum(site_width_info$width_m)
+
+prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_area
 
 ##### Estimate some of the "best estimates" of metrics/parameters
 breeding_size_mean <- mean(recap_first_female$size)
@@ -469,10 +473,13 @@ total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filt
 recruited_tagged_offspring_oursites <- n_offspring_matched/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
 
 # Scale up by the proportion of the kernel area included within our sites (assuming patchiness of habitat outside our sites is the same as within)
-recruited_tagged_offspring <- recruited_tagged_offspring_oursites/prop_total_disp_area_sampled_best_est
+recruited_tagged_offspring_kernel <- recruited_tagged_offspring_oursites/prop_total_disp_area_sampled_best_est
+
+# Scale up by the proportion of the sampling area (assumed to be the same as the greater region) that is habitat
+recruited_tagged_offspring_habprop <- recruited_tagged_offspring_kernel/prop_sampling_area_habitat
 
 # Estimate survival from eggs-recruits by seeing how many "tagged" offspring we found out of eggs "tagged" parents produced
-recruits_per_egg_best_est <- recruited_tagged_offspring/tagged_eggs_6cm
+recruits_per_egg_best_est <- recruited_tagged_offspring_habprop/tagged_eggs_6cm
 
 # Scale up by DD
 recruited_tagged_offspring_DDscaled <- scaleTaggedRecruitsDD(recruited_tagged_offspring, perc_UNOC_val, perc_APCL_val)
@@ -1116,9 +1123,17 @@ assignedOffspring_plot <- ggplot(data = output_uncert_all$metric_vals_with_param
   theme_bw()
 
 # Proportion habitat 
-prop_hab_vals_for_plot <- data.frame(value = c("all sites \n across time", "dispersal kernel \n area", "additional habitat \n without DD"),
-                                     estimate = c(total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best_est, (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
-propHabitat_plot <- ggplot(data = prop_hab_vals_for_plot, aes(x = value, y = estimate)) +
+# P_h = cumulative proportion sites sampled across time
+# P_d = proportion of the dispersal kernel from each site covered by our sampling region
+# P_s = proportion of our sampling region that is habitat
+# P_DD = proportion habitat available to juveniles if exclude DD
+
+prop_scaling_vals_for_plot <- data.frame(value = c("P_h", "P_d", "P_s", "P_DD"),
+                                         estimate = c(total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best_est,
+                                                      prop_sampling_area_habitat, (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
+# prop_hab_vals_for_plot <- data.frame(value = c("prop sampled all \n sites across time", "dispersal kernel \n area", "additional habitat \n without DD"),
+#                                      estimate = c(total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best_est, (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
+propHabitat_plot <- ggplot(data = prop_scaling_vals_for_plot, aes(x = value, y = estimate)) +
   geom_point() +
   xlab("") + ylab("proportion") + ggtitle("Habitat scaling") +
   ylim(c(0,1.8)) +
