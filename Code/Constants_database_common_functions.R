@@ -370,12 +370,19 @@ gps_Info <- gps_db %>%
 all_parents <- all_parents %>%
   mutate(fish_indiv = as.character(fish_indiv))
 
+# fish_indiv and gen_ids have changed since all_parents source file was created, matching to site by sample_id
+#all_parents_by_site_t1 <- left_join(all_parents, allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "sample_id")
+#all_parents_by_site_t2 <- left_join(all_parents, allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "gen_id")
+#all_parents_by_site_t3 <- left_join(all_parents, allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "fish_indiv")
+
 # Then join the two so parents have site assigned to them
-all_parents_by_site <- left_join(all_parents, allfish_caught %>% select(fish_indiv, site), by = "fish_indiv") %>%
-  distinct(fish_indiv, .keep_all = TRUE)
+all_parents_by_site <- left_join(all_parents %>% dplyr::rename(fish_indiv_parent = fish_indiv, gen_id_parent = gen_id), 
+                                 allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "sample_id") %>%
+  distinct(fish_indiv, .keep_all = TRUE)  # this doesn't actually remove any for now, think about whether it should be included
 
 #################### Save files ####################
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
+save(all_parents_by_site, file = here::here("Data/Script_outputs", "all_parents_by_site.RData"))
 save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))
 
 
