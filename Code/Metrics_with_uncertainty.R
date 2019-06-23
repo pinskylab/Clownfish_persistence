@@ -482,7 +482,7 @@ recruited_tagged_offspring_habprop <- recruited_tagged_offspring_kernel/prop_sam
 recruits_per_egg_best_est <- recruited_tagged_offspring_habprop/tagged_eggs_6cm
 
 # Scale up by DD
-recruited_tagged_offspring_DDscaled <- scaleTaggedRecruitsDD(recruited_tagged_offspring, perc_UNOC_val, perc_APCL_val)
+recruited_tagged_offspring_DDscaled <- scaleTaggedRecruitsDD(recruited_tagged_offspring_habprop, perc_UNOC_val, perc_APCL_val)
 
 # New best est with DD
 recruits_per_egg_best_est_DD <- recruited_tagged_offspring_DDscaled/tagged_eggs_6cm
@@ -864,8 +864,8 @@ LEP_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$recruits_per_egg
 
 LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
 
-##### What-if calculation 4) For the largest patch to be SP (highest p(i,i)), what would LRP need to be? And then what would LEP and egg-recruit survival need to be to acheive that LRP?
-highest_self_disp <- max(best_est)
+# ##### What-if calculation 4) For the largest patch to be SP (highest p(i,i)), what would LRP need to be? And then what would LEP and egg-recruit survival need to be to acheive that LRP?
+# highest_self_disp <- max(best_est)
 
 
 ##### What-if calculation 3) What would egg-recruit survival need to be for one of the patches to be SP? 
