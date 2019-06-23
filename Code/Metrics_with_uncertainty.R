@@ -545,6 +545,7 @@ SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
 Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
 k_growth_set = growth_info_estimate$k_est  # growth (k)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
+Sl_set = rnorm(n_runs, mean = Sl_mean, sd = Sl_se)  # adult size-survival relationship
 k_connectivity_set = k_connectivity_values$V1
 
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
@@ -631,7 +632,7 @@ param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_set,
+         k_growth = k_growth_mean, s = s, Sl = Sl_set, Linf = Linf_growth_mean, Sint = Sint_set,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -709,7 +710,7 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
+         k_growth = k_growth_set, s = s, Sl = Sl_set, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -833,7 +834,7 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_set,
+         k_growth = k_growth_set, s = s, Sl = Sl_set, Linf = Linf_set, Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
