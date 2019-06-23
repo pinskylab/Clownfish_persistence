@@ -67,9 +67,15 @@ start_recruit_sd = 0.1  # should estimate this somehow! Or do sensitivity to it?
 ##### Parameter info (candidates for uncertainty)
 
 # Growth (for LEP)
-s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from... should update it with my estimates
+# s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from... should update it with my estimates
 k_growth_mean = mean(growth_info_estimate$k_est)  # from Growth_analysis growth work (very simple)
 Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # from Growth_analysis growth work (very simple)
+
+# estimating s - sd of size in a year from a starting size in year 1 (using mean size of L1)
+mean_L1_size <- mean(recap_pairs_year$L1)
+size_around_mean_L1_size = 0.1
+s <- sd((recap_pairs_year %>% filter(mean_L1_size - size_around_mean_L1_size <= L1 & L1 <= mean_L1_size + size_around_mean_L1_size))$L2)
+
 #k_growth_mean = 0.9447194  # lowest AIC model
 #Linf_growth_mean = 10.50670  # lowest AIC model
 #Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
@@ -1074,6 +1080,8 @@ dev.off()
 #   theme_bw() +
 #   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
+########## Appendix plots: ##########
+
 ##### Inputs 
 # Start-recruit size
 startRecruit_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size)) +
@@ -1293,8 +1301,6 @@ dev.off()
 #   theme_bw() +
 #   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
 # dev.off()
-
-########## Appendix plots: ##########
 
 ##### Proportion of total kernel area from each site covered by our sampling
 pdf(file = here('Plots/FigureDrafts', 'Prop_of_kernel_area_sampled_by_site.pdf'))
