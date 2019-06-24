@@ -151,10 +151,11 @@ findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) 
 }
 
 # Find scaled number of tagged recruits we would expect to have found if we sampled the whole area and caught all the fish
-scaleTaggedRecruits = function(offspring_assigned_to_parents, total_prop_hab_sampled, prob_capture, prop_total_disp_area_sampled, prop_hab) {
-  recruited_tagged_offspring_total_oursites = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)  # scale by proportion of habitat in our sites we sampled and by prob of catching a fish
-  recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/(prop_total_disp_area_sampled*prop_hab)
-  return(recruited_tagged_offspring_total)
+scaleTaggedRecruits = function(offspring_assigned, total_prop_hab_sampled, prob_capture, prop_total_disp_area_sampled, prop_hab) {
+  rto <- offspring_assigned/(total_prop_hab_sampled*prob_capture*prop_total_disp_area_sampled*prop_hab)
+  #recruited_tagged_offspring_total_oursites = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)  # scale by proportion of habitat in our sites we sampled and by prob of catching a fish
+  #recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/(prop_total_disp_area_sampled*prop_hab)
+  return(rto)
 }
 
 # Find scaled number of tagged recruits by open habitat, density dependence
@@ -496,6 +497,10 @@ recruits_per_egg_best_est_DD <- recruited_tagged_offspring_DDscaled/tagged_eggs_
 
 assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of genotyped offspring that were assigned to parents in parentage analysis
 
+# Recruits per egg just arriving to our sites (for an LRP for our sites that includes dispersal mortality in the egg-recruit surv)
+recruits_per_egg_oursites <- recruited_tagged_offspring_oursites/tagged_eggs_6cm
+recruits_per_egg_oursites_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_oursites, perc_UNOC_val, perc_APCL_val)/tagged_eggs_6cm
+
 ##### How big are the offspring? What size should we use for recruits?
 mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  # might be duplicate observations of fish in here, but I don't think so - should check
 #mean_sampled_offspring_size <- mean(n_offspring_genotypes_df$size, rm.na = TRUE)  # this is just one of the obs of each of these fish... not sure how many duplicates there are, should really check...
@@ -546,6 +551,8 @@ LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R
 NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
 SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
 
+LEP_R_oursites <- recruits_per_egg_oursites*LEP_best_est
+LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
 
 #################### Run the metrics for uncertainty in the parameter estimates: ####################
 ### Generate sets of parameters for uncertainty
@@ -582,28 +589,28 @@ start_recruit_size_options <- data.frame(recruit_size = c('3.5cm', '4.75cm', '6.
 # Way one: uncertainty in the number of offspring that get matched through parentage analysis
 n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotyped, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
 
-# I think the rest of this is now incorporated into the calcMetrics function
-scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_mean, prop_total_disp_area_sampled_best_est)
-# recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)  # this was the problem!! Accidentally put that those tagged recruits came from one tagged parent's egg output, not all the tagged parents
-recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, tagged_eggs_6cm)
-
-# Way two: uncertainty in probability of capturing a fish (so number of offspring we find from the tagged parents) - is this worth it?
-scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_matched, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
-# recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, LEP_6cm)
-recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, tagged_eggs_6cm)
-
-# Way three: both together
-scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
-# recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, LEP_6cm)
-recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, tagged_eggs_6cm)
-
-# Compare the uncertainty in recruits-per-egg (rbinom for assigned offspring, prob_r, both), for plot later
-recruits_per_egg_uncertainty <- data.frame(recruits_per_egg = c(recruits_per_egg_set1, recruits_per_egg_set2, recruits_per_egg_set3),
-                                           method = c(rep("n assigned offspring", n_runs), rep("prob r", n_runs), rep("both", n_runs)),
-                                           stringsAsFactors = FALSE)
-
-# # Pick a recruits_per_egg_set to use
-# recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
+# # I think the rest of this is now incorporated into the calcMetrics function
+# scaled_tagged_recruits_set1 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_mean, prop_total_disp_area_sampled_best_est)
+# # recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, LEP_6cm)  # this was the problem!! Accidentally put that those tagged recruits came from one tagged parent's egg output, not all the tagged parents
+# recruits_per_egg_set1 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set1, tagged_eggs_6cm)
+# 
+# # Way two: uncertainty in probability of capturing a fish (so number of offspring we find from the tagged parents) - is this worth it?
+# scaled_tagged_recruits_set2 <- scaleTaggedRecruits(n_offspring_matched, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
+# # recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, LEP_6cm)
+# recruits_per_egg_set2 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set2, tagged_eggs_6cm)
+# 
+# # Way three: both together
+# scaled_tagged_recruits_set3 <- scaleTaggedRecruits(n_offspring_parentage_set, (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area, prob_r_set, prop_total_disp_area_sampled_best_est)
+# # recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, LEP_6cm)
+# recruits_per_egg_set3 <- findRecruitsPerTaggedEgg(scaled_tagged_recruits_set3, tagged_eggs_6cm)
+# 
+# # Compare the uncertainty in recruits-per-egg (rbinom for assigned offspring, prob_r, both), for plot later
+# recruits_per_egg_uncertainty <- data.frame(recruits_per_egg = c(recruits_per_egg_set1, recruits_per_egg_set2, recruits_per_egg_set3),
+#                                            method = c(rep("n assigned offspring", n_runs), rep("prob r", n_runs), rep("both", n_runs)),
+#                                            stringsAsFactors = FALSE)
+# 
+# # # Pick a recruits_per_egg_set to use
+# # recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
 
 ##### Do runs with uncertainty
 ### Make parameter set with different kinds of uncertainty included
@@ -1243,6 +1250,10 @@ ggplot(data = LEP_R_uncert_DD %>% filter(uncertainty_type %in% c("start recruit 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
+
+ggplot(data = LEP_R_uncert %>% filter(uncertainty_type == "assigned offspring"), aes(x=value)) +
+  geom_histogram(bins = 40)
+
 
 ##### Uncertainty in RperE
 # Without DD accounted for 
