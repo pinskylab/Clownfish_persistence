@@ -87,6 +87,11 @@ females_df <- females_df %>%
 females_df_F <- females_df_F %>%
   mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), NA, nFemalesScaled))
 
+# Find mean abundance
+females_df_F_mean <- females_df_F %>%
+  group_by(site) %>%
+  summarize(mean_abundance = mean(nFemalesEstimated, na.rm = TRUE))
+
 # # Add in "all sites combined" 
 # # For sites considered, find total proportion of habitat each makes up
 # anems_visited_by_year_totalprophab <- anems_visited_by_year %>%
