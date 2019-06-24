@@ -1048,19 +1048,28 @@ plot_grid(NP_plot, realized_C_plot, NP_plot_DD, realized_C_plot_DD, labels = c("
 dev.off()
 
 ##### Metrics: Self persistence by site
+output_uncert_all$SP_vals_with_params$site <- replace(output_uncert_all$SP_vals_with_params$site, 
+                                                      output_uncert_all$SP_vals_with_params$site=="Tamakin Dacot", 
+                                                      "Tomakin Dako")
+output_uncert_all_DD$SP_vals_with_params$site <- replace(output_uncert_all_DD$SP_vals_with_params$site, 
+                                                      output_uncert_all_DD$SP_vals_with_params$site=="Tamakin Dacot", 
+                                                      "Tomakin Dako")
+sites_for_total_areas_TD <- sites_for_total_areas
+sites_for_total_areas_TD[13] <- "Tomakin Dako"
+
 # Without accounting for DD
-SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %in% sites_for_total_areas), aes(x=reorder(site, org_geo_order), y=SP)) +
+SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %in% sites_for_total_areas_TD), aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
-  geom_point(data = SP_best_est %>% filter(site %in% sites_for_total_areas), aes(x = site, y = SP_value), color = "black") +
+  geom_point(data = SP_best_est %>% filter(site %in% sites_for_total_areas_TD), aes(x = site, y = SP_value), color = "black") +
   xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
   ylim(c(0,0.25)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
 # Accounting for DD
-SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params %>% filter(site %in% sites_for_total_areas), aes(x=reorder(site, org_geo_order), y=SP)) +
+SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params %>% filter(site %in% sites_for_total_areas_TD), aes(x=reorder(site, org_geo_order), y=SP)) +
     geom_violin(fill="grey") +
-    geom_point(data = SP_best_est_DD %>% filter(site %in% sites_for_total_areas), aes(x = site, y = SP_value), color = "black") +
+    geom_point(data = SP_best_est_DD %>% filter(site %in% sites_for_total_areas_TD), aes(x = site, y = SP_value), color = "black") +
     xlab("Site") + ylab("SP") + ggtitle("Self-persistence with DD") +
     ylim(c(0,0.25)) +
     theme_bw() +
@@ -1304,6 +1313,8 @@ dev.off()
 # dev.off()
 
 ##### Proportion of total kernel area from each site covered by our sampling
+all_parents_site$site <- replace(all_parents_site$site, all_parents_site$site=="Tamakin Dacot", "Tomakin Dako")
+
 pdf(file = here('Plots/FigureDrafts', 'Prop_of_kernel_area_sampled_by_site.pdf'))
 ggplot(data = all_parents_site, aes(x = reorder(site, site_geo_order), y = prop_disp_area_within_sites)) + # the geo orders are all off here...
   geom_bar(position = "dodge", stat = "identity") +
