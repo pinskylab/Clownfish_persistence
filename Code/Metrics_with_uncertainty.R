@@ -151,9 +151,9 @@ findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) 
 }
 
 # Find scaled number of tagged recruits we would expect to have found if we sampled the whole area and caught all the fish
-scaleTaggedRecruits = function(offspring_assigned_to_parents, total_prop_hab_sampled, prob_capture, prop_total_disp_area_sampled) {
+scaleTaggedRecruits = function(offspring_assigned_to_parents, total_prop_hab_sampled, prob_capture, prop_total_disp_area_sampled, prop_hab) {
   recruited_tagged_offspring_total_oursites = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)  # scale by proportion of habitat in our sites we sampled and by prob of catching a fish
-  recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/prop_total_disp_area_sampled
+  recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/(prop_total_disp_area_sampled*prop_hab)
   return(recruited_tagged_offspring_total)
 }
 
@@ -269,7 +269,8 @@ calcMetrics <- function(param_set, sites_and_dists, sites, DD) {
                 param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
   
   # Find egg-recruit survival (recruits/egg)
-  tagged_recruits_val = scaleTaggedRecruits(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled, param_set$prob_r, param_set$prop_total_disp_area_sampled)
+  tagged_recruits_val = scaleTaggedRecruits(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled, 
+                                            param_set$prob_r, param_set$prop_total_disp_area_sampled, param_set$prop_hab)
   
   LEP_parents = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
                         param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, 
@@ -516,7 +517,7 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
          total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # # with DD scaling
 # param_best_est_mean_collected_offspring_DD <- data.frame(t_steps = n_tsteps) %>%
@@ -617,7 +618,7 @@ param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in growth only (both Linf and k)
 param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -630,7 +631,7 @@ param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in survival only
 param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -643,7 +644,7 @@ param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in breeding size only
 param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -656,7 +657,7 @@ param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in offspring assigned to parents (affects recruits-per-egg)
 param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -669,7 +670,7 @@ param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in probability catching a fish (affects recruits-per-egg)
 param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -682,7 +683,7 @@ param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in both offspring assigned to parents and probability catching a fish (affects recruits-per-egg)
 param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -695,7 +696,7 @@ param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in dispersal only
 param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -708,7 +709,7 @@ param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Uncertainty in all parameters included for now 
 param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
@@ -721,7 +722,7 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val)  
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
 
 ### Run metrics for a bunch of different types of uncertainty - No DD
 output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_dist_info, site_vec_order, "start recruit size", FALSE)
@@ -815,7 +816,7 @@ param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_
          k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area (right?)
          offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Calculate the metrics for the best estimates
 best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_dist_info, site_vec_order$site_name, FALSE)
@@ -845,7 +846,7 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
          offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val)  
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
 
 output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff", FALSE)
 output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff", TRUE)
@@ -1052,7 +1053,7 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est %>% filter(site %in% sites_for_total_areas), aes(x = site, y = SP_value), color = "black") +
   xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
-  ylim(c(0,0.05)) +
+  ylim(c(0,0.25)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
@@ -1061,7 +1062,7 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params %>% filter(
     geom_violin(fill="grey") +
     geom_point(data = SP_best_est_DD %>% filter(site %in% sites_for_total_areas), aes(x = site, y = SP_value), color = "black") +
     xlab("Site") + ylab("SP") + ggtitle("Self-persistence with DD") +
-    ylim(c(0,0.05)) +
+    ylim(c(0,0.25)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
