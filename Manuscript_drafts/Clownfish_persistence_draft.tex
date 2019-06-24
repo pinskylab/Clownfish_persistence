@@ -327,9 +327,10 @@ We also consider trends in abundance of breeding females at each site over time 
 \text{\# females}_{i,t} = \frac{\text{\# females captured}_{i,t}}{P_{h_{i,t}}P_c}. \label{EQN_FemaleAbundance}
 \end{equation}
 
-We then fit a linear model through the time series for each site and the population overall to assess whether the slope $m$ over time indicates growth, decline, or stability in abundance:
+We then fit a linear model through the time series for each site $i$ sampled in at least three years to assess whether the slope over time is positive or negative:  %indicates growth, decline, or stability in abundance:
 \begin{equation}
-\text{\# females} = m*\text{year} + b. \label{EQN_AbundanceLM}  % There has got to be a better way to write this!
+%\text{\# females} = m*\text{year} + b. \label{EQN_AbundanceLM}  % There has got to be a better way to write this!
+\text{\# females}_i \sim \text{year}
 \end{equation}
 
 % \subsection*{Persistence metrics}
@@ -373,12 +374,12 @@ We then fit a linear model through the time series for each site and the populat
 
 \section*{Results}
 
-Our estimated abundance of females at each site over time is relatively constant [\textit{add some sort of actual analysis here}] (Fig.\ \ref{FIG_FthroughTime}), suggesting that our sample populations are stable over time.
+Our estimated abundance of females at each site over time does not suggest a clear trend in abudance (Fig.\ \ref{FIG_FthroughTime}). In our very simple look at whether abundance seems to be increasing or decreasing at the sites we sampled in at least three years, eleven sites had a positive slope over time and five had a negative slope (Fig.\ \ref{FIG_FthroughTime}q). For the two largest sites, with a mean estimated number of females of between 150-200, one has a positive slope (Wangag, Fig.\ \ref{FIG_FthroughTime}b) and one has a negative slope (Sitio Baybayon, Fig.\ \ref{FIG_FthroughTime}p) and the next two largest sites are also split. Overall, there is not a clear directional change in abundance across the sites we sample over our sampling period.
 
 \begin{figure}[H] %  abundance trends through time with some sort of time series analysis
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Time_series_scaled_F_by_site_with_lines.pdf}}
-	\caption{The estimated number of females at each site over the sampling years. The total number of females at each site was estimated by taking the number of females (fish $>$ 5 cm with the yellow pointed tail indicating female) captured at each site in each year and scaling up by the proportion of habitat sampled at that site that season (see \ref{APP_SEC_ProbHabSampled} for details) and by the average probability of capturing a fish (see \ref{APP_SEC_ProbR}). \label{FIG_FthroughTime}}
+	\caption{The estimated number of females at each site over the sampling years for sites sampled in at least three years. The total number of females at each site was estimated by scaling up the number of females captured at each site in each year by the proportion of habitat sampled at that site that season (see \ref{APP_SEC_ProbHabSampled} for details) and by the average probability of capturing a fish (see \ref{APP_SEC_ProbR}). We show the estimated abundances and trend for each site individually (a-p) and a histogram of the slopes of abundance through time (q). \label{FIG_FthroughTime}}
 \end{figure}
 
 From the mark-recapture analysis of tagged and genotyped fish, we estimate mean values of $L_\infty = 10.58 \text{cm}$ (range of estimates 10.39 - 10.75 cm) and $K = 0.928$ (range of estimates 0.854 - 1.025) for the von Bertalanffy growth curve parameters (Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{APP_TAB_Params}). For juvenile and adult (post-recruitment) survival on a log-odds scale, the best-fit model has a coefficient $b_a = 0.74 \pm 0.060$ SE for the effect of size and an intercept $b_\phi = -4.83 \pm 0.340$ SE. These results suggest that larger fish have higher annual survival, which is similar to survival estimates in other clownfish species (check Buston paper). The accompanying best-fit model for log-odds recapture probability has intercept $b_{p_r} = 17.93 \pm 0.858$ SE, size effect $b_1 = -1.816 \pm 0.080$ SE, and effect of diver distance from the anemone $b_2 = -0.171 \pm 0.021$ SE. The negative effect of both size and distance suggest that divers are less likely to recapture larger fish and those at anemones far from areas sampled, with the chance of recapturing an average-sized fish falling below 5\% if a diver stays farther than XX from its home anemone [add the recapture probability plots, like the survival one in Fig.\ \ref{FIG_ParameterInputs}, to the appendix and reference here.] 
