@@ -1129,10 +1129,29 @@ growthLinf_k_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, ae
   theme_bw()
 
 # Survival
-survivalSint_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Sint)) +
-  geom_histogram(bins=40, color='gray', fill='gray') +
-  geom_vline(xintercept = Sint_mean, color = 'black') +
-  xlab('intercept of size-survival relationship') + ggtitle('Survival') +
+# survivalSint_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Sint)) +
+#   geom_histogram(bins=40, color='gray', fill='gray') +
+#   geom_vline(xintercept = Sint_mean, color = 'black') +
+#   xlab('intercept of size-survival relationship') + ggtitle('Survival') +
+#   theme_bw()
+
+run_list <- rep(NA, n_runs*length(size.values))
+for(i in 1:n_runs) {
+  run_list_start = (length(size.values)*(i-1))+1
+  run_list_end = length(size.values)*i
+  run_list[run_list_start:run_list_end] = i
+}
+surv_input_plot_df <- data.frame(size = rep(size.values, n_runs),
+                                 run = run_list,
+                                 value = NA)
+for(i in 1:n_runs) {
+  out_vec = logit_recip(Sint_set[i] + size.values*Sl_set[i])
+  surv_input_plot_df$value[((length(size.values)*(i-1))+1):(length(size.values)*i)] = out_vec
+}
+
+survivalSintandSl_plot <- ggplot(data = surv_input_plot_df, aes(x=size, y=value, group=run)) +
+  geom_line(alpha = 0.1) +
+  xlab("size (cm)") + ylab("prob survival") + ggtitle("Survival") +
   theme_bw()
 
 # Prob r
@@ -1154,7 +1173,7 @@ assignedOffspring_plot <- ggplot(data = output_uncert_all$metric_vals_with_param
 # P_s = proportion of our sampling region that is habitat
 # P_DD = proportion habitat available to juveniles if exclude DD
 
-prop_scaling_vals_for_plot <- data.frame(value = c("P_h", "P_d", "P_s", "P_DD"),
+prop_scaling_vals_for_plot <- data.frame(value = c("P_h", "P_d", "P_s", "DD"),
                                          estimate = c(total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best_est,
                                                       prop_sampling_area_habitat, (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
 # prop_hab_vals_for_plot <- data.frame(value = c("prop sampled all \n sites across time", "dispersal kernel \n area", "additional habitat \n without DD"),
@@ -1169,7 +1188,7 @@ propHabitat_plot <- ggplot(data = prop_scaling_vals_for_plot, aes(x = value, y =
 ##### Histograms (or scatters) of all inputs into uncertainty runs
 pdf(file = here::here("Plots/FigureDrafts", "Uncertainty_inputs.pdf"))
 plot_grid(startRecruit_plot, breedingSize_plot, dispersalK_plot, 
-             growthLinf_k_plot, survivalSint_plot, probR_plot, 
+             growthLinf_k_plot, survivalSintandSl_plot , probR_plot, 
              assignedOffspring_plot, propHabitat_plot, labels = c("a","b","c","d","e","f","g","h"),  nrow=3)
 dev.off()
 
