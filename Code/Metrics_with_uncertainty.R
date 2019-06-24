@@ -1069,7 +1069,7 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est %>% filter(site %in% sites_for_total_areas_TD), aes(x = site, y = SP_value), color = "black") +
   xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
-  ylim(c(0,0.25)) +
+  ylim(c(0,1.2)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
@@ -1078,7 +1078,7 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params %>% filter(
     geom_violin(fill="grey") +
     geom_point(data = SP_best_est_DD %>% filter(site %in% sites_for_total_areas_TD), aes(x = site, y = SP_value), color = "black") +
     xlab("Site") + ylab("SP") + ggtitle("Self-persistence with DD") +
-    ylim(c(0,0.25)) +
+    ylim(c(0,1.2)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
