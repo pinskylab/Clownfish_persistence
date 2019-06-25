@@ -493,7 +493,8 @@ tagged_eggs_6cm <- n_parents_genotyped*LEP_6cm  # Use LEP from what size here? H
 tagged_eggs_3.5cm <- n_parents_genotyped*LEP_3.5cm
 
 # Find the total prop habitat sampled over time - need to update this to have the other sites...
-total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r)  # scale up by proportion of habitat sampled and probability of catching a fish
+#total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r)  # scale up by proportion of habitat sampled and probability of catching a fish
+total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area  # scale up by proportion of habitat sampled 
 
 # Scale up by the proportion of site area we sampled over the time frame of finding parentage matches and prob of catching a fish
 recruited_tagged_offspring_oursites <- n_offspring_matched/((total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r))  # scale up by proportion of habitat sampled and probability of catching a fish
@@ -536,7 +537,7 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
          k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, recruits_per_egg = recruits_per_egg_best_est,
+         breeding_size = breeding_size_mean, #recruits_per_egg = recruits_per_egg_best_est,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
          total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -563,11 +564,13 @@ LEP_best_est <- best_est_metrics_mean_offspring$LEP
 LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R
 NP_best_est <- best_est_metrics_mean_offspring$NP
 SP_best_est <- best_est_metrics_mean_offspring$SP
+LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local
 
 LEP_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP
 LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R
 NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
 SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
+LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local
 
 LEP_R_oursites <- recruits_per_egg_oursites*LEP_best_est
 LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
@@ -841,7 +844,7 @@ param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_
          k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area (right?)
          offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = 1) 
 
 # Calculate the metrics for the best estimates
 best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_dist_info, site_vec_order$site_name, FALSE)
@@ -871,7 +874,7 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
          offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = 1)  
 
 output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff", FALSE)
 output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_dist_info, site_vec_order, "all: alloff", TRUE)
@@ -1022,13 +1025,13 @@ LEP_plot <- ggplot(data = output_uncert_all$LEP_out_df, aes(x=value)) +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
-  xlab('LEP') + ggtitle('Lifetime egg production') +
+  xlab('LEP') + ggtitle('LEP') +
   theme_bw()
 
 RperE_plot <- ggplot(data = output_uncert_all$RperE_out_df, aes(x=value)) +
   geom_histogram(bins=50, color='gray', fill='gray') +
   geom_vline(xintercept = recruits_per_egg_best_est, color = "black") +
-  xlab('recruits-per-egg') + ggtitle('Egg-recruit survival') +
+  xlab('recruits-per-egg') + ggtitle('Egg-recruit surv') +
   theme_bw()
 
 LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
@@ -1036,14 +1039,20 @@ LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
-  xlab('LRP') + ggtitle('Lifetime recruit production') +
+  xlab('LRP') + ggtitle('LRP') +
+  theme_bw()
+
+LEP_R_local_plot <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
+  xlab("LRP_local") + ggtitle("LRP_local") +
   theme_bw()
 
 # With accounting for DD
 RperE_plot_DD <- ggplot(data = output_uncert_all_DD$RperE_out_df, aes(x=value)) +
   geom_histogram(bins=50, color='gray', fill='gray') +
   geom_vline(xintercept = recruits_per_egg_best_est_DD, color = "black") +
-  xlab('recruits-per-egg') + ggtitle('Egg-recruit survival with DD') +
+  xlab('recruits-per-egg') + ggtitle('Egg-recruit surv,DD') +
   theme_bw()
 
 LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
@@ -1054,9 +1063,16 @@ LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) 
   xlab('LRP') + ggtitle('LRP with DD') +
   theme_bw()
 
+LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
+  xlab("LRP_local") + ggtitle("LRP_local with DD") +
+  theme_bw()
+
 pdf(file = here('Plots/FigureDrafts', 'LEP_RperE_LRP.pdf'), width=8.5, height=6)
-plot_grid(LEP_plot, RperE_plot, LEP_R_plot,
-             NULL, RperE_plot_DD, LEP_R_plot_DD, labels = c("a","b","c","","d","e"), nrow=2)
+plot_grid(LEP_plot, RperE_plot, LEP_R_plot, LEP_R_local_plot,
+          NULL, RperE_plot_DD, LEP_R_plot_DD, LEP_R_local_plot_DD,
+          labels = c("a","b","c","d","","e","f","g"), nrow=2)
 dev.off()
 
 ##### Metrics: NP, realized connectivity matrix -- GOT A WEIRD ERROR ABOUT SCALE FOR COMPLEX? MAYBE FROM CMAT? BUT CAME WHEN I PUT THE TWO PLOTS TOGETHER SO NOT SURE?
@@ -1111,7 +1127,7 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params %>% filter(site %
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est %>% filter(site %in% sites_for_total_areas_TD), aes(x = site, y = SP_value), color = "black") +
   xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
-  ylim(c(0,1.2)) +
+  ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
@@ -1120,7 +1136,7 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params %>% filter(
     geom_violin(fill="grey") +
     geom_point(data = SP_best_est_DD %>% filter(site %in% sites_for_total_areas_TD), aes(x = site, y = SP_value), color = "black") +
     xlab("Site") + ylab("SP") + ggtitle("Self-persistence with DD") +
-    ylim(c(0,1.2)) +
+    ylim(c(0,0.65)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
