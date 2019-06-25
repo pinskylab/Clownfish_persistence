@@ -158,6 +158,14 @@ scaleTaggedRecruits = function(offspring_assigned, total_prop_hab_sampled, prob_
   return(rto)
 }
 
+# Just consider recruits at our sites
+scaleTaggedRecruits_local = function(offspring_assigned, total_prop_hab_sampled, prob_capture) {
+  rto <- offspring_assigned/(total_prop_hab_sampled*prob_capture)
+  #recruited_tagged_offspring_total_oursites = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)  # scale by proportion of habitat in our sites we sampled and by prob of catching a fish
+  #recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/(prop_total_disp_area_sampled*prop_hab)
+  return(rto)
+}
+
 # Find scaled number of tagged recruits by open habitat, density dependence
 scaleTaggedRecruitsDD = function(recruited_tagged_offspring, perc_UNOC, perc_APCL) {
   recruited_tagged_offspring_total_DD = ((perc_APCL+perc_UNOC)/perc_UNOC)*recruited_tagged_offspring  # scale as if currently-occupied APCL habitat is open
@@ -273,6 +281,9 @@ calcMetrics <- function(param_set, sites_and_dists, sites, DD) {
   tagged_recruits_val = scaleTaggedRecruits(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled, 
                                             param_set$prob_r, param_set$prop_total_disp_area_sampled, param_set$prop_hab)
   
+  tagged_recruits_local = scaleTaggedRecruits_local(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled, 
+                                                    param_set$prob_r)
+  
   LEP_parents = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
                         param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year, 
                         param_set$breeding_size, 6.0, param_set$start_recruit_sd, 
@@ -282,8 +293,10 @@ calcMetrics <- function(param_set, sites_and_dists, sites, DD) {
 
   if(DD == "TRUE"){
     tagged_recruits_val_scaled = scaleTaggedRecruitsDD(tagged_recruits_val, param_set$perc_UNOC, param_set$perc_APCL)
+    tagged_recruits_local_scaled = scaleTaggedRecruitsDD(tagged_recruits_local, param_set$perc_UNOC, param_set$perc_APCL)
   } else {
     tagged_recruits_val_scaled = tagged_recruits_val
+    tagged_recruits_local_scaled = tagged_recruits_local
   }
   #recruits_per_egg = findRecruitsPerTaggedEgg(tagged_recruits_val, tagged_eggs_val)
   recruits_per_egg = tagged_recruits_val_scaled/tagged_eggs_val
@@ -293,6 +306,7 @@ calcMetrics <- function(param_set, sites_and_dists, sites, DD) {
   
   # Find LEP in terms of recruits
   LEP_R = LEP*recruits_per_egg
+  LEP_R_local = LEP*(tagged_recruits_local_scaled/tagged_eggs_val)
   
   # Find connectivity matrix - EVENTUALLY, WILL USE CONFIDENCE INTERVALS AROUND DISPERSAL KERNELS TO DO THIS - FOR ALL-YEARS ONE? NOT SURE...
   #conn_matrix = Cmatrix
@@ -322,7 +336,7 @@ calcMetrics <- function(param_set, sites_and_dists, sites, DD) {
   }
   
   # Put outputs together into one list
-  out = list(NP = Re(eig_cR$values[1]), SP = SP_values, LEP = LEP, LEP_R = LEP_R , recruits_per_egg = recruits_per_egg, 
+  out = list(NP = Re(eig_cR$values[1]), SP = SP_values, LEP = LEP, LEP_R = LEP_R, LEP_R_local = LEP_R_local, recruits_per_egg = recruits_per_egg, 
              conn_matrix = conn_matrix, conn_matrixR = conn_matrixR, Cmat = Cmat)
 }
 
@@ -331,10 +345,11 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
   
   LEP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   LEP_R_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_local_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R_local', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   RperE_out_df <- data.frame(value = rep(NA, n_runs), metric = 'recruits per egg', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   NP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'NP', inout = 'output', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
  
-  metric_vals <- data.frame(run = seq(1:n_runs), LEP = NA, LEP_R = NA, recruits_per_egg = NA, NP = NA, uncertainty_type = set_name, stringsAsFactors = FALSE)
+  metric_vals <- data.frame(run = seq(1:n_runs), LEP = NA, LEP_R = NA, LEP_R_local = NA, recruits_per_egg = NA, NP = NA, uncertainty_type = set_name, stringsAsFactors = FALSE)
   
   # Create vector of sites for SP dataframe      
   runsrepped = rep(1, length(site_vec_order$site_name))                                                         
@@ -357,11 +372,13 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
     # Fill in the metrics
     LEP_out_df$value[i] = metrics_output$LEP
     LEP_R_out_df$value[i] = metrics_output$LEP_R
+    LEP_R_local_out_df$value[i] = metrics_output$LEP_R_local
     RperE_out_df$value[i] = metrics_output$recruits_per_egg
     NP_out_df$value[i] = metrics_output$NP
     
     metric_vals$LEP[i] = metrics_output$LEP
     metric_vals$LEP_R[i] = metrics_output$LEP_R
+    metric_vals$LEP_R_local[i] = metrics_output$LEP_R_local
     metric_vals$recruits_per_egg[i] = metrics_output$recruits_per_egg
     metric_vals$NP[i] = metrics_output$NP
     
@@ -391,9 +408,10 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
   SP_vals_with_params <- left_join(SP_out_df, metric_vals_with_params, by='run') %>%
     dplyr::rename(SP = value)
   
-  out = list(LEP_out_df = LEP_out_df, LEP_R_out_df = LEP_R_out_df, RperE_out_df = RperE_out_df, NP_out_df = NP_out_df,
-            metric_vals_with_params = metric_vals_with_params, SP_vals_with_params = SP_vals_with_params, params_in = param_sets,
-            uncertainty_type = set_name)
+  out = list(LEP_out_df = LEP_out_df, LEP_R_out_df = LEP_R_out_df, LEP_R_local_out_df = LEP_R_local_out_df,
+             RperE_out_df = RperE_out_df, NP_out_df = NP_out_df,
+             metric_vals_with_params = metric_vals_with_params, SP_vals_with_params = SP_vals_with_params, params_in = param_sets,
+             uncertainty_type = set_name)
   
   return(out)
 }
@@ -889,6 +907,30 @@ LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
 
 ##### What-if calculation 5) If we include the ghost population recruits too, is the population NP persistent?
 
+#################### Save output: ####################
+save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
+save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
+save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
+save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
+save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
+save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
+save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
+save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
+save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
+save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
+save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
+save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
+
+save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
+save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
+save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
+save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_uncert_survival_DD.RData"))
+save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
+save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
+save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
+save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
+save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
+save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
 
 #################### Plots: ####################
 
