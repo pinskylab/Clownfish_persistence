@@ -1076,6 +1076,13 @@ plot_grid(LEP_plot, RperE_plot, LEP_R_plot, LEP_R_local_plot,
 dev.off()
 
 ##### Metrics: NP, realized connectivity matrix -- GOT A WEIRD ERROR ABOUT SCALE FOR COMPLEX? MAYBE FROM CMAT? BUT CAME WHEN I PUT THE TWO PLOTS TOGETHER SO NOT SURE?
+best_est_metrics_mean_offspring$Cmat$org_site <- replace(best_est_metrics_mean_offspring$Cmat$org_site, 
+                                                         best_est_metrics_mean_offspring$Cmat$org_site=="Tamakin Dacot", 
+                                                      "Tomakin Dako")
+best_est_metrics_mean_offspring_DD$Cmat$org_site <- replace(best_est_metrics_mean_offspring_DD$Cmat$org_site, 
+                                                         best_est_metrics_mean_offspring_DD$Cmat$org_site=="Tamakin Dacot", 
+                                                         "Tomakin Dako")
+
 # Without accounting for DD
 NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
