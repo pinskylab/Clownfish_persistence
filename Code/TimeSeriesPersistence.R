@@ -344,6 +344,7 @@ dev.off()
 
 
 #################### Saving output: ####################
+save(females_df_F, file=here("Data/Script_outputs", "females_df_F.RData"))
 
 #################### Old code: ####################
 
