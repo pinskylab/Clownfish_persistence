@@ -8,14 +8,16 @@ library(lubridate)
 library(stringr)
 library(here)
 
-source(here::here("Code", "Pull_data_from_database.R"))
+# source(here::here("Code", "Pull_data_from_database.R"))
 
 #################### Load saved data from database: ####################
-# load(file = here::here("Data/Data_from_database", "anem_db.RData"))
-# load(file = here::here("Data/Data_from_database", "fish_db.RData"))
-# load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
-# load(file = here::here("Data/Data_from_database", "dives_db.RData"))
-# load(file = here::here("Data/Data_from_database", "gps_db.RData"))
+load(file = here::here("Data/Data_from_database", "anem_db.RData"))
+load(file = here::here("Data/Data_from_database", "fish_db.RData"))
+load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
+load(file = here::here("Data/Data_from_database", "dives_db.RData"))
+load(file = here::here("Data/Data_from_database", "gps_db.RData"))
+
+fish_obs = readRDS(file = here::here("Data/From_other_analyses", "fish-obs.RData"))
 
 #################### Data from other analyses: ####################
 
@@ -49,13 +51,16 @@ all_offspring <- read.table(text = getURL("https://raw.githubusercontent.com/kat
 k_connectivity_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/bootstrapped_k_allyears.csv"), header = T, stringsAsFactors = F)
 
 # Pull out number of parents, number of offspring genotyped, number of offspring matched
-n_offspring_genotyped <- (kernel_summary %>% filter(year == "all years", MLE_param == "k"))$n_offs_sampled
-n_offspring_matched <- (kernel_summary %>% filter(year == "all years", MLE_param == "k"))$n_parentage_matches
+n_offspring_genotyped <- (kernel_summary %>% filter(year == "2012-2018", MLE_param == "k"))$n_offs_sampled
+n_offspring_matched <- (kernel_summary %>% filter(year == "2012-2018", MLE_param == "k"))$n_parentage_matches
 n_parents_genotyped <- length((all_parents %>% distinct(fish_indiv))$fish_indiv)
 
 # Pull out kernel fits
-theta_allyears <- (kernel_summary %>% filter(year == "all years", MLE_param == "k"))$best_theta
-k_allyears <- (kernel_summary %>% filter(year == "all years", MLE_param == "k"))$best_k
+# theta_allyears <- (kernel_summary %>% filter(year == "all years", MLE_param == "k"))$best_theta
+# k_allyears <- (kernel_summary %>% filter(year == "all years", MLE_param == "k"))$best_k
+theta_allyears <- (kernel_summary %>% filter(year == "2012-2018", MLE_param == "k"))$best_theta  # noticed on 8/8/19 that KC changed years to 2012-2018 from "all years"
+k_allyears <- (kernel_summary %>% filter(year == "2012-2018", MLE_param == "k"))$best_k
+
 
 ##### Fecundity info from Adam
 # Size-fecundity model
