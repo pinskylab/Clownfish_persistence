@@ -74,11 +74,13 @@ site_area <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   geom_polygon(data = patches[[15]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
   geom_polygon(data = patches[[16]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
   geom_line(data = km_line_coords, aes(x = long, y = lat, group = group), color = "black", lwd = 2) +
-  annotate(geom = 'text', x = xlims[1]+0.025, y = 10.65, label = '5 km', size = 4) +
+  #annotate(geom = 'text', x = xlims[1]+0.025, y = 10.65, label = '5 km', size = 4) +
+  annotate(geom = 'text', x = xlims[1]+0.012, y = 10.65, label = '5 km', size = 5) +
   xlab("Longitude (°E)") + ylab('Latitude (°N)') +
-  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
+  #geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
   geom_line(data = hab_line_coords, aes(x = long, y = lat, group = group), color = colslist[3], lwd = 2) +
-  annotate(geom = "text", x = xlims[1]+0.033, y = 10.865, label = "Habitat \n patches", size = 4)
+  #annotate(geom = "text", x = xlims[1]+0.033, y = 10.865, label = "Habitat \n patches", size = 4)
+  annotate(geom = "text", x = xlims[1]+0.012, y = 10.865, label = "Habitat \n patches", size = 5)
 
 ##### Inset map of Philippines
 inset_map <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
@@ -91,7 +93,8 @@ inset_map <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
         axis.ticks=element_blank(),
         axis.line=element_blank()) +
   geom_polygon(data = zoomed_area_coords, aes(x = long, y = lat, group = group), fill = NA, color = "black", lwd = 1) +
-  annotate(geom = 'text', x = 120.8, y = 8.3, label = 'Philippines', cex=4) 
+  #annotate(geom = 'text', x = 120.8, y = 8.3, label = 'Philippines', cex=4) 
+  annotate(geom = 'text', x = 120.8, y = 8.3, label = 'Philippines', cex=5) 
 
 ##### Example habitat in a site
 # Filter out anems in the example sites, 
@@ -133,6 +136,16 @@ top_row <- plot_grid(sites_with_inset, Albuera_patch, labels = c("a", "b", ncol 
 pdf(file=here::here("Plots/FigureDrafts", "Map_and_photo.pdf"))
 #plot_grid(sites_with_inset, right_column, labels = c("a", ""), ncol = 2)
 plot_grid(top_row, photo_plot, labels = c("","c"), nrow=2, rel_heights = c(1.7,1))
+dev.off()
+
+
+##### Map with inset (but no red box) for poster
+sites_with_inset_for_poster <- ggdraw(site_area) + 
+  draw_plot(inset_map + theme(legend.justification = "top"), 0.25, 0.2, 0.5, 0.5) +
+  theme(text = element_text(size=40))
+
+pdf(file=here::here("Plots/Poster_presentation_plots","Map.pdf"), width = 8, height=11)
+sites_with_inset_for_poster
 dev.off()
 
 # Put example patch and photo together - right side of figure
