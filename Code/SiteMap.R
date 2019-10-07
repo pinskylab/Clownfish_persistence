@@ -148,6 +148,31 @@ pdf(file=here::here("Plots/Poster_presentation_plots","Map.pdf"), width = 8, hei
 sites_with_inset_for_poster
 dev.off()
 
+##### Map of just sites for scaling-up-recruits figure
+pdf(file=here::here("Plots/FigureDrafts", "Coastline_patch_map.pdf"), width=5)
+ggplot(data = coast, aes(x = long, y = lat, group = group)) +
+  coord_fixed(xlim = xlims, ylim = ylims, 1) +  # had 1.3 earlier, depends where you are on the globe?
+  geom_polygon(colour = "grey", fill = "grey") +
+  geom_polygon(data = corner_coords, aes(x = long, y = lat, group = group), fill = "grey", colour = "grey") +
+  geom_polygon(data = patches[[1]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[2]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[3]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[4]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[5]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[6]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[7]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[8]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[9]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[10]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[11]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[12]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[13]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[14]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[15]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  geom_polygon(data = patches[[16]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
+  theme_nothing()
+dev.off()
+
 # Put example patch and photo together - right side of figure
 #right_column <- plot_grid(Albuera_patch, photo_plot, labels = c("b", "c"), ncol = 1, align = "v", rel_heights = c(1.5, 1))
 #plot_grid(sites_with_inset, Albuera_patch, photo_plot, labels = c("a","b","c"), ncol = 3, align = "h")
