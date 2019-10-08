@@ -40,6 +40,7 @@ xlims_Alb = c(124.708, 124.7174) # Albuera patch
 ylims_Alb = c(10.867, 10.875)
 xlims_PHL = c(118,127)  # extent of Philippines map
 ylims_PHL = c(6,18)
+ylims_schematic = c(10.58, 10.92)
 
 # Set coordinates for boxes, lines, etc. (group numbers are unimportant, just so it plots easier)
 corner_coords = data.frame(long = c(124.76, 124.81, 124.81), lat = c(10.6, 10.65, 10.6), group = 5)  # missing piece of coast to add back in
@@ -48,6 +49,9 @@ hab_line_coords = data.frame(long = rep(xlims[1],2), lat = c(10.85, 10.90), grou
 red_box_coords <- data.frame(long = c(xlims_Alb, rev(xlims_Alb)), lat = c(rep(ylims_Alb[1],2), rep(ylims_Alb[2],2)), group = 8)
 zoomed_area_coords <- data.frame(long = c(xlims_Alb[1]-0.2, xlims_Alb[2]+0.2, xlims_Alb[2]+0.2, xlims_Alb[1]-0.2),
                                    lat = c(ylims_Alb[1]-0.2, ylims_Alb[1]-0.2, ylims_Alb[2]+0.2, ylims_Alb[2]+0.2), group = 9)
+#upper_corner_coords = data.frame(long = c(xlims[2], 124.79, xlims[2]), lat = c(ylims[2], ylims_schematic[2], ylims_schematic[2]), group=10)  # fill in missing chunk of land outside of sampling area in map for scaling schematic
+upper_corner_coords = data.frame(long = c(124.81, 124.69, 124.81), lat = c(ylims[2], ylims_schematic[2]+0.2, ylims_schematic[2]+0.2), group=10)  # fill in missing chunk of land outside of sampling area in map for scaling schematic
+
 # Set colors
 colslist = brewer.pal(3, name="Dark2")
 
@@ -151,9 +155,10 @@ dev.off()
 ##### Map of just sites for scaling-up-recruits figure
 pdf(file=here::here("Plots/FigureDrafts", "Coastline_patch_map.pdf"), width=5)
 ggplot(data = coast, aes(x = long, y = lat, group = group)) +
-  coord_fixed(xlim = xlims, ylim = ylims, 1) +  # had 1.3 earlier, depends where you are on the globe?
+  coord_fixed(xlim = xlims, ylim = ylims_schematic, 1) +  # had 1.3 earlier, depends where you are on the globe?
   geom_polygon(colour = "grey", fill = "grey") +
   geom_polygon(data = corner_coords, aes(x = long, y = lat, group = group), fill = "grey", colour = "grey") +
+  geom_polygon(data = upper_corner_coords, aes(x = long, y = lat, group = group), fill = "grey", color = "grey") +
   geom_polygon(data = patches[[1]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
   geom_polygon(data = patches[[2]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
   geom_polygon(data = patches[[3]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
