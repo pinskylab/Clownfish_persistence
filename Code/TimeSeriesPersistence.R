@@ -6,6 +6,8 @@ source(here::here('Code', 'Constants_database_common_functions.R'))
 # Load libraries
 library(ggplot2)
 library(cowplot)
+library(lme4)
+library(rethinking)
 
 # Load in site_areas
 # load(file=here::here('Data','site_areas.RData'))
@@ -26,6 +28,8 @@ site_vec_timeseries <- c("Cabatoan", "Caridad Cemetery", "Elementary School", "G
               "N. Magbangon", "S. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", "San Agustin", "Sitio Baybayon", 
               "Tamakin Dacot", "Visca", "Wangag")
 
+# Number of sites
+n_sites = 19
 #################### Functions: ####################
 
 
@@ -80,17 +84,87 @@ females_df_F <- females_df_F %>%
   mutate(prob_r = prob_r_avg) %>%
   mutate(nFemalesScaled = nFemalesRaw/(prob_r*prop_hab_sampled_tidied)) 
 
-# Fix sites that are sampled but with 0 proportion habitat sampled (S. Magbangon in 2017)
+# For sites that are sampled but have Inf for scaled females b/c proportion hab sampled was 0, make the females estimated the raw # instead of NA
 females_df <- females_df %>%
-  mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), NA, nFemalesScaled))
+  mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), nFemalesRaw, nFemalesScaled)) %>%
+  mutate(nF = round(nFemalesEstimated))
 
 females_df_F <- females_df_F %>%
-  mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), NA, nFemalesScaled))
+  mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), nFemalesRaw, nFemalesScaled)) %>%
+  mutate(nF = round(nFemalesEstimated))
+
+# # Fix sites that are sampled but with 0 proportion habitat sampled (S. Magbangon in 2017)
+# females_df <- females_df %>%
+#   mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), NA, nFemalesScaled))
+# 
+# females_df_F <- females_df_F %>%
+#   mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), NA, nFemalesScaled))
 
 # Find mean abundance
 females_df_F_mean <- females_df_F %>%
   group_by(site) %>%
   summarize(mean_abundance = mean(nFemalesEstimated, na.rm = TRUE))
+
+
+##### Fit mixed linear model
+abundance_model <- glmer(nF ~ year + (year|site), data = females_df_F, family = poisson)
+abundance_model_a <- glmer(nF ~ year + (year|site), data = females_df_F, family = poisson, glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000)))
+abundance_model2 <- glmer(nF ~ year + (year|site), data = females_df, family = poisson)
+abundance_model3 <- glmer(nF ~ year, data = females_df_F, family = poisson)
+
+
+# Try just with sites that have multiple years, just to see how that goes...
+females_df_F_subset <- data.frame(abundance_mod_data_complete %>% filter(site %in% site_vec_timeseries))
+
+am1 <- glmer(nF ~ year_order + (year_order|site), data = females_df_F_subset, family = poisson)
+am2 <- glmer(nF ~ year_order + (year_order|site), data=abundance_mod_data_complete, family=poisson)
+
+ab_mod <- glmer(nF ~ year_order + (year_order|site), data=abundance_mod_data_complete, family=poisson)
+
+# Find mean number of fish at site (intercept) and multiplier of the mean with time (slope)
+site_trends <- data.frame(site = site_vec, mean_nF = exp(coef(ab_mod)$site[,1]), mean_multiplier = exp(coef(ab_mod)$site[,2]))
+
+site_trends_all <- data.frame(site = "all", year=1:7) %>%
+  mutate(mean_nF = exp(coef(summary(ab_mod))[1,1])*(exp(coef(summary(ab_mod))[2,1]))^year)
+
+site_trends_time <- data.frame(site = site_vec[1], year=1:7) %>%
+  mutate(mean_nF = (site_trends$mean_multiplier[1])^year*site_trends$mean_nF[1])
+
+for(i in 2:n_sites) {
+  trend_df <- data.frame(site = site_vec[i], year=1:7) %>%
+    mutate(mean_nF = (site_trends$mean_multiplier[i])^year*site_trends$mean_nF[i])
+  
+  site_trends_time <- rbind(site_trends_time, trend_df)
+}
+
+# Try plotting
+sites_together <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
+  geom_line(color="grey") +
+  geom_line(data=site_trends_all, aes(x=year, y=mean_nF), color = "black", size=1.5) +
+  xlab("year") + ylab("# females")
+  
+
+
+
+sites_together <- ggplot(data = abundance_mod_data_complete, aes(x=year_order, y=nF, color=site)) +
+  geom_point() +
+  geom_line(data=site_trends_time, aes(x=year, y=mean_nF, group = site), color="grey")
+  #geom_abline(slope=exp(coef(summary(ab_mod))[2,1]), intercept=exp(coef(summary(ab_mod))[1,1]))
+
+years_order <- 1:7
+
+for(i in 1:n_sites) {
+  sites_together <- sites_together +
+    #geom_abline(slope=exp(coef(ab_mod)$site[i,2]), intercept=exp(coef(ab_mod)$site[i,1]), color = "grey")
+    geom_line(x=1:7, y=exp(coef(ab_mod)$site[i,1])*year_order*exp(coef(ab_mod)$site[i,2]))
+}
+
+# Example for Hicgop South, where points are clearly down but line is up
+# Think that's because of a misunderstanding of the slope - the slope is saying, how much does mean nF at Hicgop South change with increased time
+# But how can you get a negative effect with a Poisson if exp() can only give positive?
+ggplot(data = abundance_mod_data_complete %>% filter(site == "Hicgop South"), aes(x=year_order, y=nF)) +
+  geom_point() +
+  geom_abline(slope=exp(coef(ab_mod)$site[7,2]), intercept=exp(coef(ab_mod)$site[7,1]), color = "grey")
 
 # # Add in "all sites combined" 
 # # For sites considered, find total proportion of habitat each makes up
@@ -153,6 +227,101 @@ females_df$site <- replace(females_df$site, females_df$site=="Tamakin Dacot", "T
 females_df_F$site <- replace(females_df_F$site, females_df_F$site=="Tamakin Dacot", "Tomakin Dako")
 females_df_models$site <- replace(females_df_models$site, females_df_models$site=="Tamakin Dacot", "Tomakin Dako")
 females_df_F_models$site <- replace(females_df_F_models$site, females_df_F_models$site=="Tamakin Dacot", "Tomakin Dako")
+
+
+
+####### Try using rethinking to fit
+abundance_mod_data <- females_df_F %>%
+  mutate(year_order = year-2011) %>%
+  select(year_order,nF,site)
+abundance_mod_data_complete <- data.frame(abundance_mod_data[complete.cases(abundance_mod_data),])
+
+# # This one doesn't fit very well...
+# abundance_mod_m1 <- map2stan(
+#   alist(
+#     nF ~ dpois(lambda),
+#     log(lambda) <- a + bY*year,
+#     a ~ dnorm(0,100),
+#     bY ~ dnorm(0,5)
+#   ), data=abundance_mod_data_complete)
+
+# Adding in varying intercept and slope by site
+abundance_mod_m2 <- map2stan(
+  alist(
+    nF ~ dpois(lambda),
+    log(lambda) <- a_site[site] + bY_site[site]*year_order,
+    c(a_site, bY_site)[site] ~ dmvnorm2(c(a,bY), sigma_site, Rho),
+    a ~ dnorm(0,10),
+    bY ~ dnorm(0,10),
+    sigma_site ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ), data=abundance_mod_data_complete, warmup=1000, iter=6000, chains=2)
+
+# Extract samples
+post <- extract.samples(abundance_mod_m2)
+
+# Trend by site - I'm not sure these parameters are what I think they are...
+site_trends <- data.frame(site_no = 1:19, a_est = NA, bY_est = NA)
+a_est_overall = exp(mean(post$a))
+bY_est_overall = exp(mean(post$bY))
+
+for(i in 1:n_sites) {
+  site_trends$a_est[i] = exp(mean(post$a + post$a_site[i]))
+  site_trends$bY_est[i] = exp(mean(post$bY + post$bY_site[i]))
+}
+  
+##### All sites together
+all_sites <- ggplot(data = abundance_mod_data_complete, aes(x=year_order, y=nF, color=site)) +
+  geom_point() +
+  geom_abline(slope=bY_est_overall, intercept=a_est_overall)
+
+for(i in 1:n_sites) {
+  all_sites <- all_sites +
+    geom_abline(slope=site_trends$bY_est[i], intercept=site_trends$a_est, color = "grey")
+}
+
+
+  
+  # mean_prob_model_XD = logistic(mean(post_m1$a_hatch[,i] + post_m1$bDisp*Disp_seq_S[1]))
+  # HPDI_prob_model_XD = logistic(HPDI(post_m1$a_hatch[,i] + post_m1$bDisp*Disp_seq_S[1], prob=prob_value))
+  # 
+  # # mean and HPDI bounds on straying probability from model with trucking
+  # mean_prob_model_D = logistic(mean(post_m1$a_hatch[,i] + post_m1$bDisp*Disp_seq_S[2]))
+  # HPDI_prob_model_D = logistic(HPDI(post_m1$a_hatch[,i] + post_m1$bDisp*Disp_seq_S[2], prob=prob_value))
+  
+
+
+
+
+
+
+# m2_ME_HVE_data <- strayH_data[,c('stray_relandHbasins','PDO_rely_S','PDO_diff_S','avg_weight_S','perc_run_size_S','displacement_basin_S','fish_age_S','MEI_MAYJUN_by_S','release_year_perc_mean_spring_flow_S','return_year_perc_mean_fall_flow_S','NPGO_rely_S','NPGO_diff_S','hatch_ID')]
+# m2_ME_HVE_data_complete <- m2_ME_HVE_data[complete.cases(m2_ME_HVE_data),]  # choose only complete cases 
+# 
+# # Specify model
+# m2_ME_HVE <- map2stan(
+#   alist(
+#     stray_relandHbasins ~ dbinom( 1 , p ),
+#     logit(p) <- a_hatch[hatch_ID] + bPDOrely*PDO_rely_S + bPDOdiff*PDO_diff_S + bAW*avg_weight_S + bFA*fish_age_S + bRS*perc_run_size_S + bMEI*MEI_MAYJUN_by_S + bSFrely*release_year_perc_mean_spring_flow_S + bFFruny*return_year_perc_mean_fall_flow_S + bNPGOrely*NPGO_rely_S + bNPGOdiff*NPGO_diff_S + bDisp_hatch[hatch_ID]*displacement_basin_S,
+#     c(a_hatch,bDisp_hatch)[hatch_ID] ~ dmvnorm2(c(a,bDisp),sigma_hatch,Rho),
+#     a ~ dnorm(0,5),
+#     bPDOrely ~ dnorm(0,5),
+#     bPDOdiff ~ dnorm(0,5),
+#     bAW ~ dnorm(0,5),
+#     bFA ~ dnorm(0,5),
+#     bRS ~ dnorm(0,5),
+#     bMEI ~ dnorm(0,5),
+#     bSFrely ~ dnorm(0,5),
+#     bFFruny ~ dnorm(0,5),
+#     bNPGOrely ~ dnorm(0,5),
+#     bNPGOdiff ~ dnorm(0,5),
+#     bDisp ~ dnorm(0,5),
+#     sigma_hatch ~ dcauchy(0,2),
+#     Rho ~ dlkjcorr(2)
+#   ), data=m2_ME_HVE_data_complete, warmup=1000, iter=5000, chains=4, cores=4)
+# 
+# save(m2_ME_HVE, file=here::here("Data/Model_outputs","m2_ME_HVE.RData"))
+
 
 #################### Plots: ####################
 
