@@ -42,6 +42,7 @@ save(fish_db, file = here::here("Data/Data_from_database", "fish_db.RData"))
 save(fish_seen_db, file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
 save(dives_db, file = here::here("Data/Data_from_database", "dives_db.RData"))
 save(gps_db, file = here::here("Data/Data_from_database", "gps_db.RData"))
+save(fish_obs, file = here::here("Data/From_other_analyses", "fish-obs.RData"))
 
 # saveRDS() - use this so that people can load things and choose their own names rather than being stuck with the names I choose
 
