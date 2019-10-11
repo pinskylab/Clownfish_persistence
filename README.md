@@ -2,6 +2,8 @@
 
 Add an explanation about what this repository does at the top. Also add a "how to interact with this repository if you wanted to run the analyses" bit.
 
+All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed XXXX. 
+
 Repository contents and explanation:
 
 **Code** - holds scripts
@@ -13,10 +15,15 @@ Repository contents and explanation:
 * Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
 
 **Data** - holds raw and processed data files and outputs of analyses
-* *Data_from_database*
-* *From_other_analyses*
-  * all_offspring - info on all offspring included in parentage analysis
-  * all_parents - info on all parents included in parentage analysis
-  * fish-obs - info on individual fish, using
+* *Data_from_database* (all loaded in Pull_data_from_database.R)
+  * anem_db.RData - anemones table from leyte database
+  * dives_db.RData - diveinfo table from leyte database
+  * fish_db.RData - clownfish table from leyte database
+  * fish_seen_db.RData - clown_sightings table from leyte database
+  * gps_db - GPX table from leyte database
+* *From_other_analyses* (all loaded in Pull_data_from_database.R, either from GitHub or downloaded file)
+  * all_offspring - info on all offspring included in parentage analysis 
+  * all_parents - info on all parents included in parentage analysis 
+  * fish-obs - info on individual fish, tying their genetic and tag ids together 
 * *Script_outputs*
 
