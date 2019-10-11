@@ -10,13 +10,6 @@ library(ggplot2)
 # Pull data, functions, constants 
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
-# Moved this to Constants_database_common_functions.R
-# # Set sites to include for total possible sampling area (all site areas times all years sampled) - excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this because they disappeared partway through (check with Michelle on that) (should I exclude the Sitio Lonas match too?)
-# sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
-#                            'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
-#                            'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
-#                            'Visca', 'Wangag', 'S. Magbangon')  
-
 #################### Functions: ####################
 # Find the number of tagged anemones visited by each site, each year 
 pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, survey_months, dive_types) {  # anemsdf is processed anems (anems_Processed), allanems are anems associated with APCL - regardless if tagged, divesdf is all dives, year_i is year of interest, site_i is site, survey_months is list of months when clownfish were sampled
@@ -58,7 +51,7 @@ pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, surve
 ##### Pull out anems associated with fish from clownfish table
 # Pull out fish
 APCL_caught <- fish_db %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, anem_table_id, recap, tag_id, color, size) %>%
   filter(fish_spp == "APCL")
 
 # and their associated anems 
@@ -67,7 +60,7 @@ APCL_anems <- anem_db %>%
   filter(anem_table_id %in% APCL_caught$anem_table_id)
 
 # and their associated dives
-APCL_dives <- dives_db %>%
+APCL_dives <- dives_db_processed %>%
   select(dive_table_id, dive_type, date, site, gps, year, month) %>%
   filter(dive_table_id %in% APCL_anems$dive_table_id)
 
@@ -77,7 +70,7 @@ all_APCL_anems <- left_join(APCL_anems, APCL_dives, by="dive_table_id")  # this 
 # Remove intermediate data frames for neatness
 rm(APCL_caught, APCL_anems, APCL_dives)
 
-##### Find total habitat at, as indicated by anemones, via four methods
+##### Find total habitat at each site, as indicated by anemones, via four methods
 # Create data frames to store the output for various methods of assessing total anemones
 methods = c("metal tags", "all tags", "seen twice", "2015 survey")
 
@@ -143,93 +136,31 @@ total_anems_by_site <- rbind(total_anems_by_site_metal, total_anems_by_site_allt
 rm(total_anems_by_site_metal, total_anems_by_site_alltags, total_anems_by_site_seen2x, total_anems_by_site_2015W)
 
 ##### Find the amount of the site visited, as estimated by number of anems visited each year in each site
-# Set up data frames for each year
-anems_visited_2012 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2012,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
+# Cycle through years and sites to find the number of anems visited
+anems_visited_dfs <- list()  # set up list to hold output dataframes
 
-anems_visited_2013 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2013,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
-
-anems_visited_2014 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2014,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
-
-anems_visited_2015 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2015,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
-
-anems_visited_2016 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2016,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
-
-anems_visited_2017 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2017,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
-
-anems_visited_2018 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
-  mutate(year = 2018,
-         n_tagged_anems = NA,
-         n_sampled_anems = NA,
-         n_anems = NA)
-
-# Run through sites each year to find number of anemones visited each year at each site
-for(i in 1:length(site_vec_order$site_name)) {
-  # 2012
-  anems_visited_2012$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2012, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2012$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2012, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2012$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2012, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
-
-  # 2013
-  anems_visited_2013$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2013, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2013$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2013, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2013$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2013, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
-
-  # 2014
-  anems_visited_2014$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2014, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2014$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2014, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2014$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2014, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+for(i in 1:length(years_sampled)) {  # years_sampled is defined in Constants_database_common_constants.R
+  # Set up data frame for this year
+  av_df <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+    mutate(year = years_sampled[i],
+           n_tagged_anems = NA,
+           n_sampled_anems = NA,
+           n_anems = NA)
   
-  # 2015
-  anems_visited_2015$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2015, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2015$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2015, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2015$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2015, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
-  
-  # 2016
-  anems_visited_2016$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2016, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2016$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2016, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2016$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2016, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
-  
-  # 2017
-  anems_visited_2017$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2017, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2017$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2017, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2017$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2017, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
-  
-  # 2018
-  anems_visited_2018$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2018, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
-  anems_visited_2018$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2018, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
-  anems_visited_2018$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2018, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+  # Then cycle through the sites
+  for(j in 1:length(site_vec_order$site_name)) {
+    av_df$n_tagged_anems[j] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, years_sampled[i], site_vec_order$site_name[j], spring_months, clown_sample_dive_types))$tagged_anems
+    av_df$n_sampled_anems[j] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, years_sampled[i], site_vec_order$site_name[j], spring_months, clown_sample_dive_types))$sampled_anems
+    av_df$n_anems[j] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, years_sampled[i], site_vec_order$site_name[j], spring_months, clown_sample_dive_types))$visited_anems
+  }
+  anems_visited_dfs[[i]] <- av_df
 }
 
 # Bind the years together
-anems_visited_by_year <- rbind(anems_visited_2012, anems_visited_2013, anems_visited_2014, anems_visited_2015,
-                     anems_visited_2016, anems_visited_2017, anems_visited_2018)
-
-# Remove intermediate data frames for neatness
-rm(anems_visited_2012, anems_visited_2013, anems_visited_2014, anems_visited_2015, anems_visited_2016, anems_visited_2017, anems_visited_2018)
+anems_visited_by_year <- anems_visited_dfs[[1]]
+for(i in 2:length(years_sampled)) {
+  anems_visited_by_year <- rbind(anems_visited_by_year, anems_visited_dfs[[i]])
+}
 
 # Add in total anems per site
 anems_visited_by_year <- left_join(anems_visited_by_year, total_anems_by_site, by = "site")
@@ -247,66 +178,70 @@ anems_visited_by_year <- anems_visited_by_year %>%
 #                                            prop_hab_sampled == Inf | is.na(prop_hab_sampled) ~ 0,  # if it's infinite or otherwise not a number (b/c total anems is 0), use 0
 #                                            prop_hab_sampled > 1 ~ 1)) %>%  # if it's bigger than 1, round down to 1 
 
-##### Calculate the total amount of habitat visited over time (used in estimating egg-recruit survival)
-# Sum up total site area (all site areas times all years sampled) - total possible sampling area 
-site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)  # Pull just the area from those sites
-
-# Find amount of habitat sampled overall - sum of area sampled in each year
-sampled_area_each_year <- left_join(site_areas_modified, anems_visited_by_year, by = 'site') %>%  # join with total area
-  mutate(area_sampled = prop_hab_sampled_tidied*kmsq_area)  # for each method, site, and year, find area sampled in kmsq, using tidied-up prop hab sampled
-
-time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
-
-# Set up a data frame for collecting total area sampled across different time frames
-time_frame_list <- rep(time_frames[1], length(methods))
-for (i in 2:length(time_frames)) {
-  time_frame_list <- c(time_frame_list, rep(time_frames[i], length(methods)))
-}
-
-total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_frames)),
-                                              time_frame = time_frame_list, stringsAsFactors = FALSE) %>%
-  mutate(total_possible_sample_area_km2 = NA,
-         total_area_sampled_km2 = NA,
-         total_prop_hab_sampled_area = NA,
-         end_year = str_sub(time_frame, -4, -1),
-         total_possible_sample_anems = NA,  # total number of anems that would have been possible to sample in the time frame (sum of total at all sites X number of years of sampling)
-         total_anems_sampled = NA,  # sum of total number of anems sampled at all sites in that time period
-         total_anems_sampled_tidied = NA,  # sum of total number of anems sampled at all sites in that time period but not including anems that exceed the total at a site (so if 15 sampled recorded at a site with 10 estimated total, this number sums using 10)
-         total_prop_hab_sampled_anems = NA,
-         total_prop_hab_sampled_anems_tidied = NA)  # doesn't include anems sampled at a site that exceed the total anems at that site estimated by each method
-
-# total_area_sampled <- data.frame(method = methods) %>%
-#   mutate(total_area_sampled = NA,
-#          total_prop_hab_sampled = NA,
-#          total_area_sampled_2012to2015 = NA,
-#          total_prop_hab_sampled_2012to2015 = NA)
-
-# Find total area that could have been sampled, adding a sample year each time (for parentage)
-for (i in 1:length(total_area_sampled_through_time$method)) {
-  end_year <- as.integer(total_area_sampled_through_time$end_year[i])
-  years_to_include <- seq(2012, end_year, by=1)
-  
-  # Find possible area to sample, area sampled, and prop_hab sampled using area
-  total_area_sampled_through_time$total_possible_sample_area_km2[i] = sum(site_areas_modified$kmsq_area*(length(years_to_include)))
-  total_area_sampled_through_time$total_area_sampled_km2[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$area_sampled)
-  #total_area_sampled_through_time$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == total_area_sampled_through_time$methods[i], year %in% years_to_include))$area_sampled)
-  total_area_sampled_through_time$total_prop_hab_sampled_area[i] = total_area_sampled_through_time$total_area_sampled_km2[i]/total_area_sampled_through_time$total_possible_sample_area_km2[i]
-
-  # Find possible area to sample, area sampled, and prob_hab sampled using anems and proportion of anems, rather than converting to area (like do for within-year proportion hab sampled)
-  total_area_sampled_through_time$total_possible_sample_anems[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_total_anems)
-  total_area_sampled_through_time$total_anems_sampled[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems)
-  total_area_sampled_through_time$total_anems_sampled_tidied[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems_tidied)
-  total_area_sampled_through_time$total_prop_hab_sampled_anems[i] = total_area_sampled_through_time$total_anems_sampled[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
-  total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied[i] = total_area_sampled_through_time$total_anems_sampled_tidied[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
-}
-
-# Make into a data frame for easier comparison plotting
-total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sampled_through_time$method, 3),
-                                          time_frame = rep(total_area_sampled_through_time$time_frame, 3),
-                                          total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems, total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied),
-                                          total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method)), rep("anems tidied", length(total_area_sampled_through_time$method))))
+# COMMENTING THIS OUT BC THINKING I STOPPED DOING THIS BY AREA AND INSTEAD USED PROP HAB SAMPLED VIA ANEM NUMBERS (couldn't find site_areas loaded when tried to run this)
+# ##### Calculate the total amount of habitat visited over time (used in estimating egg-recruit survival)
+# # Sum up total site area (all site areas times all years sampled) - total possible sampling area 
+# site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)  # Pull just the area from those sites
+# 
+# # Find amount of habitat sampled overall - sum of area sampled in each year
+# sampled_area_each_year <- left_join(site_areas_modified, anems_visited_by_year, by = 'site') %>%  # join with total area
+#   mutate(area_sampled = prop_hab_sampled_tidied*kmsq_area)  # for each method, site, and year, find area sampled in kmsq, using tidied-up prop hab sampled
+# 
+# time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
+# 
+# # Set up a data frame for collecting total area sampled across different time frames
+# time_frame_list <- rep(time_frames[1], length(methods))
+# for (i in 2:length(time_frames)) {
+#   time_frame_list <- c(time_frame_list, rep(time_frames[i], length(methods)))
+# }
+# 
+# total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_frames)),
+#                                               time_frame = time_frame_list, stringsAsFactors = FALSE) %>%
+#   mutate(total_possible_sample_area_km2 = NA,
+#          total_area_sampled_km2 = NA,
+#          total_prop_hab_sampled_area = NA,
+#          end_year = str_sub(time_frame, -4, -1),
+#          total_possible_sample_anems = NA,  # total number of anems that would have been possible to sample in the time frame (sum of total at all sites X number of years of sampling)
+#          total_anems_sampled = NA,  # sum of total number of anems sampled at all sites in that time period
+#          total_anems_sampled_tidied = NA,  # sum of total number of anems sampled at all sites in that time period but not including anems that exceed the total at a site (so if 15 sampled recorded at a site with 10 estimated total, this number sums using 10)
+#          total_prop_hab_sampled_anems = NA,
+#          total_prop_hab_sampled_anems_tidied = NA)  # doesn't include anems sampled at a site that exceed the total anems at that site estimated by each method
+# 
+# # total_area_sampled <- data.frame(method = methods) %>%
+# #   mutate(total_area_sampled = NA,
+# #          total_prop_hab_sampled = NA,
+# #          total_area_sampled_2012to2015 = NA,
+# #          total_prop_hab_sampled_2012to2015 = NA)
+# 
+# # Find total area that could have been sampled, adding a sample year each time (for parentage)
+# for (i in 1:length(total_area_sampled_through_time$method)) {
+#   end_year <- as.integer(total_area_sampled_through_time$end_year[i])
+#   years_to_include <- seq(2012, end_year, by=1)
+#   
+#   # Find possible area to sample, area sampled, and prop_hab sampled using area
+#   total_area_sampled_through_time$total_possible_sample_area_km2[i] = sum(site_areas_modified$kmsq_area*(length(years_to_include)))
+#   total_area_sampled_through_time$total_area_sampled_km2[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$area_sampled)
+#   #total_area_sampled_through_time$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == total_area_sampled_through_time$methods[i], year %in% years_to_include))$area_sampled)
+#   total_area_sampled_through_time$total_prop_hab_sampled_area[i] = total_area_sampled_through_time$total_area_sampled_km2[i]/total_area_sampled_through_time$total_possible_sample_area_km2[i]
+# 
+#   # Find possible area to sample, area sampled, and prob_hab sampled using anems and proportion of anems, rather than converting to area (like do for within-year proportion hab sampled)
+#   total_area_sampled_through_time$total_possible_sample_anems[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_total_anems)
+#   total_area_sampled_through_time$total_anems_sampled[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems)
+#   total_area_sampled_through_time$total_anems_sampled_tidied[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems_tidied)
+#   total_area_sampled_through_time$total_prop_hab_sampled_anems[i] = total_area_sampled_through_time$total_anems_sampled[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
+#   total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied[i] = total_area_sampled_through_time$total_anems_sampled_tidied[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
+# }
+# 
+# # Make into a data frame for easier comparison plotting
+# total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sampled_through_time$method, 3),
+#                                           time_frame = rep(total_area_sampled_through_time$time_frame, 3),
+#                                           total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems, total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied),
+#                                           total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method)), rep("anems tidied", length(total_area_sampled_through_time$method))))
+# 
 
 ##### Do a similar thing by site, finding cumulative proportion habitat sampled by site
+time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
+
 # Make the time frames into a list of the right order and length for the site-level data frame (just one method)
 time_frame_list_site <- rep(time_frames[1], length(site_vec_order$site_name))
 for(i in 2:length(time_frames)) {
@@ -350,28 +285,29 @@ cumulative_prop_hab_sampled_by_site <- cumulative_prop_hab_sampled_by_site %>%
          total_prop_hab_sampled_anems_tidied = total_anems_sampled_tidied/total_possible_sample_anems)
 
 
-# Remove intermediate data frames for neatness
-rm(site_areas_modified, sampled_area_each_year)
+# # Remove intermediate data frames for neatness
+# rm(site_areas_modified, sampled_area_each_year)
 
 #################### Plots: #################### (already have versions of these in this folder from the other script but now can compare)
-# Look at cumulative proportion total habitat sampled, using metal tags as total anemones
-pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp.pdf"))
-ggplot(data = total_sampling_across_years %>% filter(total_anems_method == "metal tags"), aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
-  geom_bar(position = "dodge", stat = "identity") +
-  ggtitle("Cumulative proportion habitat sampled (metal tags)") + xlab("Sampling years") + ylab("Proportion sampled") +
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
-dev.off()
-  
-# Look at cumulative proportion total habitat sampled, using metal tags as total anemones
-pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp_all_anems_methods.pdf"))
-ggplot(data = total_sampling_across_years, aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
-  geom_bar(position = "dodge", stat = "identity") +
-  facet_wrap(~total_anems_method) +
-  ggtitle("Cumulative proportion habitat sampled") + xlab("Sampling years") + ylab("Proportion sampled") +
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
-dev.off()
+### Think these are back from when I was using area
+# # Look at cumulative proportion total habitat sampled, using metal tags as total anemones
+# pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp.pdf"))
+# ggplot(data = total_sampling_across_years %>% filter(total_anems_method == "metal tags"), aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
+#   geom_bar(position = "dodge", stat = "identity") +
+#   ggtitle("Cumulative proportion habitat sampled (metal tags)") + xlab("Sampling years") + ylab("Proportion sampled") +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+# dev.off()
+#   
+# # Look at cumulative proportion total habitat sampled, using metal tags as total anemones
+# pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Cumulative_prop_hab_sampled_method_comp_all_anems_methods.pdf"))
+# ggplot(data = total_sampling_across_years, aes(x = time_frame, y = total_prop_hab_sampled, fill = total_area_method)) +
+#   geom_bar(position = "dodge", stat = "identity") +
+#   facet_wrap(~total_anems_method) +
+#   ggtitle("Cumulative proportion habitat sampled") + xlab("Sampling years") + ylab("Proportion sampled") +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+# dev.off()
 
 # Look at proportion sampled, using metal tags as total anemones
 pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Metal_TA_prop_hab_sampled.pdf"))
@@ -499,25 +435,124 @@ ggplot(data = anems_visited_by_year %>% filter(year == 2018), aes(x=site, y=prop
   ggtitle("Estimates of proportion habitat sampled - 2018")
 dev.off()
 
-# Look at overall proportion sampled, using metal tags as total anemones, by time frame, area vs. anems method
-pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_through_time_area_vs_anems.pdf"))
-ggplot(data = total_sampling_across_years %>% filter(total_anems_method=="metal tags"), aes(x=time_frame, y=total_prop_hab_sampled, fill=total_area_method)) +
-  geom_bar(position = "dodge", stat = "identity") +
-  #geom_bar(aes(x=time_frame, y=total_prop_hab_sampled_anems), position = "dodge", stat = "identity", fill = "dark blue") +
-  geom_hline(yintercept = 1) +
-  xlab("sampling years") + ylab("total prop habitat sampled") +
-  #facet_wrap(~year) +
-  theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  theme(text = element_text(size=12)) +
-  ggtitle("Estimates of proportion habitat sampled, anems vs area method")
-dev.off()
+# # Look at overall proportion sampled, using metal tags as total anemones, by time frame, area vs. anems method
+# pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Prop_hab_sampled_through_time_area_vs_anems.pdf"))
+# ggplot(data = total_sampling_across_years %>% filter(total_anems_method=="metal tags"), aes(x=time_frame, y=total_prop_hab_sampled, fill=total_area_method)) +
+#   geom_bar(position = "dodge", stat = "identity") +
+#   #geom_bar(aes(x=time_frame, y=total_prop_hab_sampled_anems), position = "dodge", stat = "identity", fill = "dark blue") +
+#   geom_hline(yintercept = 1) +
+#   xlab("sampling years") + ylab("total prop habitat sampled") +
+#   #facet_wrap(~year) +
+#   theme_bw() +
+#   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+#   theme(text = element_text(size=12)) +
+#   ggtitle("Estimates of proportion habitat sampled, anems vs area method")
+# dev.off()
 
 #################### Saving output: ####################
 save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
-save(total_area_sampled_through_time, file=here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))
-save(total_sampling_across_years, file=here::here("Data/Script_outputs", "total_sampling_across_years.RData"))  # summary of prop hab sampled by different total area and total anem methods
 save(cumulative_prop_hab_sampled_by_site, file=here::here("Data/Script_outputs", "cumulative_prop_hab_sampled_by_site.RData"))  # summary of prop hab sampled cumulatively through time by site, method is "metal tags"
+
+# I think this script no longer makes these outputs - doesn't convert from area to proportion hab any more, just uses prop anems visited
+#save(total_area_sampled_through_time, file=here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))
+#save(total_sampling_across_years, file=here::here("Data/Script_outputs", "total_sampling_across_years.RData"))  # summary of prop hab sampled by different total area and total anem methods
 
 #save(sampled_area_each_year, file=here::here("Data/Script_outputs", "sampled_area_each_year.RData"))
 #save(total_area_sampled, file=here::here("Data", "total_area_sampled.RData"))  # file with total area sampled through time by method
+
+
+#################### Old code: ####################
+# Moved this to Constants_database_common_functions.R
+# # Set sites to include for total possible sampling area (all site areas times all years sampled) - excluding Caridad Proper, Sitio Lonas, Sitio Tugas from this because they disappeared partway through (check with Michelle on that) (should I exclude the Sitio Lonas match too?)
+# sites_for_total_areas <- c('Cabatoan', 'Caridad Cemetery', 'Elementary School', 'Gabas', 
+#                            'Haina', 'Hicgop South', 'N. Magbangon', 'Palanas', 'Poroc Rose',
+#                            'Poroc San Flower', 'San Agustin', 'Sitio Baybayon', 'Tamakin Dacot',
+#                            'Visca', 'Wangag', 'S. Magbangon')  
+
+# # Set up data frames for each year
+# anems_visited_2012 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2012,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# anems_visited_2013 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2013,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# anems_visited_2014 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2014,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# anems_visited_2015 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2015,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# anems_visited_2016 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2016,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# anems_visited_2017 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2017,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# anems_visited_2018 <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
+#   mutate(year = 2018,
+#          n_tagged_anems = NA,
+#          n_sampled_anems = NA,
+#          n_anems = NA)
+# 
+# # Run through sites each year to find number of anemones visited each year at each site
+# for(i in 1:length(site_vec_order$site_name)) {
+#   # 2012
+#   anems_visited_2012$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, 2012, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2012$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, 2012, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2012$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, 2012, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# 
+#   # 2013
+#   anems_visited_2013$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2013, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2013$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2013, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2013$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2013, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# 
+#   # 2014
+#   anems_visited_2014$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2014, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2014$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2014, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2014$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2014, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# 
+#   # 2015
+#   anems_visited_2015$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2015, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2015$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2015, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2015$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2015, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# 
+#   # 2016
+#   anems_visited_2016$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2016, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2016$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2016, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2016$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2016, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# 
+#   # 2017
+#   anems_visited_2017$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2017, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2017$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2017, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2017$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2017, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# 
+#   # 2018
+#   anems_visited_2018$n_tagged_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2018, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$tagged_anems
+#   anems_visited_2018$n_sampled_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2018, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$sampled_anems
+#   anems_visited_2018$n_anems[i] = (pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db, 2018, site_vec_order$site_name[i], spring_months, clown_sample_dive_types))$visited_anems
+# }
+# # Bind the years together
+# anems_visited_by_year <- rbind(anems_visited_2012, anems_visited_2013, anems_visited_2014, anems_visited_2015,
+#                      anems_visited_2016, anems_visited_2017, anems_visited_2018)
+# 
+# # Remove intermediate data frames for neatness
+# rm(anems_visited_2012, anems_visited_2013, anems_visited_2014, anems_visited_2015, anems_visited_2016, anems_visited_2017, anems_visited_2018)
+
