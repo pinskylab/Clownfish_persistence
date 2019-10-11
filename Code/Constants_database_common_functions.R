@@ -8,21 +8,35 @@ library(lubridate)
 library(stringr)
 library(here)
 
-# source(here::here("Code", "Pull_data_from_database.R"))
+#################### Load data from database and other analyses: ####################
+### Option 1: pull from database + GitHub
+source(here::here("Code", "Pull_data_from_database.R"))
 
-#################### Load saved data from database: ####################
-load(file = here::here("Data/Data_from_database", "anem_db.RData"))
-load(file = here::here("Data/Data_from_database", "fish_db.RData"))
-load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
-load(file = here::here("Data/Data_from_database", "dives_db.RData"))
-load(file = here::here("Data/Data_from_database", "gps_db.RData"))
+### Option 2: load previously-pulled saved files
+# # Database files
+# load(file = here::here("Data/Data_from_database", "anem_db.RData"))
+# load(file = here::here("Data/Data_from_database", "fish_db.RData"))
+# load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
+# load(file = here::here("Data/Data_from_database", "dives_db.RData"))
+# load(file = here::here("Data/Data_from_database", "gps_db.RData"))
 
-fish_obs = readRDS(file = here::here("Data/From_other_analyses", "fish-obs.RData"))
+# # Files from other analyses (parentage, matching up fish, etc.)
+# fish_obs = readRDS(file = here::here("Data/From_other_analyses", "fish-obs.RData"))
+# load(file = here::here("Data/From_other_analyses", "site_centers.RData"))
 
-#################### Data from other analyses: ####################
+#################### Set constants and parameters: ####################
 
-##### Center of sites (eyeballed from QGIS by KC)
-site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_centroids.csv"), header = TRUE, stringsAsFactors = FALSE)
+#################### Edit + clean data from other analyses (if necessary): ####################
+ 
+##### Prob of catching a fish by site, from KC script: https://github.com/katcatalano/parentage/blob/master/notebooks/proportion_sampled_allison.ipynb
+prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recapture dives
+            0.8333333, 0.4666667, 0.2000000, 0.8333333, 1.0000000, #2017 recapture dives
+            0.3333333, 0.5789474, 0.6250000, 0.4090909) #2018 recapture dives
+
+##### Site centers - edit so site names match the ones I use (add spaces in N. Magbangon and S. Magbangon)
+
+# ##### Center of sites (eyeballed from QGIS by KC)
+# site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_centroids.csv"), header = TRUE, stringsAsFactors = FALSE)
 
 # Edit site names to match the ones I use (add spaces in N. Magbangon and S. Magbangon)
 site_centers$site[which(site_centers$site == "N.Magbangon")] = "N. Magbangon"
@@ -39,7 +53,8 @@ prob_r <- c(0.5555556, 0.2647059, 0.8888889, 0.6666667, 0.2000000, #2016 recaptu
 years_parentage <- c(2012, 2013, 2014, 2015, 2016, 2017, 2018)  
 
 # Kernel summary - kernel fits, n_offspring_genotyped, n_matched
-kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T, stringsAsFactors = F)
+#kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/results/kernel_fitting_summary.csv"), header = T, stringsAsFactors = F)
+kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/final_results/tables/kernel_fitting_summary.csv"), header = T, stringsAsFactors = F)
 
 # List of all parents put into parentage analysis (so can match to site, done below)
 all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents_corrected.txt"), header = T, stringsAsFactors = F)
@@ -386,6 +401,11 @@ all_parents_by_site <- left_join(all_parents %>% dplyr::rename(fish_indiv_parent
   distinct(fish_indiv, .keep_all = TRUE)  # this doesn't actually remove any for now, think about whether it should be included
 
 #################### Save files ####################
+# Read in from elsewhere
+save(all_parents, file = here::here("Data/From_other_analyses", "all_parents.RData"))  # parents info from Katrina (sourced via GitHub)
+save(kernel_summary, file = here::here("Data/From_other_analyses", "kernel_summary.RData"))  # kernel fits from Katrina (sourced via GitHub)
+
+# Processed in this script
 save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
 save(all_parents_by_site, file = here::here("Data/Script_outputs", "all_parents_by_site.RData"))
 save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))

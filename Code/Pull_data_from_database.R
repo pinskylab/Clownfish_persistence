@@ -31,18 +31,26 @@ fish_seen_db <- leyte %>% tbl('clown_sightings') %>% collect()  # fish seen by '
 dives_db <- leyte %>% tbl("diveinfo") %>% collect()  # dive info table
 gps_db <- leyte %>% tbl("GPX") %>% collect()  # gps info table
 
-#################### Pull data from GitHub: ####################
+#################### Pull data from GitHub from other analyses: ####################
 # Fish obs table linking together individual fish marked and recaught by both genetic and tag methods
 download.file(url = "https://github.com/pinskylab/genomics/blob/master/data/fish-obs.RData?raw=true", destfile = "fish-obs.RData")
 fish_obs <- readRDS("fish-obs.RData")
 
+# Site centers (eyeballed from QGIS by KC)
+site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_centroids.csv"), header = TRUE, stringsAsFactors = FALSE)
+
+
 #################### Save files: ####################
+# Save database files
 save(anem_db, file = here::here("Data/Data_from_database", "anem_db.RData"))
 save(fish_db, file = here::here("Data/Data_from_database", "fish_db.RData"))
 save(fish_seen_db, file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
 save(dives_db, file = here::here("Data/Data_from_database", "dives_db.RData"))
 save(gps_db, file = here::here("Data/Data_from_database", "gps_db.RData"))
+
+# Save files from other analyses
 save(fish_obs, file = here::here("Data/From_other_analyses", "fish-obs.RData"))
+save(site_centers, file = here::here("Data/From_other_analyses", "site_centers.RData"))
 
 # saveRDS() - use this so that people can load things and choose their own names rather than being stuck with the names I choose
 
