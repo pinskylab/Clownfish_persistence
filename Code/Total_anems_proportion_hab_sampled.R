@@ -1,6 +1,7 @@
 # Calculate total number of anemones at each site and proportion of habitat sampled each year based on anemone numbers
 
 #### LOOKS LIKE PLOTS DON'T QUITE MATCH PREVIOUS ESTIMATES - WHY NOT? (some anem ids might have changed b/c Michelle was using QGIS to update them?)
+## Anems have changed again since the above message, I think, with updates in anem_obs and totals, proportion habs changed again a bit when I re-ran this Oct. 2019.
 
 #################### Set-up: ####################
 # Load packages
