@@ -71,7 +71,7 @@ save(site_centers, file = here::here("Data/From_other_analyses", "site_centers.R
 save(kernel_summary, file = here::here("Data/From_other_analyses", "kernel_summary.RData"))  # kernel fits (from Katrina, sourced via GitHub)
 save(all_parents, file = here::here("Data/From_other_analyses", "all_parents.RData"))  # all parents put into parentage analysis (from Katrina, sourced via GitHub)
 save(all_offspring, file = here::here("Data/From_other_analyses", "all_offspring.RData"))  # all offspring put into parentage analysis (from Katrina, sourced via GitHub)
-save(k_theta_allyear_95CI_values, file = here::here("Data/From_other_analyses", "k_theta_allyear_95C_values.RData"))  # 95% CI values for k and theta fits
+save(k_theta_allyear_95CI_values, file = here::here("Data/From_other_analyses", "k_theta_allyear_95CI_values.RData"))  # 95% CI values for k and theta fits
 save(length_count8llEA, file= here::here("Data/From_other_analyses", "length_count8llEA.RData"))  # size-fecundity model from Adam
 
 # saveRDS() - use this so that people can load things and choose their own names rather than being stuck with the names I choose
