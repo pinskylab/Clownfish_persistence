@@ -363,6 +363,7 @@ save(dives_processed, file = here::here("Data/Script_outputs", "dives_processed.
 save(site_visits, file = here::here("Data/Script_outputs", "site_visits.RData"))  # whether or not each site was sampled in each year
 save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))
 save(all_parents_by_site, file = here::here("Data/Script_outputs", "all_parents_by_site.RData"))
+save(site_edge_anems, file = here::here("Data/Script_outputs", "site_edge_anems.RData"))  # anem ids at edges and middle of each site (eyeballed)
 
 # save(allfish_caught, file = here::here("Data", "allfish_caught.RData"))  # all caught APCL
 # save(all_parents_by_site, file = here::here("Data/Script_outputs", "all_parents_by_site.RData"))
