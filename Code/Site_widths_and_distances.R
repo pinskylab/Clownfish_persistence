@@ -193,12 +193,12 @@ for(i in 1:length(site_dist_info$org_site)) {
 # Remove temporary values from for loop for neatness
 rm(site_org, N_lat_org, N_lon_org, S_lat_org, S_lon_org, site_dest, N_lat_dest, N_lon_dest, S_lat_dest, S_lon_dest)
 
-# For self-self distance, use 0 as min and site width as max (not the only way I could do this)
+# For self-self distance, use 0 as min and site width as max (not the only way I could do this) - now doing 1/2 site width as max because changed kernel normalization
 site_dist_info <- site_dist_info %>%
   mutate(d1_km = case_when(org_site != dest_site ~ d1_km,
                            org_site == dest_site ~ 0),  # min distance is 0 for self-self distances
          d2_km = case_when(org_site != dest_site ~ d2_km,
-                           org_site == dest_site ~ dest_width))  # max distance is site width for self-self distances
+                           org_site == dest_site ~ dest_width/2))  # max distance is site width for self-self distances
   
 # # How to do self-self distance? Sum of mid to each edge? (more like what doing above but would prob need to renormalize disp kernel?) Or edge to edge?
 # # Correct d1 and d2 for selfs? The difference between them is the width of the site but should I be doing integral of 0 to close edge + 0 to far edge or (what I've been doing) integral of 0 to width of site
