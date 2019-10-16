@@ -13,8 +13,10 @@ source(here::here("Code", "Constants_database_common_functions.R"))
 # library(readr)
 
 library(ggplot2)
-library(grid)
-library(gridExtra)
+
+#library(grid)
+#library(gridExtra)
+
 #library(mgcv)  # used by Rees et al. 2014
 #library(lme4)  # used by Hart et al. 2009
 
