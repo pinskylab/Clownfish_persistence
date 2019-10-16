@@ -25,7 +25,7 @@ load(file=here("Data", "AnemLatLonObsbyAnem.RData")) #file with lat-lon info app
 load(file=here("Data", "encounters_all.RData"))
 
 # Set a few things
-sample_years = c(2015,2016,2017,2018)
+sample_years = c(2012,2013,2014,2015,2016,2017,2018)
 large_dist = 500 #threshold large distance for checking into anemsß
 
 #################### Functions: ####################
@@ -142,9 +142,10 @@ leyte <- read_db("Leyte")
 
 fish.Info <- leyte %>% 
   tbl("clownfish") %>%
-  select(fish_table_id, anem_table_id, fish_spp, sample_id, cap_id, anem_table_id, recap, tag_id, color, size) %>%
+  select(fish_table_id, anem_table_id, fish_spp, sample_id, gen_id, anem_table_id, recap, tag_id, color, size) %>%
   collect() %>%
-  filter(!is.na(tag_id)) 
+  #filter(!is.na(tag_id) | !is.na(sample_id) | !is.na(cap_id)) 
+  filter(!is.na(tag_id) | !is.na(sample_id) | !is.na(gen_id))
 
 anem.Info <- leyte %>%
   tbl("anemones") %>%
