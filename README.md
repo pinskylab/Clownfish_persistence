@@ -7,11 +7,12 @@ All data were collected by members of the Pinsky lab at sites off Leyte, Philipp
 Repository contents and explanation:
 
 **Code** - holds scripts
-* Pull_data_from_database: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses from GitHub and saves as RData files in Data/From_other_analyses
-* Constants_database_common_functions: processes data from database into useable dataframes and saves as RData in Data/Script_outputs, sets constants
+* *Pull_data_from_database*: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses from GitHub and saves as RData files in Data/From_other_analyses
+* *Constants_database_common_functions*: processes data from database into useable dataframes and saves as RData in Data/Script_outputs, sets constants
   * When run the script, get an error saying "2 failed to parse". Nothing to worry about, just means that the lat/lon coordinates couldn't be matched to two anemone observations because they don't have times associated with them (2 anems AGD found while snorkeling after running out of air in 2018)
-* Total_anems_proportion_hab_sampled: finds the total number anems at a site (we used metal tagged anems as best estimate of total), calculates proportion habitat sampled at each site in each sampling year, calculates total area sampled across time (for use in egg-recruit survival estimate and as an input into the parentage analyses)
-* TimeSeriesPersistence: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
+* *Total_anems_proportion_hab_sampled*: finds the total number anems at a site (we used metal tagged anems as best estimate of total), calculates proportion habitat sampled at each site in each sampling year, calculates total area sampled across time (for use in egg-recruit survival estimate and as an input into the parentage analyses)
+* *TimeSeriesPersistence*: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
+* *Growth_analysis*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
 * NEED TO INSERT INFO ABOUT MARK-RECAP SURVIVAL SCRIPT AND GROWTH SCRIPT HERE!
 * Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
 
@@ -30,7 +31,10 @@ Repository contents and explanation:
   * anems_visited_by_year.RData - number of anemones visited at each site each year and total anems at each site (produced by Total_anems_proportion_hab_sampled.R)
   * cumulative_prop_hab_sampled_by_site.RData - cumulative proportion habitat sampled at each site through time (produced by Total_anems_proportion_hab_sampled.R)
   * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
+  * growth_info_estimate - parameter estimates for von Bertalanffy growth curve (produced by Growth_analysis.R)
+  * recap_pairs_year - pairs of sizes for fish recaptured after about a year (produced by Growth_analysis.R)
 
 **Plots** - holds plots
-* *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled
+* *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
+* *Growth* - plots that show sizes of fish recaptured after a year with the von Bertalanffy growth curve fit and distributions of von Bertalanffy parameters (produced by Growth_analysis.R)
 
