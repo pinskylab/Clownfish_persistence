@@ -140,5 +140,5 @@ encounters_size_0$size2018 <- projectSize(2018, encounters_size$size2018, encoun
 #################### Saving output: ####################
 save(marked_fish, file = here::here("Data/Script_outputs", "marked_fish.RData"))  # all obs of fish with a fish_indiv, plus dive, anem, etc. info
 save(encounters_list, file = here::here("Data/Script_outputs", "encounters_list.RData"))  # list of encounter histories
-save(encounters_size_means, file = here::here("Data/Script_outputs", "encounters_size_means.Rata"))  # encounter histories with sizes and missing ones filled in with projections or means
+save(encounters_size_means, file = here::here("Data/Script_outputs", "encounters_size_means.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
 save(encounters_size_0, file = here::here("Data/Script_outputs", "encounters_size_0.RData"))  # encounter histories with sizes and missing ones filled in with projections or 0s
