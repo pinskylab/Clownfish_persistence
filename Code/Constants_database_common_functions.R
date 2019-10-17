@@ -184,11 +184,18 @@ logit_recip <- function(logitval) {
   return(recip)
 }
 
+####### NEED TO FINISH EDITING AND CHECKING THIS FUNCTION SO IT CAN TAKE ANY ANEM ID TYPE!!
 # Function to find the lat and long for an anem_id (based off of Michelle's sample_latlon function) - copied from AnemLocations.R
-anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id is one anem_table_id value, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
+anemid_latlong <- function(anem.table.id, anem.df, latlondata) {  # anem.no is an anem_table_id or anem_obs or anem_id; anem.no.type is which of those it is, anem.df is the anem.Processed data frame (so don't have to pull from db again here), latlondata is table of GPX data from database (rather than making the function call it each time); will need to think a bit more clearly about how to handle different locations read for different visits to the same anem_id (or different with same anem_obs); for now, just letting every row in anem.Info get a lat-long
   
-  #this is what causes the multiple entries - pulls multiple rows for a few anems (81) that have multiple entries for the same anem_table_id in the database
-  anem <- anem.df %>% 
+  # # Pull out info for this anem
+  # if(anem.no.type == "anem_obs") {
+  #   anem <- anem.df %>%
+  #     filter(anem_obs == anem.no) %>%  # get relevant dive, time, site, etc. for this anem
+  # }
+  
+  # this is what causes the multiple entries - pulls multiple rows for a few anems (81) that have multiple entries for the same anem_table_id in the database
+  anem <- anem.df %>%
     filter(anem_table_id == anem.table.id) %>% #get the relevant dive, time, site, etc. info for this anem_table_id
     distinct(anem_table_id, .keep_all = TRUE) #added this in to get remove multiple entries that exist for some 2018 anem_table_ids
   
@@ -215,7 +222,6 @@ anemid_latlong <- function(anem.table.id, anem.df, latlondata) { #anem.table.id 
   }
   
   return(anem)
-  
 }
 
 #################### Edit + clean data from other analyses (if necessary): ####################
@@ -291,9 +297,16 @@ rm(allfish_fish, allfish_anems, allfish_dives)
 
 ##### Pull out all fish seen in the "clown_sightings" data base (fish_seen_db)
 
-##### Create list of sites and the years they were sampled
+##### Create list of sites and the years they were sampled 
 # Summarize sites sampled each year
 dives_processed <- dives_db_processed %>%
+  group_by(year, site) %>% 
+  summarize(ndives = n()) %>%
+  mutate(sampled = ifelse(ndives > 0, 1, 0)) # 1 if sampled (all 1 here b/c no entries for sites not sampled a particular year...)
+
+# Summarize sites sampled for clownfish each year (so only include spring dives, not the 2015 winter anemone survey dives)
+dives_processed_clownfish <- dives_db_processed %>%
+  filter(month %in% spring_months) %>%  # only include dives in the spring months, 
   group_by(year, site) %>% 
   summarize(ndives = n()) %>%
   mutate(sampled = ifelse(ndives > 0, 1, 0)) # 1 if sampled (all 1 here b/c no entries for sites not sampled a particular year...)
@@ -302,14 +315,14 @@ dives_processed <- dives_db_processed %>%
 site_visits <- data.frame(site = rep(site_vec_NS, length(years_sampled)))
 site_visits$year <- c(rep(2012, length(site_vec_NS)), rep(2013, length(site_vec_NS)), rep(2014, length(site_vec_NS)), rep(2015, length(site_vec_NS)),
                       rep(2016, length(site_vec_NS)), rep(2017, length(site_vec_NS)), rep(2018, length(site_vec_NS)))
-site_visits <- left_join(site_visits, dives_processed %>% select(year, site, sampled), by=c('year','site'))  # 1 if sampled in a particular year, NA if not
+site_visits <- left_join(site_visits, dives_processed_clownfish %>% select(year, site, sampled), by=c('year','site'))  # 1 if sampled in a particular year, NA if not
 
 ##### Process anems to merge with dive info, get times in same time zone as gps (don't need to make unique identifier any more b/c that's what anem_obs is now)
 # Merge with dive info
-anems_Processed <- left_join(anem_db, dives_db_processed, by="dive_table_id")
+anems_Processed_dive <- left_join(anem_db, dives_db_processed, by="dive_table_id")
 
 # Take out anems with no anem_id or species, convert time zones so matches with GPS (checked that number of rows is same with new anem_obs as with old anem_id_unq)
-anems_Processed <- anems_Processed %>%
+anems_Processed <- anems_Processed_dive %>%
   filter(!is.na(anem_id) | anem_id != "-9999" | anem_id == "") %>%  # filter out NAs, -9999s (if any left in there still...), and blanks; 10881 with NAs left in, 4977 after filtering (4193 as of 3/2019) (previously, before Michelle added 2018 and redid database to take out anem observations that were actually clownfish processing, had 9853 rows when NAs left in, 4056 when filtered out)
   filter(is.null(anem_spp) == FALSE) %>%  # to remove "phantom" anem observations that were actually just clownfish processing, get rid of obs with anem_spp that is null...
   filter(is.na(anem_spp) == FALSE) %>%  # or anem_spp that is NA
@@ -324,6 +337,17 @@ anems_Processed <- anems_Processed %>%
          anem_min = minute(obs_time), 
          anem_sec = second(obs_time))
 # When run the above, get a warning that two failed to parse - assume those are the two that don't have anem_obs_times
+
+# Do a version for all anems (even those without anem_ids)
+anems_Processed_all <- anems_Processed_dive %>%
+  mutate(obs_time = force_tz(ymd_hms(str_c(date, anem_obs_time, sep = " ")), tzone = "Asia/Manila")) %>%  # tell it that it is currently in Asia/Manila time zone
+  mutate(obs_time = with_tz(obs_time, tzone = "UTC")) %>%  # convert to UTC so can compare with GPS data (this line and one above largely from Michelle's assign_db_gpx function)
+  mutate(anem_month = month(obs_time),  # and separate out useful components of the time (this also from Michelle's assign_db_gpx function)
+         anem_day = day(obs_time), 
+         anem_hour = hour(obs_time), 
+         anem_min = minute(obs_time), 
+         anem_sec = second(obs_time))
+# When run the above, get a warning that three failed to parse - assume those are the two that don't have anem_obs_times plus some other one
 
 ##### Process gps data so date and time is on there and more accessible for comparison
 gps_Info <- gps_db %>%
@@ -360,8 +384,10 @@ all_parents_by_site <- left_join(all_parents_edited %>% dplyr::rename(fish_indiv
 save(site_vec_order, file = here::here("Data/Script_outputs", "site_vec_order.RData"))
 save(allfish_caught, file = here::here("Data/Script_outputs", "allfish_caught.RData"))  # all caught APCL (previously this file saved straight in Data)
 save(dives_processed, file = here::here("Data/Script_outputs", "dives_processed.RData"))  # number of dives at each site in each year (for determining if a site was sampled)
+save(dives_processed_clownfish, file = here::here("Data/Script_outputs", "dives_processed_clownfish.RData"))  # number of dives during clownfish sampling time in each year (not necessarily clownfish dives specifically)
 save(site_visits, file = here::here("Data/Script_outputs", "site_visits.RData"))  # whether or not each site was sampled in each year
-save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))
+save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.RData"))  # anems with ids, times processed and such
+save(anems_Processed_all, file = here::here("Data/Script_outputs", "anems_Processed_all.RData"))  # times processed for all anems, even without ids
 save(all_parents_by_site, file = here::here("Data/Script_outputs", "all_parents_by_site.RData"))
 save(site_edge_anems, file = here::here("Data/Script_outputs", "site_edge_anems.RData"))  # anem ids at edges and middle of each site (eyeballed)
 
