@@ -14,6 +14,7 @@ Repository contents and explanation:
 * *Site_widths_and_distances.R*: finds the width of each site, the distance between sites, and the distance from each site to the northern and southern edges of the sampling area
 * *TimeSeriesPersistence*: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
 * *Growth_analysis*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
+* *Clownfish_encounters*: makes encounter histories for all fish marked, fills in missing sizes by projecting using growth curve (and adding mean size or 0 for years pre-capture)
 * NEED TO INSERT INFO ABOUT MARK-RECAP SURVIVAL SCRIPT AND GROWTH SCRIPT HERE!
 * Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
 
@@ -38,6 +39,10 @@ Repository contents and explanation:
   * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
   * growth_info_estimate - parameter estimates for von Bertalanffy growth curve (produced by Growth_analysis.R)
   * recap_pairs_year - pairs of sizes for fish recaptured after about a year (produced by Growth_analysis.R)
+  * marked_fish - all fish that have been marked either via PIT tag or genotype (so have a fish_indiv) with their anem, dive, etc. info (produced by Clownfish_encounters.R)
+  * encounters_list - marked fish re-organized into encounter histories for MARK (produced by Clownfish_encounters.R)
+  * encounters_size_means - encounter histories with missing sizes filled in via growth curve projection or mean for pre-capture years (produced by Clownfish_encounters.R)
+  * encounters_size_0s - same as encounter_size_means but 0 instead of mean size in a year for the pre-capture years (produced by Clownfish_encounters.R)
 
 **Plots** - holds plots
 * *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
