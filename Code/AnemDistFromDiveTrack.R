@@ -1,6 +1,458 @@
 # Script to find the distance from an anemone where a tagged fish was seen previously to the dive track for each sampling season
+# Takes encounter data produced in Clownfish_encounters.R, feeds into mark-recapture analysis in ClownfishMarkRecap.R
+
+#################### Set-up: ####################
+source(here::here('Code', 'Constants_database_common_functions.R'))
+
+# Load data frame with individual fish encounter histories and the one of marked fish with anemone + dive info
+load(file = here::here("Data/Script_outputs", "encounters_list.RData"))
+load(file = here::here("Data/Script_outputs", "marked_fish.RData"))
+
+# Load libraries
+library(geosphere)
+library(ggplot2)
+library(cowplot)
+
+#################### Functions: ####################
+# Find the min distance from the anem where the fish was caught or last caught to a recorded GPS point in each year - from AnemDistFromDiveTrack.R
+findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampleyear, site_visits){
+  out <- rep(NA, length(sitevec))
+  nsteps <- length(sitevec)
+  
+  for(i in 1:nsteps) {
+    testsite = sitevec[i]
+    testlat = as.numeric(latvec[i])
+    testlon = as.numeric(lonvec[i])
+    testcapyear = as.numeric(capyearvec[i])
+    
+    if(sampleyear >= testcapyear) {
+      if(!is.na(testlat)) {
+        visited <- site_visits$sampled[which(site_visits$site == testsite & site_visits$year == sampleyear)]  # pull out the sampled value from this year and site
+        if(visited == 1) {  # if the sample site was visited that year, pull the dives from that site (for the spring months)
+          relevantdives <- divedf %>%
+            filter(site == testsite, as.numeric(year) == sampleyear, month %in% spring_months)
+        } else {  # if not, pull dives from sites 1 to the north and south
+          site_N <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) - 1]  # site to the north
+          site_S <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) + 1]  # site to the south
+          
+          relevantdives <- divedf %>%
+            filter(site %in% c(site_N, site_S), as.numeric(year) == sampleyear, month %in% spring_months)
+        }
+        
+        relevantgps <- gpxdf %>%
+          filter(gps_date %in% relevantdives$dive_date)
+        
+        distvec <- rep(NA, length(relevantgps$lat))  # set a place to store distances
+        
+        for(j in 1:length(distvec)) {  # go through the list of coordinates
+           #distvec2[j] = distGeo(c(testlon, testlat), c(relevantgps$lon[j], relevantgps$lat[j]))
+          distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
+        }
+        out[i] = min(distvec)
+      }
+    } else {
+      out[i] = NA
+    }
+    print(paste(i, "out of", length(sitevec), "and", out[i]))
+  } 
+  return(out)
+}
+
+#################### Running things: ####################
+# Save a new encounters data frame, add columns for anem_id, anem_obs, and anem_table_id for first capture anem 
+encounters_dist <- encounters_list %>%
+   mutate(capture_anem_id = NA,
+          capture_anem_obs = NA,
+          capture_anem_table_id = NA)
+
+##### Find the anemone where each first was first caught and its coordinates
+# Go through marked fish, find the anemone where they were first caught
+for (i in 1:length(encounters_dist$fish_indiv)) {
+  encounters_dist$capture_anem_id[i] = (marked_fish %>% filter(fish_indiv == encounters_dist$fish_indiv[i], year == encounters_dist$first_capture_year[i]))$anem_id[1] #record the anem_id where fish was first captured
+  encounters_dist$capture_anem_obs[i] = (marked_fish %>% filter(fish_indiv == encounters_dist$fish_indiv[i], year == encounters_dist$first_capture_year[i]))$anem_obs[1]
+  encounters_dist$capture_anem_table_id[i] = (marked_fish %>% filter(fish_indiv == encounters_dist$fish_indiv[i], year == encounters_dist$first_capture_year[i]))$anem_table_id[1]
+}
+
+# Go through and find lat lon for capture anems from anem_table_id (using anemid_latlong from Constants_database_common_functions)
+capture_lat_vec <- rep(NA, length(encounters_dist$capture_anem_table_id))
+capture_lon_vec <- rep(NA, length(encounters_dist$capture_anem_table_id))
+
+for(i in 1:length(encounters_dist$capture_anem_table_id)) {
+  anem_out <- anemid_latlong(encounters_dist$capture_anem_table_id[i], anems_Processed_all, gps_Info)
+  capture_lat_vec[i] <- anem_out$lat
+  capture_lon_vec[i] <- anem_out$lon
+}
+
+encounters_dist$capture_anem_lat <- capture_lat_vec
+encounters_dist$capture_anem_lon <- capture_lon_vec
+
+##### Find the distance from each anemone to the closest dive track in each sampling year
+# replace the NA in site_visits with 0s
+site_visits$sampled[is.na(site_visits$sampled)] <- 0  
+
+# Calculate the distances from tracks in each year to the capture anem (NA for years prior to first capture year) - at some point, should check into why they're not all 0 or NA in 2012...
+encounters_dist$dist2012 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2012, site_visits)
+encounters_dist$dist2013 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2013, site_visits)
+encounters_dist$dist2014 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2014, site_visits)
+encounters_dist$dist2015 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2015, site_visits)
+encounters_dist$dist2016 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2016, site_visits)
+encounters_dist$dist2017 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2017, site_visits)
+encounters_dist$dist2018 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2018, site_visits)
+
+# Save just the distances
+min_survey_dist_to_anems <- encounters_dist %>% select(first_capture_year, capture_anem_id, capture_anem_obs, capture_anem_table_id, capture_anem_lat, capture_anem_lon,
+                                                      dist2012, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018)
+
+##### Fill in the mean distance for pre-capture year anems (b/c cant have NAs in covariate columns)
+mean2012 <- mean(encounters_dist$dist2012, na.rm=TRUE)  # do I need this?
+mean2013 <- mean(encounters_dist$dist2013, na.rm=TRUE)
+mean2014 <- mean(encounters_dist$dist2014, na.rm=TRUE)
+mean2015 <- mean(encounters_dist$dist2015, na.rm=TRUE)
+mean2016 <- mean(encounters_dist$dist2016, na.rm=TRUE)
+mean2017 <- mean(encounters_dist$dist2017, na.rm=TRUE)
+mean2018 <- mean(encounters_dist$dist2018, na.rm=TRUE)
+mean_dist_allyears <- mean(c(encounters_dist$dist2012, encounters_dist$dist2013, encounters_dist$dist2014,
+                             encounters_dist$dist2015, encounters_dist$dist2016, encounters_dist$dist2017,
+                             encounters_dist$dist2018), na.rm=TRUE)
+
+# Fill in the overall mean in one version and yearly mean in the other
+encounters_dist_mean <- encounters_dist %>%
+  mutate(dist2013 = replace(dist2013, is.na(dist2013), mean_dist_allyears),
+         dist2014 = replace(dist2014, is.na(dist2014), mean_dist_allyears),
+         dist2015 = replace(dist2015, is.na(dist2015), mean_dist_allyears),
+         dist2016 = replace(dist2016, is.na(dist2016), mean_dist_allyears),
+         dist2017 = replace(dist2017, is.na(dist2017), mean_dist_allyears),
+         dist2018 = replace(dist2018, is.na(dist2018), mean_dist_allyears))
+
+encounters_dist_mean_by_year <- encounters_dist %>%
+  mutate(dist2013 = replace(dist2013, is.na(dist2013), mean2013),
+         dist2014 = replace(dist2014, is.na(dist2014), mean2014),
+         dist2015 = replace(dist2015, is.na(dist2015), mean2015),
+         dist2016 = replace(dist2016, is.na(dist2016), mean2016),
+         dist2017 = replace(dist2017, is.na(dist2017), mean2017),
+         dist2018 = replace(dist2018, is.na(dist2018), mean2018))
+
+#################### Plots: ####################
+
+##### Histograms of distances from tracks to capture anems for tagged fish by year
+d_2012_plot <- ggplot(data = encounters_dist, aes(dist2012)) +
+  geom_histogram(aes(dist2012), bins=30) +
+  xlab("distance (m)") + ggtitle("2012") +
+  theme_bw()
+    
+d_2013_plot <- ggplot(data = encounters_dist, aes(dist2013)) +
+  geom_histogram(aes(dist2013), bins=50) +
+  xlab("distance (m)") + ggtitle("2013") +
+  theme_bw()
+
+d_2014_plot <- ggplot(data = encounters_dist, aes(dist2014)) +
+  geom_histogram(aes(dist2014), bins=50) +
+  xlab("distance (m)") + ggtitle("2014") +
+  theme_bw()
+
+d_2015_plot <- ggplot(data = encounters_dist, aes(dist2015)) +
+  geom_histogram(aes(dist2015), bins=50) +
+  xlab("distance (m)") + ggtitle("2015") +
+  theme_bw()
+
+d_2016_plot <- ggplot(data = encounters_dist, aes(dist2016)) +
+  geom_histogram(aes(dist2016), bins=50) +
+  xlab("distance (m)") + ggtitle("2016") +
+  theme_bw()
+
+d_2017_plot <- ggplot(data = encounters_dist, aes(dist2017)) +
+  geom_histogram(aes(dist2017), bins=50) +
+  xlab("distance (m)") + ggtitle("2017") +
+  theme_bw()
+
+d_2018_plot <- ggplot(data = encounters_dist, aes(dist2018)) +
+  geom_histogram(aes(dist2018), bins=50) +
+  xlab("distance (m)") + ggtitle("2018") +
+  theme_bw()
+
+pdf(file = here("Plots/DistFromTrackToAnems", "Distance_to_marked_fish_capture_anems_allyears.pdf"))
+plot_grid(d_2012_plot, d_2013_plot, d_2014_plot, d_2015_plot, d_2016_plot, d_2017_plot, d_2018_plot, 
+          labels = c("a","b","c","d","e","f","g"), ncol=2)
+dev.off()
+
+#################### Saving output: ####################
+save(min_survey_dist_to_anems, file = here::here("Data/Script_outputs", "min_survey_dist_to_anems.RData"))  # data frame with anem_table_ids for capture anems plus their lat and lon and distance to sampling track in each year
+save(encounters_dist, file = here::here("Data/Script_outputs", "encounters_dist.RData"))  # encounter histories with distances to dive tracks in each year
+
+
+
+
+
+##### IN THE PROCESS OF EDITING THIS FUNCTION, REALIZED anem_Processed doesn't have lat/lon, will need to run function in Constants_database_common_functions but updating it first
+
+addLatLons <- function(encounters_df, anemdf) {
+  nentries = length(encounters_df$capture_anem_id)  # number of anems to go through, variable to use as short-hand length
+  out_lat = rep(NA, nentries)  # latitude output vector
+  out_lon = rep(NA, nentries)  # longitude output vector
+  
+  for(i in 1:nentries) {
+    test_obs = encounters_df$capture_anem_obs[i]  # anem_obs of the anem in question
+    test_table_id = encounters_df$capture_anem_table_id[i]  # anem_table_id of the anem in question
+    test_id = encounters_df$capture_anem_id[i]  # anem_id of the anem in question (if it has one)
+    
+    # try to get coordinates from the anem_obs first
+    if(!is.na(anem_obs)) {  # if the anem_obs isn't NA
+      matches = anemdf %>% filter(anem_obs == test_obs)  # see if there are any matches in the anem info data table
+      if(length(matches$dive_table_id != 0)) {  # if there are matches
+        out_lat[i] = mean(matches$lat, rm.na = TRUE)  # put the mean of the lat coordinate
+      }
+      
+    }
+    if(!is.na(test_id)) { #if the anem_id isn't NA
+      matches = anemdf %>% filter(anem_id == test_id) #see if there are any matches
+      if(length(matches$dive_table_id != 0)) { #if there are matches
+        if(latorlon == "lat") {
+          out[i] = matches$lat[1] #put the lat coord in if lat
+        } else if (latorlon == "lon") {
+          out[i] = matches$lon[1] #put the lon coord in if lon
+        }
+      }
+    }
+    
+    # check to see if got a coordinate from the anem_id, if not try the anem_table_id
+    if(is.na(out[i])) { #if the coordinate is still NA
+      if(!is.na(test_table_id)) { #and there is an anem_table_id
+        matches = anemdf %>% filter(anem_table_id == test_table_id) #see if there are any matches
+        if(length(matches$dive_table_id != 0)) { #if there are matches
+          if(latorlon == "lat") {
+            out[i] = matches$lat[1] #put the lat coord in if lat
+          } else if (latorlon == "lon") {
+            out[i] = matches$lon[1] #put the lon coord in if lon
+          }
+        }
+      }
+    }
+    
+    # check if either of those got a coordinate
+    if(is.na(out[i])) {
+      print(paste("No coordinates for anem_id",test_id,'or anem_table_id',test_table_id, sep=" "))
+    }
+  }
+  return(out)
+}
+
+encounters_all$dist_2012 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2012, site_visits)
+
+# Find the min distance from the anem where the fish was caught or last caught to a recorded GPS point in each year - from AnemDistFromDiveTrack.R
+findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampleyear, site_visits){
+  out <- rep(NA, length(sitevec))
+  nsteps <- length(sitevec)
+  
+  for(i in 1:nsteps) {
+    testsite = sitevec[i]
+    testlat = as.numeric(latvec[i])
+    testlon = as.numeric(lonvec[i])
+    testcapyear = as.numeric(capyearvec[i])
+    
+    if(sampleyear >= testcapyear) {
+      if(!is.na(testlat)) {
+        visited <- site_visits$sampled[which(site_visits$site == testsite & site_visits$year == sampleyear)] # pull out the sampled value from this year and site
+        if(visited == 1) { # if the sample site was visited that year, pull the dives from that site
+          relevantdives <- divedf %>%
+            filter(site == testsite, as.numeric(year) == sampleyear)
+        } else { #if not, pull dives from sites 1 to the north and south
+          site_N <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) - 1] #site to the north
+          site_S <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) + 1] #site to the south
+          
+          relevantdives <- divedf %>%
+            filter(site %in% c(site_N, site_S), as.numeric(year) == sampleyear)
+        }
+        
+        #filter out gps points from those dives
+        # relevantgps <- gpxdf %>%
+        #   filter(gps_date %in% relevantdives$date & gps_year == sampleyear)
+        relevantgps <- gpxdf %>%
+          filter(gps_date %in% relevantdives$dive_date)
+        
+        distvec <- rep(NA, length(relevantgps$lat)) #set a place to store distances
+        #distvec2 <- rep(NA, length(relevantgps$lat))
+        
+        for(j in 1:length(distvec)) { #go through the list of coordinates
+          #distvec2[j] = distGeo(c(testlon, testlat), c(relevantgps$lon[j], relevantgps$lat[j]))
+          distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
+          #print(paste(j, "of", length(distvec)))
+        }
+        out[i] = min(distvec)
+        #print(min(distvec2))
+      }
+    } else {
+      out[i] = NA
+    }
+    print(paste(i, "out of", length(sitevec), "and", out[i]))
+  } 
+  return(out)
+}
+
+
+##### Find distance from anemone in previous years
+encounters_all <- encounters_all %>%
+  mutate(capture_anem_id = NA,
+         capture_anem_table_id = NA,
+         capture_anem_lat = NA,
+         capture_anem_lon = NA,
+         dist_2012 = NA,
+         dist_2013 = NA,
+         dist_2014 = NA,
+         dist_2015 = NA,
+         dist_2016 = NA,
+         dist_2017 = NA,
+         dist_2018 = NA)
+
+
+######################## OLD CODE ######################### Previous version of script 
+
+# Go through list of tagged fish, find distance from anem where first caught for all years after capture (originally, updated anem each year to where it had been caught (code in AmenDistFromDiveTrack) but doesn't that bias fish that have been recaught to have lower distances?)
+for(i in 1:length(encounters_all$fish_indiv)) {
+  
+  # #Check for multiple anems recorded in capture year, print message if find some - this just records mulitple observations, not actually different anem_ids... amend to fix that...
+  # if(length((allfish_mark %>% filter(fish_id == encounters_all$fish_id[i], year == encounters_all$first_capture_year[i]))$anem_id) > 1) { 
+  #   mult_anems_test <- (allfish_mark %>% filter(fish_id == encounters_all$fish_id[i], year == encounters_all$first_capture_year[i]))$anem_id
+  #   for(l in 1:length(mult_anems_test))
+  # 
+  #   print(paste("Multiple matching anems for fish",encounters_all$fish_id[i],"in year",encounters_all$first_capture_year[i]))
+  # }
+  
+  # Record capture anem (id and anem_table_id) in first capture year and find lat/lon coordinates
+  encounters_all$capture_anem_id[i] = (marked_fish %>% filter(fish_indiv == encounters_all$fish_indiv[i], year == encounters_all$first_capture_year[i]))$anem_id[1] #record the anem where fish was first captured
+  encounters_all$capture_anem_table_id[i] = (marked_fish %>% filter(fish_indiv == encounters_all$fish_indiv[i], year == encounters_all$first_capture_year[i]))$anem_table_id[1]
+}
+
+# Now fill in the lat/lon coordinates for the capture anem
+#encounters_all$capture_anem_lat <- addLatLons(encounters_all, anems_Processed, "lat")
+encounters_all$capture_anem_lat <- addLatLons(encounters_all, anem.Processed_full, "lat") #now 5 anems without coordinates (which seems much more reasonable) and same ones for both lat and lon: anem_table_id 363, 364, 365, 366, 8094, none with anem_id
+encounters_all$capture_anem_lon <- addLatLons(encounters_all, anem.Processed_full, "lon")
+# talked to Michelle about these ones - probably from when the battery died at one point (2012) or the gps unit was submerged (2016)
+
+# replace the NA in site_visits with 0s
+site_visits$sampled[is.na(site_visits$sampled)] <- 0  
+
+## NEED TO RUN THESE OVERNIGHT - TOO SLOW TO DO DURING THE DAY!
+# Calculate the distances from tracks in each year to the capture anem (NA for years prior to first capture year) - at some point, should check into why they're not all 0 or NA in 2012...
+encounters_all$dist_2012 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2012, site_visits)
+encounters_all$dist_2013 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2013, site_visits)
+encounters_all$dist_2014 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2014, site_visits)
+encounters_all$dist_2015 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2015, site_visits)
+encounters_all$dist_2016 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2016, site_visits)
+encounters_all$dist_2017 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2017, site_visits)
+encounters_all$dist_2018 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2018, site_visits)
+
+addLatLons <- function(encounters_df, anemdf, latorlon) {
+  nentries = length(encounters_df$capture_anem_id) #number of anems to go through, variable to use as short-hand length
+  out = rep(NA, nentries) #output vector
+  
+  for(i in 1:nentries) {
+    test_table_id = encounters_df$capture_anem_table_id[i] #anem_table_id of the anem in question
+    test_id = encounters_df$capture_anem_id[i] #anem_id of the anem in question (if it has one)
+    # 
+    # # see if can get a lat/lon from the anem_id
+    # if(is.na(test_id)) { #if the anem_id is NA
+    #   if(is.na(test_table_id)) { #and the anem_table_id is NA
+    #     print('Both anem_id',)
+    #   }
+    # }
+    # 
+    
+    if(!is.na(test_id)) { #if the anem_id isn't NA
+      matches = anemdf %>% filter(anem_id == test_id) #see if there are any matches
+      if(length(matches$dive_table_id != 0)) { #if there are matches
+        if(latorlon == "lat") {
+          out[i] = matches$lat[1] #put the lat coord in if lat
+        } else if (latorlon == "lon") {
+          out[i] = matches$lon[1] #put the lon coord in if lon
+        }
+      }
+    }
+    
+    # check to see if got a coordinate from the anem_id, if not try the anem_table_id
+    if(is.na(out[i])) { #if the coordinate is still NA
+      if(!is.na(test_table_id)) { #and there is an anem_table_id
+        matches = anemdf %>% filter(anem_table_id == test_table_id) #see if there are any matches
+        if(length(matches$dive_table_id != 0)) { #if there are matches
+          if(latorlon == "lat") {
+            out[i] = matches$lat[1] #put the lat coord in if lat
+          } else if (latorlon == "lon") {
+            out[i] = matches$lon[1] #put the lon coord in if lon
+          }
+        }
+      }
+    }
+    
+    # check if either of those got a coordinate
+    if(is.na(out[i])) {
+      print(paste("No coordinates for anem_id",test_id,'or anem_table_id',test_table_id, sep=" "))
+    }
+  }
+  return(out)
+}
+
+encounters_all$dist_2012 <- findDist(encounters_all$site, encounters_all$capture_anem_lat, encounters_all$capture_anem_lon, encounters_all$first_capture_year, gps_Info, dives_db, 2012, site_visits)
+
+# Find the min distance from the anem where the fish was caught or last caught to a recorded GPS point in each year - from AnemDistFromDiveTrack.R
+findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampleyear, site_visits){
+  out <- rep(NA, length(sitevec))
+  nsteps <- length(sitevec)
+  
+  for(i in 1:nsteps) {
+    testsite = sitevec[i]
+    testlat = as.numeric(latvec[i])
+    testlon = as.numeric(lonvec[i])
+    testcapyear = as.numeric(capyearvec[i])
+    
+    if(sampleyear >= testcapyear) {
+      if(!is.na(testlat)) {
+        visited <- site_visits$sampled[which(site_visits$site == testsite & site_visits$year == sampleyear)] # pull out the sampled value from this year and site
+        if(visited == 1) { # if the sample site was visited that year, pull the dives from that site
+          relevantdives <- divedf %>%
+            filter(site == testsite, as.numeric(year) == sampleyear)
+        } else { #if not, pull dives from sites 1 to the north and south
+          site_N <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) - 1] #site to the north
+          site_S <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) + 1] #site to the south
+          
+          relevantdives <- divedf %>%
+            filter(site %in% c(site_N, site_S), as.numeric(year) == sampleyear)
+        }
+        
+        #filter out gps points from those dives
+        # relevantgps <- gpxdf %>%
+        #   filter(gps_date %in% relevantdives$date & gps_year == sampleyear)
+        relevantgps <- gpxdf %>%
+          filter(gps_date %in% relevantdives$dive_date)
+        
+        distvec <- rep(NA, length(relevantgps$lat)) #set a place to store distances
+        #distvec2 <- rep(NA, length(relevantgps$lat))
+        
+        for(j in 1:length(distvec)) { #go through the list of coordinates
+          #distvec2[j] = distGeo(c(testlon, testlat), c(relevantgps$lon[j], relevantgps$lat[j]))
+          distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
+          #print(paste(j, "of", length(distvec)))
+        }
+        out[i] = min(distvec)
+        #print(min(distvec2))
+      }
+    } else {
+      out[i] = NA
+    }
+    print(paste(i, "out of", length(sitevec), "and", out[i]))
+  } 
+  return(out)
+}
+
+#test <- findDist(encounters_all$site[1:10], encounters_all$capture_anem_lat[1:10], encounters_all$capture_anem_lon[1:10], encounters_all$first_capture_year[1:10], gps_Info, dives_db, 2012, site_visits)
+#save(encounters_all, file=here('Data','encounters_all.RData'))
+saveRDS(encounters_all, file=here('Data','encounters_all_with_dist.RData'))
+
+# save just distances
+min_survey_dist_to_anems <- encounters_all %>% select(first_capture_year, capture_anem_id, capture_anem_table_id, capture_anem_lat, capture_anem_lon,
+                                                      dist_2012, dist_2013, dist_2014, dist_2015, dist_2016, dist_2017, dist_2018)
+
 # Will be input into mark-recapture analysis to help with recapture estimates (ideally, to capture whether or not we even had a reasonable chance of catching the fish)
 # Should think about how to best mesh this with AnemLocations.R and ClownfishMarkRecap.R - which ones should be loaded into others? Or should they all be part of one big script?
+
 
 #################### Set-up: ####################
 #Load relevant libraries
