@@ -1,3 +1,412 @@
+# Takes in encounter histories and distances to capture anemone for each marked fish and runs mark-recap analysis to estimate survival and recapture probability
+
+#################### Set-up: ####################
+source(here::here('Code', 'Constants_database_common_functions.R'))
+
+# Load libraries
+library(RMark)
+
+# Read in encounter history data frames for marked fish with sizes (from Clownfish_encounters.R) and distances to capture anemone (from AnemDistFromDiveTrack.R)
+load(file = here::here("Data/Script_outputs", "encounters_dist_mean.RData"))  # encounter histories with overall mean dist filled in for NAs (pre-capture years, plus about 5 missing coords)
+load(file = here::here("Data/Script_outputs", "encounters_dist_mean_by_year.RData"))  # encounter histories with mean dist by year filled in for NAs
+load(file = here::here("Data/Script_outputs", "encounters_size_means.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
+load(file = here::here("Data/Script_outputs", "encounters_size_0.RData"))  # encounter histories with sizes and missing ones filled in with projections or 0s
+
+#################### Functions: ####################
+
+#################### Running things: ####################
+##### Create data frames for analysis, joining trait info and distance info
+# Mean size (by year), mean distance (by year)
+eall_meanYsize_meanYdist <- left_join(encounters_size_means, encounters_dist_mean_by_year %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
+                                      by = "fish_indiv") %>%
+  mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
+  dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
+
+eall_meanYsize_meanYdist <- eall_meanYsize_meanYdist[complete.cases(eall_meanYsize_meanYdist),]
+
+##### Prep for MARK runs
+# Process data (both with and without site as a group)
+eall_meanYsize_meanYdist.processed = process.data(eall_meanYsize_meanYdist, model='CJS', begin.time=2012)
+eall_meanYsize_meanYdist.processed_site = process.data(eall_meanYsize_meanYdist, model="CJS", begin.time=2012, groups="site")
+
+# Make ddl
+eall_meanYsize_meanYdist.ddl = make.design.data(eall_meanYsize_meanYdist.processed)
+eall_meanYsize_meanYdist.ddl_site = make.design.data(eall_meanYsize_meanYdist.processed_site)
+
+# Set models for Phi
+Phi.dot = list(formula=~1, link="logit")
+Phi.time = list(formula=~time, link="logit")
+Phi.site = list(formula=~site, link="logit")
+Phi.size = list(formula=~size, link="logit")
+Phi.site.plus.size = list(formula=~site*size, link="logit")
+
+# Set models for p
+p.dot = list(formula=~1, link="logit")
+p.time = list(formula=~time, link="logit")
+p.dist = list(formula=~dist, link="logit")
+p.site = list(formula=~site, link="logit")
+p.size = list(formula=~size, link="logit")
+p.size.plus.dist = list(formula=~size+dist, link="logit")
+
+# Run models
+# using mean-dist-for-NA and mean-size-for-NA (mean within each year) dataset
+eall_meanYsize_meanYdist.Phi.dot.p.dot = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot), prefix = "eall_meanYsize_meanYdist.Phi.dot.p.dot")  # constant survival and recap, no covariates
+eall_meanYsize_meanYdist.Phi.dot.p.time = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time), prefix = "eall_meanYsize_meanYdist.Phi.dot.p.time")  # constant survival, recapture time-dependent
+eall_meanYsize_meanYdist.Phi.time.p.dot = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.time, p=p.dot), prefix = "eall_meanYsize_meanYdist.Phi.time.p.dot")  # time-varying survival, recapture constant
+eall_meanYsize_meanYdist.Phi.dot.p.dist = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist), prefix = "eall_meanYsize_meanYdist.Phi.dot.p.dist")  # constant survival, recapture distance-dependent
+eall_meanYsize_meanYdist.Phi.size.p.size = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.size, p=p.size), prefix = "eall_meanYsize_meanYdist.Phi.size.p.size")  # capture-size-dependent survival and recapture
+eall_meanYsize_meanYdist.Phi.size.p.dist = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.size, p=p.dist), prefix = "eall_meanYsize_meanYdist.Phi.size.p.dist")  # size-dependent survival, distance-dependent recapture
+eall_meanYsize_meanYdist.Phi.size.p.size.plus.dist = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.size, p=p.size.plus.dist), prefix = "eall_meanYsize_meanYdist.Phi.size.p.size.plus.dist")  # size-dependent survival, size-and-distance-dependent recapture
+eall_meanYsize_meanYdist.Phi.dot.p.size.plus.dist = mark(eall_meanYsize_meanYdist.processed, eall_meanYsize_meanYdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.size.plus.dist), prefix = "eall_meanYsize_meanYdist.Phi.dot.p.size.plus.dist")  # constant survival, size-and-distance-dependent recapture
+eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist = mark(eall_meanYsize_meanYdist.processed_site, eall_meanYsize_meanYdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.size.plus.dist), prefix = "eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist")  # site-dependent survival, size-and-distance-dependent recapture
+eall_meanYsize_meanYdist.Phi.site.p.dot = mark(eall_meanYsize_meanYdist.processed_site, eall_meanYsize_meanYdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dot), prefix = "eall_meanYsize_meanYdist.Phi.site.p.dot")  # site-dependent survival, constant recapture
+eall_meanYsize_meanYdist.Phi.site.p.dist = mark(eall_meanYsize_meanYdist.processed_site, eall_meanYsize_meanYdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dist), prefix = "eall_meanYsize_meanYdist.Phi.site.p.dist")  # site-dependent survival, dist-related recapture
+#eall_meanYsize_meanYdist.Phi.site.plus.size.p.size.plus.dist = mark(eall_meanYsize_meanYdist.processed_site, eall_meanYsize_meanYdist.ddl_site, model.parameters=list(Phi=Phi.site.plus.size, p=p.size.plus.dist), prefix = "eall_meanYdist_meanYsize.Phi.site.plus.size.p.size.plus.dist")  # site- and size-dependent survival, size-and-distance-dependent recapture
+# Error in parse for this one - not sure why....
+
+# Compare model AICc
+model_comp_meanYsize_meanYdist = data.frame(model = c('eall_meanYsize_meanYdist.Phi.dot.p.dot','eall_meanYsize_meanYdist.Phi.dot.p.time','eall_meanYsize_meanYdist.Phi.time.p.dot',
+                                       'eall_meanYsize_meanYdist.Phi.dot.p.dist','eall_meanYsize_meanYdist.Phi.size.p.size','eall_meanYsize_meanYdist.Phi.size.p.dist',
+                                       'eall_meanYsize_meanYdist.Phi.size.p.size.plus.dist','eall_meanYsize_meanYdist.Phi.dot.p.size.plus.dist',
+                                       'eall_meanYsize_meanYdist.Phi.site.p.dot','eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist', 
+                                       'eall_meanYsize_meanYdist.Phi.site.p.dist'),
+                             AICc = c(eall_meanYsize_meanYdist.Phi.dot.p.dot$results$AICc, eall_meanYsize_meanYdist.Phi.dot.p.time$results$AICc, eall_meanYsize_meanYdist.Phi.time.p.dot$results$AICc,
+                                      eall_meanYsize_meanYdist.Phi.dot.p.dist$results$AICc, eall_meanYsize_meanYdist.Phi.size.p.size$results$AICc, eall_meanYsize_meanYdist.Phi.size.p.dist$results$AICc,
+                                      eall_meanYsize_meanYdist.Phi.size.p.size.plus.dist$results$AICc, eall_meanYsize_meanYdist.Phi.dot.p.size.plus.dist$results$AICc,
+                                      eall_meanYsize_meanYdist.Phi.site.p.dot$results$AICc, eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist$results$AICc,
+                                      eall_meanYsize_meanYdist.Phi.site.p.dist$results$AICc),
+                             stringsAsFactors = FALSE)
+
+# Arrange by increasing AICc
+model_comp_meanYsize_meanYdist <- model_comp_meanYsize_meanYdist %>%
+  mutate(dAICc = min(AICc) - AICc) %>%
+  arrange(-dAICc)
+
+
+##### Do some sensitivity to test that the same models get picked when fill in missing values in other ways
+### Mean size (by year), mean distance (overall)
+# Set data frames
+eall_meanYsize_meanOdist <- left_join(encounters_size_means, encounters_dist_mean %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
+                                      by = "fish_indiv") %>%
+  mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
+  dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
+
+eall_meanYsize_meanOdist <- eall_meanYsize_meanOdist[complete.cases(eall_meanYsize_meanOdist),]
+
+# Process data and make ddl
+eall_meanYsize_meanOdist.processed = process.data(eall_meanYsize_meanOdist, model='CJS', begin.time=2012)
+eall_meanYsize_meanOdist.processed_site = process.data(eall_meanYsize_meanOdist, model="CJS", begin.time=2012, groups="site")
+
+eall_meanYsize_meanOdist.ddl = make.design.data(eall_meanYsize_meanOdist.processed)
+eall_meanYsize_meanOdist.ddl_site = make.design.data(eall_meanYsize_meanOdist.processed_site)
+
+# Run models
+eall_meanYsize_meanOdist.Phi.dot.p.dot = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot), prefix = "eall_meanYsize_meanOdist.Phi.dot.p.dot")  # constant survival and recap, no covariates
+eall_meanYsize_meanOdist.Phi.dot.p.time = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time), prefix = "eall_meanYsize_meanOdist.Phi.dot.p.time")  # constant survival, recapture time-dependent
+eall_meanYsize_meanOdist.Phi.time.p.dot = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.time, p=p.dot), prefix = "eall_meanYsize_meanOdist.Phi.time.p.dot")  # time-varying survival, recapture constant
+eall_meanYsize_meanOdist.Phi.dot.p.dist = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist), prefix = "eall_meanYsize_meanOdist.Phi.dot.p.dist")  # constant survival, recapture distance-dependent
+eall_meanYsize_meanOdist.Phi.size.p.size = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.size, p=p.size), prefix = "eall_meanYsize_meanOdist.Phi.size.p.size")  # capture-size-dependent survival and recapture
+eall_meanYsize_meanOdist.Phi.size.p.dist = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.size, p=p.dist), prefix = "eall_meanYsize_meanOdist.Phi.size.p.dist")  # size-dependent survival, distance-dependent recapture
+eall_meanYsize_meanOdist.Phi.size.p.size.plus.dist = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.size, p=p.size.plus.dist), prefix = "eall_meanYsize_meanOdist.Phi.size.p.size.plus.dist")  # size-dependent survival, size-and-distance-dependent recapture
+eall_meanYsize_meanOdist.Phi.dot.p.size.plus.dist = mark(eall_meanYsize_meanOdist.processed, eall_meanYsize_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.size.plus.dist), prefix = "eall_meanYsize_meanOdist.Phi.dot.p.size.plus.dist")  # constant survival, size-and-distance-dependent recapture
+eall_meanYsize_meanOdist.Phi.site.p.size.plus.dist = mark(eall_meanYsize_meanOdist.processed_site, eall_meanYsize_meanOdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.size.plus.dist), prefix = "eall_meanYsize_meanOdist.Phi.site.p.size.plus.dist")  # site-dependent survival, size-and-distance-dependent recapture
+eall_meanYsize_meanOdist.Phi.site.p.dot = mark(eall_meanYsize_meanOdist.processed_site, eall_meanYsize_meanOdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dot), prefix = "eall_meanYsize_meanOdist.Phi.site.p.dot")  # site-dependent survival, constant recapture
+eall_meanYsize_meanOdist.Phi.site.p.dist = mark(eall_meanYsize_meanOdist.processed_site, eall_meanYsize_meanOdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dist), prefix = "eall_meanYsize_meanOdist.Phi.site.p.dist")  # site-dependent survival, dist-related recapture
+
+# Compare model AICc
+model_comp_meanYsize_meanOdist = data.frame(model = c('eall_meanYsize_meanOdist.Phi.dot.p.dot','eall_meanYsize_meanOdist.Phi.dot.p.time','eall_meanYsize_meanOdist.Phi.time.p.dot',
+                                                      'eall_meanYsize_meanOdist.Phi.dot.p.dist','eall_meanYsize_meanOdist.Phi.size.p.size','eall_meanYsize_meanOdist.Phi.size.p.dist',
+                                                      'eall_meanYsize_meanOdist.Phi.size.p.size.plus.dist','eall_meanYsize_meanOdist.Phi.dot.p.size.plus.dist',
+                                                      'eall_meanYsize_meanOdist.Phi.site.p.dot','eall_meanYsize_meanOdist.Phi.site.p.size.plus.dist',
+                                                      "eall_meanYsize_meanOdist.Phi.site.p.dist"),
+                                            AICc = c(eall_meanYsize_meanOdist.Phi.dot.p.dot$results$AICc, eall_meanYsize_meanOdist.Phi.dot.p.time$results$AICc, eall_meanYsize_meanOdist.Phi.time.p.dot$results$AICc,
+                                                     eall_meanYsize_meanOdist.Phi.dot.p.dist$results$AICc, eall_meanYsize_meanOdist.Phi.size.p.size$results$AICc, eall_meanYsize_meanOdist.Phi.size.p.dist$results$AICc,
+                                                     eall_meanYsize_meanOdist.Phi.size.p.size.plus.dist$results$AICc, eall_meanYsize_meanOdist.Phi.dot.p.size.plus.dist$results$AICc,
+                                                     eall_meanYsize_meanOdist.Phi.site.p.dot$results$AICc, eall_meanYsize_meanOdist.Phi.site.p.size.plus.dist$results$AICc,
+                                                     eall_meanYsize_meanOdist.Phi.site.p.dist$results$AICc),
+                                            stringsAsFactors = FALSE)
+
+# Arrange by increasing AICc
+model_comp_meanYsize_meanOdist <- model_comp_meanYsize_meanOdist %>%
+  mutate(dAICc = min(AICc) - AICc) %>%
+  arrange(-dAICc)
+
+### 0 size, mean distance (overall)
+# Make data frames
+eall_0size_meanOdist <- left_join(encounters_size_0, encounters_dist_mean %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
+                                  by = "fish_indiv") %>%
+  mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
+  dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
+
+eall_0size_meanOdist <- eall_0size_meanOdist[complete.cases(eall_0size_meanOdist),]
+
+# Process data and make ddl
+eall_0size_meanOdist.processed = process.data(eall_0size_meanOdist, model='CJS', begin.time=2012)
+eall_0size_meanOdist.processed_site = process.data(eall_0size_meanOdist, model="CJS", begin.time=2012, groups="site")
+
+eall_0size_meanOdist.ddl = make.design.data(eall_0size_meanOdist.processed)
+eall_0size_meanOdist.ddl_site = make.design.data(eall_0size_meanOdist.processed_site)
+
+# Run models
+eall_0size_meanOdist.Phi.dot.p.dot = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot), prefix = "eall_0size_meanOdist.Phi.dot.p.dot")  # constant survival and recap, no covariates
+eall_0size_meanOdist.Phi.dot.p.time = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.time), prefix = "eall_0size_meanOdist.Phi.dot.p.time")  # constant survival, recapture time-dependent
+eall_0size_meanOdist.Phi.time.p.dot = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.time, p=p.dot), prefix = "eall_0size_meanOdist.Phi.time.p.dot")  # time-varying survival, recapture constant
+eall_0size_meanOdist.Phi.dot.p.dist = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist), prefix = "eall_0size_meanOdist.Phi.dot.p.dist")  # constant survival, recapture distance-dependent
+eall_0size_meanOdist.Phi.size.p.size = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.size, p=p.size), prefix = "eall_0size_meanOdist.Phi.size.p.size")  # capture-size-dependent survival and recapture
+eall_0size_meanOdist.Phi.size.p.dist = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.size, p=p.dist), prefix = "eall_0size_meanOdist.Phi.size.p.dist")  # size-dependent survival, distance-dependent recapture
+eall_0size_meanOdist.Phi.size.p.size.plus.dist = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.size, p=p.size.plus.dist), prefix = "eall_0size_meanOdist.Phi.size.p.size.plus.dist")  # size-dependent survival, size-and-distance-dependent recapture
+eall_0size_meanOdist.Phi.dot.p.size.plus.dist = mark(eall_0size_meanOdist.processed, eall_0size_meanOdist.ddl, model.parameters=list(Phi=Phi.dot, p=p.size.plus.dist), prefix = "eall_0size_meanOdist.Phi.dot.p.size.plus.dist")  # constant survival, size-and-distance-dependent recapture
+eall_0size_meanOdist.Phi.site.p.size.plus.dist = mark(eall_0size_meanOdist.processed_site, eall_0size_meanOdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.size.plus.dist), prefix = "eall_0size_meanOdist.Phi.site.p.size.plus.dist")  # site-dependent survival, size-and-distance-dependent recapture
+eall_0size_meanOdist.Phi.site.p.dot = mark(eall_0size_meanOdist.processed_site, eall_0size_meanOdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dot), prefix = "eall_0size_meanOdist.Phi.site.p.dot")  # site-dependent survival, constant recapture
+eall_0size_meanOdist.Phi.site.p.dist = mark(eall_0size_meanOdist.processed_site, eall_0size_meanOdist.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dist), prefix = "eall_0size_meanOdist.Phi.site.p.dist")  # site-dependent survival, dist-related recapture
+
+# Compare model AICc
+model_comp_0size_meanOdist = data.frame(model = c('eall_0size_meanOdist.Phi.dot.p.dot','eall_0size_meanOdist.Phi.dot.p.time','eall_0size_meanOdist.Phi.time.p.dot',
+                                                      'eall_0size_meanOdist.Phi.dot.p.dist','eall_0size_meanOdist.Phi.size.p.size','eall_0size_meanOdist.Phi.size.p.dist',
+                                                      'eall_0size_meanOdist.Phi.size.p.size.plus.dist','eall_0size_meanOdist.Phi.dot.p.size.plus.dist',
+                                                      'eall_0size_meanOdist.Phi.site.p.dot','eall_0size_meanOdist.Phi.site.p.size.plus.dist',
+                                                  'eall_0size_meanOdist.Phi.site.p.dist'),
+                                            AICc = c(eall_0size_meanOdist.Phi.dot.p.dot$results$AICc, eall_0size_meanOdist.Phi.dot.p.time$results$AICc, eall_0size_meanOdist.Phi.time.p.dot$results$AICc,
+                                                     eall_0size_meanOdist.Phi.dot.p.dist$results$AICc, eall_0size_meanOdist.Phi.size.p.size$results$AICc, eall_0size_meanOdist.Phi.size.p.dist$results$AICc,
+                                                     eall_0size_meanOdist.Phi.size.p.size.plus.dist$results$AICc, eall_0size_meanOdist.Phi.dot.p.size.plus.dist$results$AICc,
+                                                     eall_0size_meanOdist.Phi.site.p.dot$results$AICc, eall_0size_meanOdist.Phi.site.p.size.plus.dist$results$AICc,
+                                                     eall_0size_meanOdist.Phi.site.p.dist$results$AICc),
+                                            stringsAsFactors = FALSE)
+
+# Arrange by increasing AICc
+model_comp_0size_meanOdist <- model_comp_0size_meanOdist %>%
+  mutate(dAICc = min(AICc) - AICc) %>%
+  arrange(-dAICc)
+
+
+
+###### Survival by size, recapture both by size and distance (eall_mean.Phi.size.p.size.plus.dist)
+minsize = 1
+maxsize = 15
+size.values <- minsize+(0:30)*(maxsize-minsize)/30
+
+mindist = 0
+# maxdist1 = max(eall$dist2016,eall$dist2017,eall$dist2018) #seems kind of high and probably due to an error
+maxdist2 = 200 #encompasses highest values in 2016, 2018 
+# dist.values1 = mindist+(0:30)*(maxdist1-mindist)/30
+dist.values2 = mindist+(0:30)*(maxdist2-mindist)/30
+
+# Means
+eall_mean.Phi.size.p.size.plus.dist.results = as.data.frame(eall_mean.Phi.size.p.size.plus.dist$results$beta)
+
+Phibysize_Phi.size.p.size.plus.dist_means <- data.frame(size = size.values) %>%
+  mutate(Phi_logit = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1] + eall_mean.Phi.size.p.size.plus.dist.results$estimate[2]*size,
+         Phi_lcl_logit = eall_mean.Phi.size.p.size.plus.dist.results$lcl[1] + eall_mean.Phi.size.p.size.plus.dist.results$lcl[2]*size,
+         Phi_ucl_logit = eall_mean.Phi.size.p.size.plus.dist.results$ucl[1] + eall_mean.Phi.size.p.size.plus.dist.results$ucl[2]*size,
+         Phi = logit_recip(Phi_logit),
+         Phi_lcl = logit_recip(Phi_lcl_logit),
+         Phi_ucl = logit_recip(Phi_ucl_logit))
+
+pbysize_Phi.size.p.size.plus.dist_means <- data.frame(size = size.values) %>%
+  mutate(p_logit = eall_mean.Phi.size.p.size.plus.dist.results$estimate[3] + eall_mean.Phi.size.p.size.plus.dist.results$estimate[4]*size,
+         p_lcl_logit = eall_mean.Phi.size.p.size.plus.dist.results$lcl[3] + eall_mean.Phi.size.p.size.plus.dist.results$lcl[4]*size,
+         p_ucl_logit = eall_mean.Phi.size.p.size.plus.dist.results$ucl[3] + eall_mean.Phi.size.p.size.plus.dist.results$ucl[4]*size,
+         p = logit_recip(p_logit),
+         p_lcl = logit_recip(p_lcl_logit),
+         p_ucl = logit_recip(p_ucl_logit))
+
+pbydist_Phi.size.p.size.plus.dist_means <- data.frame(dist = dist.values2) %>%
+  mutate(p_logit = eall_mean.Phi.size.p.size.plus.dist.results$estimate[3] + eall_mean.Phi.size.p.size.plus.dist.results$estimate[5]*dist,
+         p_lcl_logit = eall_mean.Phi.size.p.size.plus.dist.results$lcl[3] + eall_mean.Phi.size.p.size.plus.dist.results$lcl[5]*dist,
+         p_ucl_logit = eall_mean.Phi.size.p.size.plus.dist.results$ucl[3] + eall_mean.Phi.size.p.size.plus.dist.results$ucl[5]*dist,
+         p = logit_recip(p_logit),
+         p_lcl = logit_recip(p_lcl_logit),
+         p_ucl = logit_recip(p_ucl_logit))
+
+# Zeros
+eall_0.Phi.size.p.size.plus.dist.results = as.data.frame(eall_0.Phi.size.p.size.plus.dist$results$beta)
+
+Phibysize_Phi.size.p.size.plus.dist_0s <- data.frame(size = size.values) %>%
+  mutate(Phi_logit = eall_0.Phi.size.p.size.plus.dist.results$estimate[1] + eall_0.Phi.size.p.size.plus.dist.results$estimate[2]*size,
+         Phi_lcl_logit = eall_0.Phi.size.p.size.plus.dist.results$lcl[1] + eall_0.Phi.size.p.size.plus.dist.results$lcl[2]*size,
+         Phi_ucl_logit = eall_0.Phi.size.p.size.plus.dist.results$ucl[1] + eall_0.Phi.size.p.size.plus.dist.results$ucl[2]*size,
+         Phi = logit_recip(Phi_logit),
+         Phi_lcl = logit_recip(Phi_lcl_logit),
+         Phi_ucl = logit_recip(Phi_ucl_logit))
+
+pbysize_Phi.size.p.size.plus.dist_0s <- data.frame(size = size.values) %>%
+  mutate(p_logit = eall_0.Phi.size.p.size.plus.dist.results$estimate[3] + eall_0.Phi.size.p.size.plus.dist.results$estimate[4]*size,
+         p_lcl_logit = eall_0.Phi.size.p.size.plus.dist.results$lcl[3] + eall_0.Phi.size.p.size.plus.dist.results$lcl[4]*size,
+         p_ucl_logit = eall_0.Phi.size.p.size.plus.dist.results$ucl[3] + eall_0.Phi.size.p.size.plus.dist.results$ucl[4]*size,
+         p = logit_recip(p_logit),
+         p_lcl = logit_recip(p_lcl_logit),
+         p_ucl = logit_recip(p_ucl_logit))
+
+pbydist_Phi.size.p.size.plus.dist_0s <- data.frame(dist = dist.values2) %>%
+  mutate(p_logit = eall_0.Phi.size.p.size.plus.dist.results$estimate[3] + eall_0.Phi.size.p.size.plus.dist.results$estimate[5]*dist,
+         p_lcl_logit = eall_0.Phi.size.p.size.plus.dist.results$lcl[3] + eall_0.Phi.size.p.size.plus.dist.results$lcl[5]*dist,
+         p_ucl_logit = eall_0.Phi.size.p.size.plus.dist.results$ucl[3] + eall_0.Phi.size.p.size.plus.dist.results$ucl[5]*dist,
+         p = logit_recip(p_logit),
+         p_lcl = logit_recip(p_lcl_logit),
+         p_ucl = logit_recip(p_ucl_logit))
+
+
+#################### Plots: ####################
+
+
+#################### Saving output: ####################
+
+#### Models with distance (with 0s put in for distance pre-fish first caught), capture size, capture tail color, capture stage
+# Data
+# Using 0 for distances for years before fish are caught
+eall_0 <- encounters_all_0s %>%
+  select(ch, site, cap_size, cap_color, cap_stage, dist2012, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018,
+         size2012, size2013, size2014, size2015, size2016, size2017, size2018) %>%
+  mutate(site = as.factor(site), cap_color = as.factor(cap_color), cap_stage = as.factor(cap_stage))
+
+eall_0 <- eall_0[complete.cases(eall_0),] #need complete cases, sometimes NA in size
+
+
+# Using mean dist in that year for years before fish are caught
+eall_mean <- encounters_all_means %>%
+  select(ch, site, cap_size, cap_color, cap_stage, dist2012, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018,
+         size2012, size2013, size2014, size2015, size2016, size2017, size2018) %>%
+  mutate(site = as.factor(site), cap_color = as.factor(cap_color), cap_stage = as.factor(cap_stage))
+
+eall_mean <- eall_mean[complete.cases(eall_mean),]
+
+# Process data and make ddl
+# first for data with mean filled in for NAs in both fish size and distance
+eall_mean.processed = process.data(eall_mean, model='CJS', begin.time=2012)
+eall_mean.processed_site = process.data(eall_mean, model="CJS", begin.time=2012, groups="site")
+#eall_mean.processed_stage = process.data(eall_mean, model='CJS', begin.time=2012, groups='cap_stage')
+#eall_mean.processed_color = process.data(eall_mean, model="CJS", begin.time=2012, groups="cap_color")
+
+eall_mean.ddl = make.design.data(eall_mean.processed)
+eall_mean.ddl_site = make.design.data(eall_mean.processed_site)
+#eall_mean.ddl_stage = make.design.data(eall_mean.processed_stage)
+#eall_mean.ddl_color = make.design.data(eall_mean.processed_color)
+
+# then for data with 0s filled in for distance and size NAs
+eall_0.processed = process.data(eall_0, model='CJS', begin.time=2012)
+eall_0.processed_site = process.data(eall_0, model="CJS", begin.time=2012, groups="site")
+#eall_0.processed_stage = process.data(eall_0, model='CJS', begin.time=2012, groups='cap_stage')
+#eall_0.processed_color = process.data(eall_0, model="CJS", begin.time=2012, groups="cap_color")
+
+eall_0.ddl = make.design.data(eall_0.processed)
+eall_0.ddl_site = make.design.data(eall_0.processed_site)
+#eall_0.ddl_stage = make.design.data(eall_0.processed_stage)
+#eall_0.ddl_color = make.design.data(eall_0.processed_color)
+
+# set models for Phi
+Phi.dot = list(formula=~1, link="logit")
+Phi.time = list(formula=~time, link="logit")
+Phi.site = list(formula=~site, link="logit")
+Phi.size = list(formula=~size, link='logit')
+#Phi.stage = list(formula=~cap_stage, link="logit")
+
+#Phi.capsize = list(formula=~cap_size, link="logit")
+#Phi.color = list(formula=~cap_color, link="logit")
+#Phi.size.plus.stage = list(formula=~cap_size+cap_stage, link='logit')
+#Phi.size.plus.color = list(formula=~cap_size+cap_color, link='logit')
+
+# set models for p
+p.dot = list(formula=~1, link="logit")
+p.time = list(formula=~time, link="logit")
+p.dist = list(formula=~dist, link="logit")
+p.site = list(formula=~site, link="logit")
+p.size = list(formula=~size, link='logit')
+p.size.plus.dist = list(formula=~size+dist, link='logit')
+
+#p.size = list(formula=~cap_size, link="logit")
+#p.stage = list(formula=~cap_stage, link="logit")
+#p.size.plus.stage = list(formula=~cap_size+cap_stage, link="logit")
+#p.time.plus.dist = list(formula=~time+dist, link="logit")
+
+# run some models
+# using mean-dist-for-NA and mean-size-for-NA (mean within each year) dataset
+eall_mean.Phi.dot.p.dot = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot), prefix = 'eall_mean.Phi.dot.p.dot') #constant survival and recap, no covariates
+eall_mean.Phi.dot.p.time = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.dot, p=p.time), prefix = 'eall_mean.Phi.dot.p.time') #constant survival, recapture time-dependent
+eall_mean.Phi.time.p.dot = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.time, p=p.dot), prefix = 'eall_mean.Phi.time.p.dot') #time-varying survival, recapture constant
+eall_mean.Phi.dot.p.dist = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist), prefix = 'eall_mean.Phi.dot.p.dist') #constant survival, recapture distance-dependent
+eall_mean.Phi.size.p.size = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.size, p=p.size), prefix = 'eall_mean.Phi.size.p.size') #capture-size-dependent survival and recapture
+eall_mean.Phi.size.p.dist = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.size, p=p.dist), prefix = 'eall_mean.Phi.size.p.dist') #size-dependent survival, distance-dependent recapture
+eall_mean.Phi.size.p.size.plus.dist = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.size, p=p.size.plus.dist), prefix = 'eall_mean.Phi.size.p.size.plus.dist') #size-dependent survival, size-and-distance-dependent recapture
+eall_mean.Phi.dot.p.size.plus.dist = mark(eall_mean.processed, eall_mean.ddl, model.parameters=list(Phi=Phi.dot, p=p.size.plus.dist), prefix = 'eall_mean.Phi.dot.p.size.plus.dist') #constant survival, size-and-distance-dependent recapture
+eall_mean.Phi.site.p.size.plus.dist = mark(eall_mean.processed_site, eall_mean.ddl_site, model.parameters=list(Phi=Phi.site, p=p.size.plus.dist), prefix = 'eall_mean.Phi.site.p.size.plus.dist') #site-dependent survival, size-and-distance-dependent recapture
+eall_mean.Phi.site.p.dot = mark(eall_mean.processed_site, eall_mean.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dot), prefix = 'eall_mean.Phi.site.p.dot') #site-dependent survival, constant recapture
+#eall_mean.Phi.stage.p.size.plus.dist = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.size.plus.dist), prefix = 'eall_mean.Phi.stage.p.size.plus.dist') #capture stage-dependent survival, size-and-distance-dependent recapture
+#eall_mean.Phi.stage.p.dot = mark(eall_mean.processed_stage, eall_mean.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.dot), prefix = 'eall_mean.Phi.stage.p.dot') #capture stage-dependent survival, constant recapture
+
+# using 0-dist-for-NA dataset
+eall_0.Phi.dot.p.dot = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.dot, p=p.dot), prefix = 'eall_0.Phi.dot.p.dot') #constant survival and recap, no covariates
+eall_0.Phi.dot.p.time = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.dot, p=p.time), prefix = 'eall_0.Phi.dot.p.time') #constant survival, recapture time-dependent
+eall_0.Phi.time.p.dot = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.time, p=p.dot), prefix = 'eall_0.Phi.time.p.dot') #time-varying survival, recapture constant
+eall_0.Phi.dot.p.dist = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.dot, p=p.dist), prefix = 'eall_0.Phi.dot.p.dist') #constant survival, recapture distance-dependent
+eall_0.Phi.size.p.size = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.size, p=p.size), prefix = 'eall_0.Phi.size.p.size') #capture-size-dependent survival and recapture
+eall_0.Phi.size.p.dist = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.size, p=p.dist), prefix = 'eall_0.Phi.size.p.dist') #size-dependent survival, distance-dependent recapture
+eall_0.Phi.size.p.size.plus.dist = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.size, p=p.size.plus.dist), prefix = 'eall_0.Phi.size.p.size.plus.dist') #size-dependent survival, size-and-distance-dependent recapture
+eall_0.Phi.dot.p.size.plus.dist = mark(eall_0.processed, eall_0.ddl, model.parameters=list(Phi=Phi.dot, p=p.size.plus.dist), prefix = 'eall_0.Phi.dot.p.size.plus.dist') #constant survival, size-and-distance-dependent recapture
+eall_0.Phi.site.p.size.plus.dist = mark(eall_0.processed_site, eall_0.ddl_site, model.parameters=list(Phi=Phi.site, p=p.size.plus.dist), prefix = 'eall_0.Phi.site.p.size.plus.dist') #site-dependent survival, size-and-distance-dependent recapture
+eall_0.Phi.site.p.dot = mark(eall_0.processed_site, eall_0.ddl_site, model.parameters=list(Phi=Phi.site, p=p.dot), prefix = 'eall_0.Phi.site.p.dot') #site-dependent survival, constant recapture
+#eall_0.Phi.stage.p.size.plus.dist = mark(eall_0.processed_stage, eall_0.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.size.plus.dist), prefix = 'eall_0.Phi.stage.p.size.plus.dist') #capture stage-dependent survival, size-and-distance-dependent recapture
+#eall_0.Phi.stage.p.dot = mark(eall_0.processed_stage, eall_0.ddl_stage, model.parameters=list(Phi=Phi.stage, p=p.dot), prefix = 'eall_0.Phi.stage.p.dot') #capture stage-dependent survival, constant recapture
+
+
+# Compare model AICc
+model_comp_mean = data.frame(model = c('eall_mean.Phi.dot.p.dot','eall_mean.Phi.dot.p.time','eall_mean.Phi.time.p.dot',
+                                       'eall_mean.Phi.dot.p.dist','eall_mean.Phi.size.p.size','eall_mean.Phi.size.p.dist',
+                                       'eall_mean.Phi.size.p.size.plus.dist','eall_mean.Phi.dot.p.size.plus.dist',
+                                       'eall_mean.Phi.site.p.dot','eall_mean.Phi.site.p.size.plus.dist'),
+                             #'eall_mean.Phi.stage.p.dot','eall_mean.Phi.stage.p.size.plus.dist'),
+                             AICc = c(eall_mean.Phi.dot.p.dot$results$AICc, eall_mean.Phi.dot.p.time$results$AICc, eall_mean.Phi.time.p.dot$results$AICc,
+                                      eall_mean.Phi.dot.p.dist$results$AICc, eall_mean.Phi.size.p.size$results$AICc, eall_mean.Phi.size.p.dist$results$AICc,
+                                      eall_mean.Phi.size.p.size.plus.dist$results$AICc, eall_mean.Phi.dot.p.size.plus.dist$results$AICc,
+                                      eall_mean.Phi.site.p.dot$results$AICc, eall_mean.Phi.site.p.dot$results$AICc),
+                             stringsAsFactors = FALSE)
+#eall_mean.Phi.stage.p.dot$results$AICc, eall_mean.Phi.stage.p.size.plus.dist$results$AICc))
+# , 
+#                         Phi_intercept = c(eall_mean.Phi.dot.p.dot$results$beta$estimate[1], eall_mean.Phi.dot.p.time$results$beta$estimate[1],
+#                                           eall_mean.Phi.time.p.dot$results$beta$estimate[1], eall_mean.Phi.dot.p.dist$results$beta$estimate[1],
+#                                           eall_mean.Phi.size.p.size$results$beta$estimate[1], eall_mean.Phi.size.p.dist$results$beta$estimate[1]))
+# ,
+#                         p_intercept =  c(eall_mean.Phi.dot.p.dot$results$beta$estimate[2], eall_mean.Phi.dot.p.time$results$beta$estimate[2],
+#                                          eall_mean.Phi.time.p.dot$results$beta$estimate[1], eall_mean.Phi.dot.p.dist$results$beta$estimate[1],
+#                                          eall_mean.Phi.size.p.size$results$beta$estimate[1], eall_mean.Phi.size.p.dist$results$beta$estimate[1]))
+
+model_comp_0s = data.frame(model = c('eall_0.Phi.dot.p.dot','eall_0.Phi.dot.p.time','eall_0.Phi.time.p.dot',
+                                     'eall_0.Phi.dot.p.dist','eall_0.Phi.size.p.size','eall_0.Phi.size.p.dist',
+                                     'eall_0.Phi.size.p.size.plus.dist','eall_0.Phi.dot.p.size.plus.dist',
+                                     'eall_0.Phi.site.p.dot','eall_0.Phi.site.p.size.plus.dist'),
+                           #'eall_0.Phi.stage.p.dot','eall_0.Phi.stage.p.size.plus.dist'),
+                           AICc = c(eall_0.Phi.dot.p.dot$results$AICc, eall_0.Phi.dot.p.time$results$AICc, eall_0.Phi.time.p.dot$results$AICc,
+                                    eall_0.Phi.dot.p.dist$results$AICc, eall_0.Phi.size.p.size$results$AICc, eall_0.Phi.size.p.dist$results$AICc,
+                                    eall_0.Phi.size.p.size.plus.dist$results$AICc, eall_0.Phi.dot.p.size.plus.dist$results$AICc,
+                                    eall_0.Phi.site.p.dot$results$AICc, eall_0.Phi.site.p.dot$results$AICc))
+#eall_0.Phi.stage.p.dot$results$AICc, eall_0.Phi.stage.p.size.plus.dist$results$AICc))
+
+# Arrange by increasing AICc
+model_comp_mean <- model_comp_mean %>%
+  mutate(dAICc = min(AICc) - AICc) %>%
+  arrange(-dAICc)
+
+model_comp_0s <- model_comp_0s %>%
+  mutate(dAIC = min(AIC) - AIC) %>%
+  arrange(-dAIC)
+
+# organize output to get ready to make plots
+###### Constant survival and recapture prob, no covariates (eall_mean.Phi.dot.p.dot)
+eall_mean.constant = as.data.frame(eall_mean.Phi.dot.p.dot$results$beta) %>% 
+  mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
+  mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
+
+eall_0.constant = as.data.frame(eall_0.Phi.dot.p.dot$results$beta) %>% 
+  mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
+  mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
+
+
+
+
+
+
+#################### OLD VERSION OF SCRIPT (Pre-Oct 2019) ####################
+### In Oct, tidied to take the encounter history creation out into Clownfish_encounters and distance-to-anem calculations into AnemDistFromDiveTrack
+
 # Mark-recap analysis to estimate survival, recapture probability, and population size based on tags and genetic IDs
 # Somewhat cleaned-up version of code from ClownfishSurvivalEstimates.R
 
@@ -545,6 +954,10 @@ encounters_all$dist_2018 <- findDist(encounters_all$site, encounters_all$capture
 #save(encounters_all, file=here('Data','encounters_all.RData'))
 saveRDS(encounters_all, file=here('Data','encounters_all_with_dist.RData'))
 
+# save just distances
+min_survey_dist_to_anems <- encounters_all %>% select(first_capture_year, capture_anem_id, capture_anem_table_id, capture_anem_lat, capture_anem_lon,
+                                                     dist_2012, dist_2013, dist_2014, dist_2015, dist_2016, dist_2017, dist_2018)
+
 ########## LOAD encounters_all AND START HERE!!!
 load(file=here('Data', 'encounters_all.RData'))
 ### NEED TO PUT IN SIZES AT EACH YEAR FOR EACH FISH (HOW TO DEAL WITH FISH CAUGHT TWICE IN ONE YEAR?)
@@ -1032,6 +1445,7 @@ eall_0.constant = as.data.frame(eall_0.Phi.dot.p.dot$results$beta) %>%
   mutate(param = c("Phi","p")) %>% #add a parameters column to make it easier to plot in ggplot
   mutate(upper = logit_recip(ucl), lower = logit_recip(lcl), est = logit_recip(estimate)) #do the reciprocal transform on upper and lower confidence limits (need to check what those are - 95? SE? and that transforming them just straight up is the right way to go)
 
+
 ###### Survival by size, recapture both by size and distance (eall_mean.Phi.size.p.size.plus.dist)
 minsize = 1
 maxsize = 15
@@ -1097,7 +1511,7 @@ pbydist_Phi.size.p.size.plus.dist_0s <- data.frame(dist = dist.values2) %>%
          p_lcl = logit_recip(p_lcl_logit),
          p_ucl = logit_recip(p_ucl_logit))
 
-
+####### MOVE CODE UP FROM HERE
 ###### Survival and recapture both vary by size (eall_mean.Phi.size.p.size)
 # Means
 eall_mean.Phi.size.p.size.results = as.data.frame(eall_mean.Phi.size.p.size$results$beta) 
@@ -1541,6 +1955,7 @@ saveRDS(encounters_all_means, file=here::here("Data/Script_outputs", "encounters
 saveRDS(eall_mean.Phi.size.p.size.plus.dist.results, file=here::here("Data/Script_outputs","eall_mean_Phi_size_p_size_plus_dist.RData"))
 saveRDS(model_comp_mean, file=here::here("Data/Script_outputs","model_comp_mean.RData"))
 
+save(min_survey_dist_to_anems, file=here::here("Data/Script_outputs", "min_survey_dist_to_anems.RData"))
 
 save(encounters_all, file=here("Data", "encounters_all.RData"))
 save(encounters_all_means, file=here("Data", "encounters_all_means.RData"))
