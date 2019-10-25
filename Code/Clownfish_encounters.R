@@ -87,9 +87,9 @@ trait_info <- marked_fish %>%
   arrange(year) %>%
   summarize(site = site[1],
             first_capture_year = min(year), #year this fish was first captured
-            capture_size = size[1], #earlier did min(size) and didn't arrange by year, could go either way
-            capture_color = color[1],
-            capture_stage = sex[1])
+            cap_size = size[1], #earlier did min(size) and didn't arrange by year, could go either way
+            cap_color = color[1],
+            cap_stage = sex[1])
 
 # Join trait info with encounter histories
 encounters_list <- left_join(encounters_list, trait_info, by="fish_indiv")
@@ -118,14 +118,17 @@ for(i in 1:length(years_sampled)) {
   encounters_size <- left_join(encounters_size, size_df, by = "fish_indiv")
 }
 
+# Mean size across years
+#mean_size_overall <- mean(c(encounters_size$size2012, encounters_size$size2013, encounters_size$size2014, encounters_
+
 # Fill in missing sizes with either projected sizes or mean size from each year if pre- first capture year
-encounters_size_means <- encounters_size %>% mutate(size2012 = if_else(is.na(size2012), mean_size[1], size2012))  # replace 2012 size NAs
-encounters_size_means$size2013 <- projectSize(2013, encounters_size$size2013, encounters_size$first_capture_year, encounters_size_means$size2012, mean_size[2], Linf_mean, k_mean)
-encounters_size_means$size2014 <- projectSize(2014, encounters_size$size2014, encounters_size$first_capture_year, encounters_size_means$size2013, mean_size[3], Linf_mean, k_mean)
-encounters_size_means$size2015 <- projectSize(2015, encounters_size$size2015, encounters_size$first_capture_year, encounters_size_means$size2014, mean_size[4], Linf_mean, k_mean)
-encounters_size_means$size2016 <- projectSize(2016, encounters_size$size2016, encounters_size$first_capture_year, encounters_size_means$size2015, mean_size[5], Linf_mean, k_mean)
-encounters_size_means$size2017 <- projectSize(2017, encounters_size$size2017, encounters_size$first_capture_year, encounters_size_means$size2016, mean_size[6], Linf_mean, k_mean)
-encounters_size_means$size2018 <- projectSize(2018, encounters_size$size2018, encounters_size$first_capture_year, encounters_size_means$size2017, mean_size[7], Linf_mean, k_mean)
+encounters_size_means_by_year <- encounters_size %>% mutate(size2012 = if_else(is.na(size2012), mean_size[1], size2012))  # replace 2012 size NAs
+encounters_size_means_by_year$size2013 <- projectSize(2013, encounters_size$size2013, encounters_size$first_capture_year, encounters_size_means_by_year$size2012, mean_size[2], Linf_mean, k_mean)
+encounters_size_means_by_year$size2014 <- projectSize(2014, encounters_size$size2014, encounters_size$first_capture_year, encounters_size_means_by_year$size2013, mean_size[3], Linf_mean, k_mean)
+encounters_size_means_by_year$size2015 <- projectSize(2015, encounters_size$size2015, encounters_size$first_capture_year, encounters_size_means_by_year$size2014, mean_size[4], Linf_mean, k_mean)
+encounters_size_means_by_year$size2016 <- projectSize(2016, encounters_size$size2016, encounters_size$first_capture_year, encounters_size_means_by_year$size2015, mean_size[5], Linf_mean, k_mean)
+encounters_size_means_by_year$size2017 <- projectSize(2017, encounters_size$size2017, encounters_size$first_capture_year, encounters_size_means_by_year$size2016, mean_size[6], Linf_mean, k_mean)
+encounters_size_means_by_year$size2018 <- projectSize(2018, encounters_size$size2018, encounters_size$first_capture_year, encounters_size_means_by_year$size2017, mean_size[7], Linf_mean, k_mean)
 
 # Fill in missing sizes with either projected sizes or 0 if pre- first capture year
 encounters_size_0 <- encounters_size %>% mutate(size2012 = if_else(is.na(size2012), 0, size2012))  # replace 2012 size NAs
