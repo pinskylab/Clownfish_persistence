@@ -109,7 +109,7 @@ all_anems_with_fish <- all_anems_with_fish %>%
   dplyr::rename(fish_spp_sighted = fish_spp, size_sighted = size)
 
 # Join in dive info too
-all_anems_with_fish <- left_join(all_anems_with_fish, dives_db, by = "dive_table_id")
+all_anems_with_fish <- left_join(all_anems_with_fish, dives_db_processed, by = "dive_table_id")
 
 ##### Do occupancy calcs
 anemOcc_2015_W <- anemOcupancyByYear(2015, winter_months, anem_occ_dives, all_anems_with_fish)  # why nothing but APCL and UNOC? Had the other species in the earlier version of this (in Assessing_anemone_occupancy)
