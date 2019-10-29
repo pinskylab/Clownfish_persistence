@@ -39,7 +39,7 @@ tag_sample_years = c(2015,2016,2017,2018)  # years with tagging
 
 winter_months <- c(1,2)  # to pull out winter 2015 surveys - check that they didn't go into March too
 spring_months <- c(3,4,5,6,7,8)  # to pull out non-winter 2015 surveys
-#all_months <- c(1,2,3,4,5,6,7,8,9,10,11,12)  # for use in anemone occupancy function
+# all_months <- c(1,2,3,4,5,6,7,8,9,10,11,12)  # for use in anemone occupancy function
 
 # dive types where clownfish were sampled (check this with Michelle and Malin)
 clown_sample_dive_types <- c("0","A","C","D","E","F","M")  # everything but R (note to self, probably not true, depending what I mean by "sampled" - might just be C,D,E,(A?))
@@ -83,6 +83,12 @@ site_vec_NS <- c('Palanas', 'Wangag', 'N. Magbangon', 'S. Magbangon' , 'Cabatoan
                  'Sitio Tugas', 'Elementary School', 'Sitio Lonas', 'San Agustin',
                  'Poroc San Flower', 'Poroc Rose', 'Visca', 'Gabas', 'Tamakin Dacot',
                  'Haina', 'Sitio Baybayon')
+
+# Vector of sites in alphabetical order when no spaces (for MARK, otherwise issues running some of the models with site)
+no_space_sites_alpha <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas", "Haina", "Hicgop South",
+                          "N. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", "San Agustin", "Sitio Baybayon", 
+                          "Sitio Lonas", "Sitio Tugas", "S. Magbangon", "Tamakin Dacot", "Visca", "Wangag")
+
 
 ##### Anemones at edges of sites (eventually, put this in an Excel sheet and input - and check these values...) (visually from QGIS, in particular mid anems totally eyeballed)
 Cabatoan_N <- 198 # 3195, 951 other options, 2502

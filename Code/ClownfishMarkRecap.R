@@ -14,11 +14,6 @@ load(file = here::here("Data/Script_outputs", "encounters_dist_mean_by_year.RDat
 load(file = here::here("Data/Script_outputs", "encounters_size_means.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
 load(file = here::here("Data/Script_outputs", "encounters_size_0.RData"))  # encounter histories with sizes and missing ones filled in with projections or 0s
 
-# Vector of sites in alphabetical order when no spaces (for MARK, otherwise issues running some of the models with site)
-no_space_sites_alpha <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas", "Haina", "Hicgop South",
-                          "N. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", "San Agustin", "Sitio Baybayon", 
-                          "Sitio Lonas", "Sitio Tugas", "S. Magbangon", "Tamakin Dacot", "Visca", "Wangag")
-
 # Size vector for plotting
 n_size_steps <- 30
 size_values <- min_size+(0:n_size_steps)*(max_size-min_size)/n_size_steps  # min and max size are in Constants_database_common_functions.R
