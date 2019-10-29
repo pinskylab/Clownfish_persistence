@@ -16,7 +16,7 @@ Repository contents and explanation:
 * *Growth_analysis*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
 * *Clownfish_encounters*: makes encounter histories for all fish marked, fills in missing sizes by projecting using growth curve (and adding mean size or 0 for years pre-capture)
 * *AnemDistFromDiveTrack.R*: finds the lat and lon coordinates of the first capture anemone for each marked fish and the minimum distance from that anemone to the sampling dive tracks each year, in preparation for mark-recapture analyses in ClownfishMarkRecap.R
-* NEED TO INSERT INFO ABOUT MARK-RECAP SURVIVAL SCRIPT AND GROWTH SCRIPT HERE!
+* *ClownfishMarkRecap.R*: runs mark-recapture analysis using MARK (via RMark) to estimate survival and recapture probabilities
 * Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
 
 **Data** - holds raw and processed data files and outputs of analyses
@@ -45,8 +45,11 @@ Repository contents and explanation:
   * encounters_list - marked fish re-organized into encounter histories for MARK (produced by Clownfish_encounters.R)
   * encounters_size_means - encounter histories with missing sizes filled in via growth curve projection or mean for pre-capture years (produced by Clownfish_encounters.R)
   * encounters_size_0s - same as encounter_size_means but 0 instead of mean size in a year for the pre-capture years (produced by Clownfish_encounters.R)
+  * best_fit_model_dfs - best fit model from mark-recapture analysis and data frames for plotting (produced by ClownfishMarkRecap.R)
+  * model_comp_meanYsize_meanYdist - model comparison for mark-recapture models (produced by ClownfishMarkRecap.R)
 
 **Plots** - holds plots
 * *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
 * *Growth* - plots that show sizes of fish recaptured after a year with the von Bertalanffy growth curve fit and distributions of von Bertalanffy parameters (produced by Growth_analysis.R)
+* *PhiandpEstimates* - plots showing survival and recapture probabilities (ones starting with surv_ or recap_ are most recent) (produced by ClownfishMarkRecap.R)
 
