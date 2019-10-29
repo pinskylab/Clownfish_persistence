@@ -325,6 +325,24 @@ ggplot(data = recap_by_size, aes(x = size, y = estimate_prob)) +
   theme_bw() 
 dev.off()
 
+# Put recap effects together
+recap_size_plot <- ggplot(data = recap_by_size, aes(x = size, y = estimate_prob)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin=lcl_prob, ymax=ucl_prob), alpha=0.5) +
+  ylab("recapture probability") + ggtitle("Phi:site+size, p:size+dist") + xlab("size (cm)") +
+  theme_bw() 
+
+recap_dist_plot <- ggplot(data = recap_by_dist, aes(x = dist, y = estimate_prob)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin=lcl_prob, ymax=ucl_prob), alpha=0.5) +
+  ylab("recapture probability") + ggtitle("Phi:site+size, p:size+dist") + xlab("distance (m)") +
+  theme_bw() 
+
+pdf(file = here::here("Plots/PhiandpEstimates", "recap_effects_Phisiteplussize_psizeplusdist.pdf"))
+plot_grid(recap_dist_plot, recap_size_plot, labels=c("a","b"), nrow=1)
+dev.off()
+
+
 ##### Other models (second best fit), just to compare: Phi by site, recap by size+dist (eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist)
 # Phi (by site)
 pdf(file = here::here("Plots/PhiandpEstimates", "surv_by_site_recap_by_sizeplusdist.pdf"))
