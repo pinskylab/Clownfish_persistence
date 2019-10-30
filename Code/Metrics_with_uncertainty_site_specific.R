@@ -120,20 +120,29 @@ eyed_effect = size_fecundity_model$coefficients[3]
 #   return(disp)
 # }
 
-# SHOULD FIND A WAY OF CHOOSING BASED ON THETA!
-# Find probability of dispersing distance d with all-years fit (new version, where theta=1)
-disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
+
+# For flexible theta and k
+disp_kernel_all_years <- function(d, k, theta) {  # generalization of equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k)
-  disp = z*exp(-(z*d)^(theta))
+  z_front = (z*theta)/gamma(1/theta)
+  disp = (z_front/2)*exp(-(z*d)^(theta))
   return(disp)
 }
 
-# Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
-disp_allyears_d <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
-  z = exp(k_allyears)
-  disp = z*exp(-(z*d)^(theta_allyears))
-  return(disp)
-}
+# # SHOULD FIND A WAY OF CHOOSING BASED ON THETA!
+# # Find probability of dispersing distance d with all-years fit (new version, where theta=1)
+# disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
+#   z = exp(k)
+#   disp = z*exp(-(z*d)^(theta))
+#   return(disp)
+# }
+# 
+# # Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
+# disp_allyears_d <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
+#   z = exp(k_allyears)
+#   disp = z*exp(-(z*d)^(theta_allyears))
+#   return(disp)
+# }
 
 # Find beta distribution parameters from mean and variance (mostly for prob_r uncertainty)
 findBetaDistParams <- function(mu, var) {
@@ -270,7 +279,8 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
   # Define function with the right parameters
   disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
     z = exp(param_set$k_connectivity)
-    disp = z*exp(-(z*d)^(param_set$theta_connectivity))
+    z_front = (z*param_set$theta_connectivity)/gamma(1/param_set$theta_connectivity)
+    disp = (z_front/2)*exp(-(z*d)^(param_set$theta_connectivity))
     return(disp)
   }
 
@@ -665,9 +675,12 @@ LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
 ### Generate sets of parameters for uncertainty
 Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
 k_growth_set = growth_info_estimate$k_est  # growth (k)
-Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
-Sl_set = rnorm(n_runs, mean = Sl_mean, sd = Sl_se)  # adult size-survival relationship
-k_connectivity_set = k_connectivity_values$V1
+#Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
+#Sl_set = rnorm(n_runs, mean = Sl_mean, sd = Sl_se)  # adult size-survival relationship
+#k_connectivity_set = k_connectivity_values$V1
+k_theta_indices = sample(1:length(k_theta_allyear_95CI_values$k_eval), size=n_runs, replace=FALSE)
+k_connectivity_set = k_theta_allyear_95CI_values$k_eval[k_theta_indices]
+theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
 
 ### Create survival parameter sets 
 site_surv_param_sets <- list()
