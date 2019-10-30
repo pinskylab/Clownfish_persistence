@@ -397,10 +397,11 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
 }
 
 # Calculate metrics across many runs (this is slow, if have time, should really try to write this without a for loop....)
-calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_order, set_name, DD) {
+calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site_dist_info, site_vec_order, set_name, DD) {
   
   LEP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   LEP_R_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_max_out_df <-  data.frame(value = rep(NA, n_runs), metric = 'LEP_R_max', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   LEP_R_local_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R_local', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   RperE_out_df <- data.frame(value = rep(NA, n_runs), metric = 'recruits per egg', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
   NP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'NP', inout = 'output', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
@@ -422,19 +423,27 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
     # Select parameter set
     params <- param_sets[i,]
     
+    surv_params <- data.frame(site = no_space_sites_alpha, Sint = NA, Sl = NA, stringsAsFactors = FALSE)
+    for(j in 1:length(no_space_sites_alpha)) {
+      surv_params$site[j] = no_space_sites_alpha[j]
+      surv_params$Sint[j] = site_based_surv_sets[[j]]$Sint[i]
+      surv_params$Sl[j] = site_based_surv_sets[[j]]$Sl[i]
+    }
+    
     # Do the run
-    metrics_output = calcMetrics(params, site_dist_info, site_vec_order$site_name, DD)
+    metrics_output = calcMetrics(params, surv_params, site_dist_info, site_vec_order, DD)
     
     # Fill in the metrics
-    LEP_out_df$value[i] = metrics_output$LEP
-    LEP_R_out_df$value[i] = metrics_output$LEP_R
-    LEP_R_local_out_df$value[i] = metrics_output$LEP_R_local
+    LEP_out_df$value[i] = mean(metrics_output$LEP_by_site$LEP)
+    LEP_R_out_df$value[i] = metrics_output$LEP_R_mean
+    LEP_R_max_out_df$value[i] = max(metrics_output$LEP_by_site$LEP_R)
+    LEP_R_local_out_df$value[i] = metrics_output$LEP_R_local_mean
     RperE_out_df$value[i] = metrics_output$recruits_per_egg
     NP_out_df$value[i] = metrics_output$NP
     
-    metric_vals$LEP[i] = metrics_output$LEP
-    metric_vals$LEP_R[i] = metrics_output$LEP_R
-    metric_vals$LEP_R_local[i] = metrics_output$LEP_R_local
+    metric_vals$LEP[i] = mean(metrics_output$LEP_by_site$LEP)
+    metric_vals$LEP_R[i] = metrics_output$LEP_R_mean
+    metric_vals$LEP_R_local[i] = metrics_output$LEP_R_local_mean
     metric_vals$recruits_per_egg[i] = metrics_output$recruits_per_egg
     metric_vals$NP[i] = metrics_output$NP
     
@@ -453,8 +462,9 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_dist_info, site_vec_o
     mutate(breeding_size = param_sets$breeding_size,
            Linf = param_sets$Linf,
            k_growth = param_sets$k_growth,
-           Sint = param_sets$Sint,
+           #Sint = param_sets$Sint,
            k_connectivity = param_sets$k_connectivity,
+           theta_connectivity = param_sets$theta_connectivity,
            recruits_per_egg = param_sets$recruits_per_egg,
            prob_r = param_sets$prob_r,
            assigned_offspring = param_sets$offspring_assigned_to_parents,
@@ -652,9 +662,9 @@ param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
 best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info, site_vec_order, "FALSE")
 best_est_metrics_mean_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info, site_vec_order, "TRUE")
 
-# Calculate the metrics for the best estimates
-best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name, "FALSE")
-best_est_metrics_mean_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name, "TRUE")
+# # Calculate the metrics for the best estimates
+# best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name, "FALSE")
+# best_est_metrics_mean_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_dist_info, site_vec_order$site_name, "TRUE")
 
 LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # how to deal with site variation?
 LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
@@ -685,18 +695,36 @@ theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
 ### Create survival parameter sets 
 site_surv_param_sets <- list()
 # Cabatoan first
-site_surv_df <- data.frame(Sint = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
                            Sint_site = 0, 
-                           Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
+                           Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+  mutate(Sint = Sint_C + Sint_site)
 site_surv_param_sets[[1]] <- site_surv_df
 # then rest of sites
 for(i in 2:length(no_space_sites_alpha)) {
-  site_surv_df <- data.frame(Sint = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
                              Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[i], max=best_fit_model_dfs$results$ucl[i]), 
-                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+    mutate(Sint = Sint_C + Sint_site)
   site_surv_param_sets[[i]] <- site_surv_df
 }
 
+# Make one for best ests too so can use same code
+site_surv_best_est_sets <- list()
+# Cabatoan first
+site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+                           Sint_site = rep(0, n_runs), 
+                           Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+  mutate(Sint = Sint_C + Sint_site)
+site_surv_best_est_sets[[1]] <- site_surv_df
+# then rest of sites
+for(i in 2:length(no_space_sites_alpha)) {
+  site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+                             Sint_site = rep(best_fit_model_dfs$results$estimate[i], n_runs), 
+                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_best_est_sets[[i]] <- site_surv_df
+}
 
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
@@ -749,14 +777,15 @@ n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotyped, assignment_ra
 # # recruits_per_egg_set <- recruits_per_egg_set3  # using the set that includes both binom for genotyped offspring and draws in prob_r
 
 ##### Do runs with uncertainty
-### Make parameter set with different kinds of uncertainty included
+### Make parameter set with different kinds of uncertainty included (Sint and Sl are now in their own parameter set because they are by site)
 # Uncertainty in start recruit size only
 param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
   mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         # Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -769,7 +798,8 @@ param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Sl = Sl_mean, Linf = Linf_set, Sint = Sint_mean,
+         k_growth = k_growth_set, s = s, Linf = Linf_set, 
+         #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -782,7 +812,8 @@ param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_set, Linf = Linf_growth_mean, Sint = Sint_set,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
+         #Sl = Sl_set, , Sint = Sint_set,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -795,7 +826,8 @@ param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
+         #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_set, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -808,7 +840,8 @@ param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -821,7 +854,8 @@ param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
+         #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -834,7 +868,8 @@ param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean,
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
@@ -847,9 +882,10 @@ param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Sl = Sl_mean, Linf = Linf_growth_mean, Sint = Sint_mean,
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
          perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
@@ -860,23 +896,24 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Sl = Sl_set, Linf = Linf_set, Sint = Sint_set,
+         k_growth = k_growth_set, s = s, Linf = Linf_set, 
+         #Sl = Sl_set,  Sint = Sint_set,
          breeding_size = breeding_size_set,
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
          perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
 
 ### Run metrics for a bunch of different types of uncertainty - No DD
-output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_dist_info, site_vec_order, "start recruit size", FALSE)
-output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_dist_info, site_vec_order, "growth", FALSE)
-output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_dist_info, site_vec_order, "survival", FALSE)
-output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_dist_info, site_vec_order, "breeding size", FALSE)
-output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_dist_info, site_vec_order, "assigned offspring", FALSE)
-output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_dist_info, site_vec_order, "prob r", FALSE)
-output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
-output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_dist_info, site_vec_order, "dispersal k", FALSE)
-output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_dist_info, site_vec_order, "all", FALSE)
+output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
+output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_based_surv_sets, site_dist_info, site_vec_order, "survival", FALSE)
+output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
+output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
+output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
+output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
+output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
+output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_based_surv_sets, site_dist_info, site_vec_order, "all", FALSE)
 
 # Join them together for plotting purposes
 LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
@@ -905,15 +942,15 @@ NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$N
 
 ###### Now run with DD
 ### Run metrics for a bunch of different types of uncertainty
-output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_dist_info, site_vec_order, "start recruit size", TRUE)
-output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_dist_info, site_vec_order, "growth", TRUE)
-output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_dist_info, site_vec_order, "survival", TRUE)
-output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_dist_info, site_vec_order, "breeding size", TRUE)
-output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_dist_info, site_vec_order, "assigned offspring", TRUE)
-output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_dist_info, site_vec_order, "prob r", TRUE)
-output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
-output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_dist_info, site_vec_order, "dispersal k", TRUE)
-output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_dist_info, site_vec_order, "all", TRUE)
+output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
+output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_based_surv_sets, site_dist_info, site_vec_order, "survival", TRUE)
+output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
+output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
+output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
+output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
+output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
+output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_based_surv_sets, site_dist_info, site_vec_order, "all", TRUE)
 
 # Join them together for plotting purposes
 LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
