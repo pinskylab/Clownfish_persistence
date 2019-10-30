@@ -256,17 +256,17 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   # And integrate over all the eggs that get produced
   LEP = sum(egg_out*dx)
   
-  # Compare to the LEP estimate without size-dependent fecundity
-  # Find the number of breeding adults one recruit produces
-  breeding_Adults <- colSums(N[lengths_vec>breeding_size,]*dx)
-  
-  # Eggs produced by one breeding adult in one year
-  eggs <- eggs_per_clutch*clutches_per_year
-  
-  # Combine to get LEP
-  LEP_nossF <- sum(breeding_Adults*eggs)
-  
-  out = list(LEP=LEP, LEP_nossF = LEP_nossF)
+  # # Compare to the LEP estimate without size-dependent fecundity
+  # # Find the number of breeding adults one recruit produces
+  # breeding_Adults <- colSums(N[lengths_vec>breeding_size,]*dx)
+  # 
+  # # Eggs produced by one breeding adult in one year
+  # eggs <- eggs_per_clutch*clutches_per_year
+  # 
+  # # Combine to get LEP
+  # LEP_nossF <- sum(breeding_Adults*eggs)
+  # 
+  # out = list(LEP=LEP, LEP_nossF = LEP_nossF)
   
   return(LEP)
 }
@@ -530,6 +530,26 @@ for(i in 1:length(LEP_different_sizes$site)) {
                        clutches_per_year_mean, breeding_size_mean, 3.5, start_recruit_sd, 
                        eggs_slope_log, eggs_intercept_log, eyed_effect)
 }
+
+# Test if there is LEP eviction
+max_Sint_test <- max(site_surv_best_est$Sint)
+Sl_test <- site_surv_best_est$Sl[1]
+Sl_test2 <- max(site_surv_param_sets[[9]]$Sl)
+
+LEP_test_1 <- findLEP(min_size, max_size, n_bins, t_steps, max_Sint_test, Sl_test2, s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts,
+                      clutches_per_year_mean, breeding_size_mean, 6.0, start_recruit_sd, eggs_slope_log, eggs_intercept_log, eyed_effect)
+LEP_test_2 <- findLEP(min_size, 20, n_bins, t_steps, max_Sint_test, Sl_test2, s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts,
+                      clutches_per_year_mean, breeding_size_mean, 6.0, start_recruit_sd, eggs_slope_log, eggs_intercept_log, eyed_effect)
+LEP_test_3 <- findLEP(min_size, 25, n_bins, t_steps, max_Sint_test, Sl_test2, s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts,
+                      clutches_per_year_mean, breeding_size_mean, 6.0, start_recruit_sd, eggs_slope_log, eggs_intercept_log, eyed_effect)
+LEP_test_4 <- findLEP(min_size, 17, n_bins, t_steps, max_Sint_test, Sl_test2, s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts,
+                      clutches_per_year_mean, breeding_size_mean, 6.0, start_recruit_sd, eggs_slope_log, eggs_intercept_log, eyed_effect)
+
+
+
+# (min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, eggs_per_clutch, clutches_per_year, 
+#   breeding_size, start_recruit_size, start_recruit_sd, egg_size_slope, egg_size_intercept, eyed_effect) {
+  
 
 # # Starting from mean transition to female size
 # LEP_breeding_size_mean <- findLEP(min_size, max_size, n_bins, t_steps, Sint_mean, Sl_mean,
