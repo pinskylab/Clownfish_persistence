@@ -46,7 +46,8 @@ site_centers <- read.csv(file = here::here("Data/From_other_analyses", "site_cen
 
 # Kernel fits
 kernel_summary <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/final_results/tables/kernel_fitting_summary.csv"), header = T, stringsAsFactors = F)
-k_theta_allyear_95CI_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/final_results/likelihood_profiles_grid_search/AllYearParams95CI.csv"), header = T, stringsAsFactors = F)
+k_theta_allyear_95CI_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/final_results/likelihood_profiles_grid_search/profile95CI_AllYears.csv"), header = T, stringsAsFactors = F)
+#k_theta_allyear_95CI_values <- read.csv(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/kernel_fitting/1340_loci/final_results/likelihood_profiles_grid_search/AllYearParams95CI.csv"), header = T, stringsAsFactors = F)
 
 # List of all parents put into parentage analysis (so can match to site)
 all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents_corrected.txt"), header = T, stringsAsFactors = F)

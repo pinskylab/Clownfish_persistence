@@ -272,15 +272,17 @@ site_centers$site[which(site_centers$site == "S.Magbangon")] = "S. Magbangon"
 #################### Pull out relevant values: ####################
 
 # Pull out number of parents, number of offspring genotyped, number of offspring matched
-#n_offspring_genotyped <- (kernel_summary %>% filter(Year == "2012-2018"))$NumOffsSampled
-#n_offspring_matched <- (kernel_summary %>% filter(Year == "2012-2018"))$NumParentageMatches
-n_offspring_genotyped <- (kernel_summary %>% filter(year == "2012-2018"))$n_offs_sampled
-n_offspring_matched <- (kernel_summary %>% filter(year == "2012-2018"))$n_parentage_matches
+n_offspring_genotyped <- (kernel_summary %>% filter(Year == "2012-2018"))$NumOffsSampled
+n_offspring_matched <- (kernel_summary %>% filter(Year == "2012-2018"))$NumParentageMatches
+#n_offspring_genotyped <- (kernel_summary %>% filter(Year == "2012-2018"))$n_offs_sampled
+#n_offspring_matched <- (kernel_summary %>% filter(Year == "2012-2018", MLE_param == "k and theta"))$n_parentage_matches
 n_parents_genotyped <- length((all_parents %>% distinct(fish_indiv))$fish_indiv)
 
 # Pull out kernel fits (from 2D fitting where both k and theta fit simultaneously)
-theta_allyears <- (kernel_summary %>% filter(year == "2012-2018"))$best_theta  
-k_allyears <- (kernel_summary %>% filter(year == "2012-2018"))$best_k 
+theta_allyears <- (kernel_summary %>% filter(Year == "2012-2018"))$best_theta
+k_allyears <- (kernel_summary %>% filter(Year == "2012-2018"))$best_k
+#theta_allyears <- (kernel_summary %>% filter(year == "2012-2018", MLE_param == "k and theta"))$best_theta  
+#k_allyears <- (kernel_summary %>% filter(year == "2012-2018", MLE_param == "k and theta"))$best_k 
 
 # Mean eggs per clutch from photo counts
 mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
