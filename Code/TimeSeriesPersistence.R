@@ -118,6 +118,17 @@ ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
   scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017"))
 dev.off()
 
+##### WSN plot: trend line of average site, plus individual sites in grey - no raw data
+pdf(file=here::here("Plots/WSN_2019","WSN_2019_abundance_through_time.pdf"))
+ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
+  geom_line(color="grey") +
+  geom_line(data=site_trends_all, aes(x=year, y=mean_nF), color = "black", size=1.5) +
+  xlab("year") + ylab("# females") +
+  scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017")) +
+  theme_bw() +
+  theme(text=element_text(size=25)) 
+dev.off()
+
 ##### Multi-paneled figured with individual sites (doesn't currently include uncertainty/error bars but could...)
 # Make a plot for each site
 plot_list <- list()
@@ -153,6 +164,7 @@ dev.off()
 
 #################### Saving output: ####################
 save(females_df_F, file=here("Data/Script_outputs", "females_df_F.RData"))
+save(site_trends_time, file=here::here("Data/Script_outputs", "site_trends_time.RData"))
 
 #################### Old code: ####################
 # Load in site_areas
