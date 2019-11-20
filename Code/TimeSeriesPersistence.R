@@ -165,6 +165,7 @@ dev.off()
 #################### Saving output: ####################
 save(females_df_F, file=here("Data/Script_outputs", "females_df_F.RData"))
 save(site_trends_time, file=here::here("Data/Script_outputs", "site_trends_time.RData"))
+save(site_trends_all, file=here::here("Data/Script_outputs", "site_trends_all.RData"))
 
 #################### Old code: ####################
 # Load in site_areas
