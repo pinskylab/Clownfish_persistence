@@ -351,7 +351,7 @@ Our estimates of persistence metrics suggest that it is possible but not likely 
 \begin{figure}[H] % NP with line for best estimate (using mean offspring size as recruit size), realized connectivity matrix for best estimate - should re-do without Sitio Lonas, Sitio Tugas, Caridad Proper!
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/SP_NP_connMatrixR.pdf}}
-	\caption{ Values of self-persistence (a), realized connectivity among sites (b), and network persistence (c). All estimates include compensation for density-dependence in early life stages in our data. For self-persistence (a) and network persistence (c), the best estimate is shown with in black (point for (a), line for (c)) and the range of estimates considering uncertainty is shown in grey. \label{FIG_SP_NP_realizedCmat}}
+	\caption{Values of self-persistence (a), realized connectivity among sites (b), and network persistence (c). All estimates include compensation for density-dependence in early life stages in our data. For self-persistence (a) and network persistence (c), the best estimate is shown with in black (point for (a), line for (c)) and the range of estimates considering uncertainty is shown in grey. \label{FIG_SP_NP_realizedCmat}}
 \end{figure}
 
 \newpage{}
@@ -568,6 +568,22 @@ The negative effect of both size and distance suggest that divers are less likel
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Param_metric_relationships.pdf}}
 	\caption{Relationships among parameters and metrics. a) We only count reproductive effort by fish in the female stage so the higher the transition size to breeding female, the fewer eggs parents are considered to produce, which increases the estiamted egg-recruit survival. b) LRP strongly affects NP by changing the number of potential recruits dispered through the connectivity matrix. c) The probability of capturing a fish does not have a clear relationship to NP. d) LEP is higher with higher survival estimates because fish are more likely to survive longer as reproducing adults. e) The size we consider to be a recruit marks the transition of mortality included in egg-recruit survival to mortality being captured by annual adult survival. Because we do not have the data to change egg-recruit survival to account for different recruit sizes, increasing the recruit size increases LRP by wrapping more mortality into the egg-recruit survival estimate, rather than LEP. \label{APP_FIG_ParamMetricRelationships}}
 \end{figure} % Think about a better way to explain (e) and whether we should even include it.
+
+\subsection*{Compensating for density dependence}
+
+TALK ABOUT HOW DENSITY DEPENDENCE AFFECTS OUR RESULTS, CITE SECTION OR EQUATION WHERE WE COMPENSATE FOR IT
+
+\begin{figure}[H] % LRP and local replacement without DD compensation
+	\centering
+	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/APP_FIG_LRP_LocalReplacement_withoutDDconsidered.pdf}}
+	\caption{Estimates of a) LRP, and b) local replacement without compensating for density dependence in early life stages in our data, showing the best estimate (black solid line) and range of estimates considering uncertainty in the inputs. These estimates compare to those in \ref{FIG_Abun_LEP_LRP_LocalReplacement}c,d, where we attempt to compensate for additional mortality in early life due to density dependence. \label{APP_FIG_LRP_LocalReplacement_noDD}}
+\end{figure} 
+
+\begin{figure}[H] % SP, realized connectivity matrix, NP without DD compensation
+	\centering
+	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/APP_FIG_SP_NP_connMatrixR_withoutDDcompensation.pdf}}
+	\caption{Values of self-persistence (a), realized connectivity among sites (b), and network persistence (c) without compensation for density-dependence in early life stages in our data. For self-persistence (a) and network persistence (c), the best estimate is shown with in black (point for (a), line for (c)) and the range of estimates considering uncertainty is shown in grey. These estimates compare to those in \ref{FIG_SP_NP_realizedCmat} where we attempt to compesate for density dependence in early life stages. \label{APP_FIG_SP_NP_realizedCmat_noDD}}
+\end{figure} 
 
 \subsection{Effects of different types of uncertainty on metrics}
 

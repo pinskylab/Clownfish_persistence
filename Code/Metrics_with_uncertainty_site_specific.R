@@ -1256,8 +1256,68 @@ pdf(file = here::here("Plots/FigureDrafts", "APP_FIG_recap_effects_Phisiteplussi
 plot_grid(p_by_dist_plot, p_by_size_plot, labels=c("a","b"), nrow=1)
 dev.off()
 
+##### Plot of LRP and local replacement without DD accounted for
+# LRP without DD 
+LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
+  geom_vline(xintercept = LEP_R_best_est, color = "black") +
+  xlab('LRP') + ggtitle('LRP') +
+  theme_bw()
 
+# LRP_local without DD
+LEP_R_local_plot <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
+  xlab("local LRP") + ggtitle("Local replacement") +
+  theme_bw()
 
+# Put them together
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_LRP_LocalReplacement_withoutDDconsidered.pdf'))
+plot_grid(LEP_R_plot, LEP_R_local_plot, labels = c("a","b"), nrow=1)
+dev.off()
+
+##### SP metrics, NP metrics, connectivity matrices without density dependence considered
+# Update site name (Tomakin Dako)
+best_est_metrics_mean_offspring$Cmat$org_site <- replace(best_est_metrics_mean_offspring$Cmat$org_site, 
+                                                            best_est_metrics_mean_offspring$Cmat$org_site=="Tamakin Dacot", 
+                                                            "Tomakin Dako")
+best_est_metrics_mean_offspring$Cmat$dest_site <- replace(best_est_metrics_mean_offspring$Cmat$dest_site, 
+                                                             best_est_metrics_mean_offspring$Cmat$dest_site=="Tamakin Dacot", 
+                                                             "Tomakin Dako")
+output_uncert_all$SP_vals_with_params$site <- replace(output_uncert_all$SP_vals_with_params$site, 
+                                                         output_uncert_all$SP_vals_with_params$site=="Tamakin Dacot", 
+                                                         "Tomakin Dako")
+
+# SP (not accounting for DD)
+SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
+  geom_violin(fill="grey") +
+  geom_point(data = SP_best_est, aes(x = site, y = SP_value), color = "black") +
+  xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
+  ylim(c(0,0.65)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+
+# NP (not accounting for DD)
+NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est, color = "black") +
+  xlab('NP') + ggtitle('Network persistence') +
+  theme_bw()
+
+# realized connectivity matrix (not accounting for DD)
+realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_R)) +
+  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  xlab('origin') + ylab('destination') + ggtitle('Realized connectivity matrix') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(legend.position = "bottom")
+
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDDcompensation.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
+dev.off()
 
 ########## Plots for WSN talk #########
 ### LRP (LEP_R) with DD
