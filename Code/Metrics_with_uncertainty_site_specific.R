@@ -55,6 +55,10 @@ p_dist_pos = 23  # placement of distance effect for recap prob
 # p_size_pos = 4  # placement of size effect for recap prob
 # p_dist_pos = 5  # placement of distance effect for recap prob
 
+# Load output from abundance trend (for plotting)
+load(file = here::here("Data/Script_outputs", "site_trends_all.RData"))
+load(file = here::here("Data/Script_outputs", "site_trends_time.RData"))
+
 # # Figure out where these outputs came from so can source those scripts too!
 # # Should have two options: source the files that create these outputs or load them from Data folder
 # #load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
@@ -1127,8 +1131,84 @@ plot_grid(dispersal_kernel_plot, growth_curve_plot, survival_plot, breeding_size
 dev.off()
 
 ##### Figure 4 (abundance + replacement metrics)
+# LEP - why is this so nuts?
+LEP_plot <- ggplot(data = output_uncert_all$LEP_out_df, aes(x=value)) +
+  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+  geom_vline(xintercept = LEP_best_est, color = "black") +
+  xlab('LEP') + ggtitle('LEP') +
+  theme_bw()
+
+# LRP with DD
+LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
+  geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
+  xlab('LRP') + ggtitle('LRP') +
+  theme_bw()
+
+# LRP_local with DD
+LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
+  xlab("local LRP") + ggtitle("Local replacement") +
+  theme_bw()
+
+# Abundance trend 
+Fig4_abundance_plot <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
+  geom_line(color="grey") +
+  geom_line(data=site_trends_all, aes(x=year, y=mean_nF), color = "black", size=1.5) +
+  xlab("year") + ylab("# females") + ggtitle("Estimated abundance through time") +
+  scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017")) +
+  theme_bw()
+
+# Put them together
+pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement.pdf'))
+plot_grid(Fig4_abundance_plot, LEP_plot, LEP_R_plot_DD, LEP_R_local_plot_DD,
+          labels = c("a","b","c","d"), nrow=2)
+dev.off()
 
 ##### Figure 5 (SP metrics, NP metrics, connectivity matrices)
+best_est_metrics_mean_offspring_DD$Cmat$org_site <- replace(best_est_metrics_mean_offspring_DD$Cmat$org_site, 
+                                                            best_est_metrics_mean_offspring_DD$Cmat$org_site=="Tamakin Dacot", 
+                                                            "Tomakin Dako")
+best_est_metrics_mean_offspring_DD$Cmat$dest_site <- replace(best_est_metrics_mean_offspring_DD$Cmat$dest_site, 
+                                                            best_est_metrics_mean_offspring_DD$Cmat$dest_site=="Tamakin Dacot", 
+                                                            "Tomakin Dako")
+output_uncert_all_DD$SP_vals_with_params$site <- replace(output_uncert_all_DD$SP_vals_with_params$site, 
+                                                         output_uncert_all_DD$SP_vals_with_params$site=="Tamakin Dacot", 
+                                                         "Tomakin Dako")
+
+# SP (accounting for DD)
+SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
+  geom_violin(fill="grey") +
+  geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
+  xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
+  ylim(c(0,0.65)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+
+# NP (accounting for DD)
+NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
+  geom_histogram(bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est_DD, color = "black") +
+  xlab('NP') + ggtitle('Network persistence') +
+  theme_bw()
+
+# realized connectivity matrix
+realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_R)) +
+  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  xlab('origin') + ylab('destination') + ggtitle('Realized connectivity matrix') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(legend.position = "bottom")
+
+pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
+dev.off()
 
 ##### Figure 6 (what ifs)
 
