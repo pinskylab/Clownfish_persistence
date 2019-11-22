@@ -1320,12 +1320,93 @@ plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1,1.5,1), labels = c("
 dev.off()
 
 ##### Uncertainty exploration for LEP
+# All together
+LEP_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "growth", "survival", "all"),
+                               value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("Uncertainty in LEP") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
-##### Uncertainty exploratoin for RperE
+# start recruit size
+LEP_start_recruit_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("start recruit size"), value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("Recruit size effects") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+# breeding size
+LEP_breeding_size_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("breeding size")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("breeding size"), value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("Breeding size effects") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+# growth
+LEP_growth_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("growth")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("growth"), value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("Growth curve effects") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+# survival
+LEP_survival_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("survival")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("survival"), value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("Survival effects") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+# all
+LEP_all_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("all"), value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("All uncertainty effects") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+# put together
+pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"))
+plot_grid(LEP_uncertainty_plot, LEP_start_recruit_uncertainty_plot, LEP_breeding_size_uncertainty_plot, LEP_growth_uncertainty_plot, 
+          LEP_survival_uncertainty_plot, LEP_all_uncertainty_plot, labels=c("a","b","c","d","e","f"), nrow=3)
+dev.off()
+
+##### Uncertainty exploration for RperE
+pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"))
+ggplot(data = RperE_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
+                               value = recruits_per_egg_best_est_DD), color = "black") +
+  xlab("recruits-per-egg") + ggtitle("Uncertainty in egg-recruit survival") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+dev.off()
 
 ##### Uncertainty exploration for LRP
+pdf(file = here::here("Plots/FigureDrafts", "LRP_uncertainty_by_param.pdf"))
+ggplot(data = LEP_R_uncert_DD %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "assigned offspring", "prob r", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
+                               value = LEP_R_best_est_DD), color = "black") +
+  xlab("LRP") + ggtitle("Uncertainty in LRP") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+dev.off()
 
 ##### Uncertainty exploration for NP
+pdf(file = here::here("Plots/FigureDrafts", "NP_uncertainty_by_param.pdf"))
+ggplot(data = NP_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
+                               value = NP_best_est_DD), color = "black") +
+  xlab("recruits-per-egg") + ggtitle("Uncertainty in network persistence") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+dev.off()
 
 ##### Parameters (and their uncertainty) not shown in main text fig 
 # Census (start-recruit) size 
