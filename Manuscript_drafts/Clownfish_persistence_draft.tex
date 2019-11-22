@@ -461,7 +461,17 @@ We use the mean $P_c$ across all 14 recapture dives, covering XX sites in 3 samp
 
 The mean of the individual capture probability values is $\mu_{P_c} = 0.56$, with variance $V_{P_c} = 0.069$, which gives beta distribution parameters $\alpha_{P_c} = 1.44$ and $\beta_{P_c} = 1.13$. We sample 1000 values from the beta distribution, then truncate the sample to only values larger than the lowest value of $P_c$ estimated in an individual dive (0.20), to avoid extremely low values that are sometimes sampled but are unrealistically low. We then sample with replacement from the truncated set to get a vector of values the length of the number of runs.
 
-\subsection*{Proportion of dispersal kernel area sampled} \label{APP_SEC_PropDispKernelSampled}
+\subsection*{Scaling up recruits}
+
+ADD SOME TEXT!
+
+\begin{figure}[H] % Scaling up recruits
+	\centering
+	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/UndercountingRecruits/RecruitScalingSchematic.pdf}}
+	\caption{Schematic of five ways we could have missed recruits while sampling and used to scale up our raw estimate of recruits from matched offspring. \label{APP_FIG_RecruitScalingSchematic}}
+\end{figure}
+
+\paragraph*{Proportion of dispersal kernel area sampled} \label{APP_SEC_PropDispKernelSampled}
 
 [\textit{Add in description of calculation and equation}]
 
@@ -471,7 +481,7 @@ The mean of the individual capture probability values is $\mu_{P_c} = 0.56$, wit
 	\caption{Proportion of the dispersal kernel area from the center of each site covered by our sampling. \label{APP_FIG_PropDispKernelAreaSampled}}
 \end{figure}
 
-\subsection{Proportion habitat in sampling area} \label{APP_SEC_PropHabInSampledRegion}
+\paragraph{Proportion habitat in sampling area} \label{APP_SEC_PropHabInSampledRegion}
 
 We assume that larvae are unable to navigate to habitat if they attempt to settle on an unsuitable patch, though clownfish larvae do likely have some ability both to sense habitat (CITATIONS) and move toward it (CITATIONS)). To avoid counting mortality due to settling on non-habitat twice - once in scaling up our matched recruits, which only includes those who settled on habitat, and once in integrating the dispersal kernel, we scale our estimate of total surviving recruits from our patches by the proportion of our sampling region that is habitat ($P_s$). We find $P_s$ by summing the lengths of all of our sites, which run approximately north-south, and dividing that by the total distance north-south of our sampling region, giving $P_s = 0.20.$
 
@@ -653,4 +663,6 @@ Most of the uncertainty in LRP comes from uncertainty in the size of a recruit. 
 \bibliography{BibTexReferences}
 \bibliographystyle{plainnat}
 
+% NEED TO ADD IAN IMAGES REFERENCES
+% SCUBA diver in scaling up recruits figure: \url{https://ian.umces.edu/imagelibrary/displayimage-5410.html}, downloaded 11/22/19
 \end{document}
