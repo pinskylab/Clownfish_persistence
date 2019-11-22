@@ -414,7 +414,7 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
  
   metric_vals <- data.frame(run = seq(1:n_runs), LEP = NA, LEP_R = NA, LEP_R_local = NA, recruits_per_egg = NA, NP = NA, uncertainty_type = set_name, stringsAsFactors = FALSE)
   
-  # Create vector of sites for SP dataframe      
+  # Create vector of sites for SP dataframe     
   runsrepped = rep(1, length(site_vec_order$site_name))                                                         
   for(i in 2:n_runs) {
     runsrepped = c(runsrepped, rep(i, length(site_vec_order$site_name)))
@@ -422,6 +422,10 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
   
   SP_out_df <- data.frame(value = rep(NA, length(site_vec_order$site_name)*n_runs), metric = 'SP', run = NA,
                           site = NA, org_geo_order = NA, uncertainty_type = set_name)
+  LEP_by_site_out_df <- data.frame(value = rep(NA, length(site_vec_order$site_name)*n_runs), metric = "LEP", run = NA,
+                                               site = NA, uncertainty_type = set_name)
+  LEP_R_by_site_out_df <- data.frame(value = rep(NA, length(site_vec_order$site_name)*n_runs), metric = "LEP_R", run = NA,
+                                                 site = NA, uncertainty_type = set_name)
   
   # Calculate the metrics for each parameter set, fill into the data frames - would be faster if this wasn't a for loop (and doesn't need to be, since the runs don't depend on each other at all...)
   for(i in 1:n_runs) {
@@ -466,6 +470,15 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
     SP_out_df$value[start_index:end_index] = metrics_output$SP$SP_value
     SP_out_df$run[start_index:end_index] = rep(i, length(site_vec_order$site_name))
     SP_out_df$org_geo_order[start_index:end_index] = metrics_output$SP$org_geo_order
+    
+    LEP_by_site_out_df$site[start_index:end_index] = metrics_output$LEP_by_site$site
+    LEP_by_site_out_df$value[start_index:end_index] = metrics_output$LEP_by_site$LEP
+    LEP_by_site_out_df$run[start_index:end_index] = rep(i, length(site_vec_order$site_name))
+    
+    LEP_R_by_site_out_df$site[start_index:end_index] = metrics_output$LEP_by_site$site
+    LEP_R_by_site_out_df$value[start_index:end_index] = metrics_output$LEP_by_site$LEP*metrics_output$recruits_per_egg
+    LEP_R_by_site_out_df$run[start_index:end_index] = rep(i, length(site_vec_order$site_name))
+    
   }
   
   # Add some of the changing parameters in, so can look at in plots
@@ -487,7 +500,7 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
   
   out = list(LEP_out_df = LEP_out_df, LEP_min_out_df = LEP_min_out_df, LEP_max_out_df = LEP_max_out_df, LEP_R_out_df = LEP_R_out_df, 
              LEP_R_min_out_df = LEP_R_min_out_df, LEP_R_max_out_df = LEP_R_max_out_df, LEP_R_local_out_df = LEP_R_local_out_df,
-             RperE_out_df = RperE_out_df, NP_out_df = NP_out_df,
+             RperE_out_df = RperE_out_df, NP_out_df = NP_out_df, LEP_by_site_out_df = LEP_by_site_out_df, LEP_R_by_site_out_df = LEP_R_by_site_out_df,
              metric_vals_with_params = metric_vals_with_params, SP_vals_with_params = SP_vals_with_params, params_in = param_sets,
              uncertainty_type = set_name)
   
@@ -1140,6 +1153,14 @@ LEP_plot <- ggplot(data = output_uncert_all$LEP_out_df, aes(x=value)) +
   xlab('LEP') + ggtitle('LEP') +
   theme_bw()
 
+ggplot(data = output_uncert_all_DD$LEP_by_site_out_df %>% filter(site == 9), aes(x=value)) +
+  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+  geom_vline(xintercept = LEP_best_est, color = "black") +
+  xlab('LEP') + ggtitle('LEP') +
+  theme_bw()
+
 # LRP with DD
 LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = 'gray', fill = 'gray') +
@@ -1374,6 +1395,14 @@ pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"))
 plot_grid(LEP_uncertainty_plot, LEP_start_recruit_uncertainty_plot, LEP_breeding_size_uncertainty_plot, LEP_growth_uncertainty_plot, 
           LEP_survival_uncertainty_plot, LEP_all_uncertainty_plot, labels=c("a","b","c","d","e","f"), nrow=3)
 dev.off()
+
+ggplot(data = output_uncert_survival_DD$LEP_by_site_out_df, aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("survival"), value = LEP_best_est), color = "black") +
+  xlab("LEP") + ggtitle("Survival effects") + 
+  facet_wrap(~site) +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
 
 ##### Uncertainty exploration for RperE
 pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"))
