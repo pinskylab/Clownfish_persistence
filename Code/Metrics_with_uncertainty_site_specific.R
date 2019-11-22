@@ -1319,6 +1319,66 @@ pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDD
 plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
 dev.off()
 
+##### Uncertainty exploration for LEP
+
+##### Uncertainty exploratoin for RperE
+
+##### Uncertainty exploration for LRP
+
+##### Uncertainty exploration for NP
+
+##### Parameters (and their uncertainty) not shown in main text fig 
+# Census (start-recruit) size 
+startRecruit_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size)) +
+  geom_histogram(bins=40, color="gray", fill="gray") +
+  geom_vline(xintercept = mean_sampled_offspring_size) +
+  xlab("recruit size (cm)") + ggtitle("Census size") +
+  theme_bw()
+
+# Growth - Linf + k (VBL growth model) - show here too even though also in main text?
+growthLinf_k_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Linf, y=k_growth)) +
+  geom_point(color = "gray", fill = "gray") +
+  geom_point(x = Linf_growth_mean, y = k_growth_mean, color = "black", fill = "black") +
+  xlab('Linf (cm)') + ylab("k") + ggtitle("VBL growth model") +
+  theme_bw()
+
+# Capture probability (prob_r)
+probR_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = prob_r)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = prob_r_mean, color = "black") +
+  xlab("P_c") + ggtitle("Capture probability") +
+  theme_bw()
+
+# Assigned offspring
+assignedOffspring_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = assigned_offspring)) +
+  geom_histogram(bins = 40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = n_offspring_matched, color = "black") +
+  xlab("# assigned offspring") + ggtitle("Assigned offspring") +
+  theme_bw()
+
+# Habitat and DD scaling
+# Proportion habitat 
+# P_h = cumulative proportion sites sampled across time
+# P_d = proportion of the dispersal kernel from each site covered by our sampling region
+# P_s = proportion of our sampling region that is habitat
+# P_DD = proportion habitat available to juveniles if exclude DD
+
+prop_scaling_vals_for_plot <- data.frame(value = c("P_h", "P_d", "P_s", "DD"),
+                                         estimate = c(total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best_est,
+                                                      prop_sampling_area_habitat, (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
+propHabitat_plot <- ggplot(data = prop_scaling_vals_for_plot, aes(x = value, y = estimate)) +
+  geom_point() +
+  xlab("") + ylab("proportion") + ggtitle("Habitat scaling") +
+  ylim(c(0,1.8)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# Put them together
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_Parameter_inputs.pdf'))  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(startRecruit_plot, growthLinf_k_plot, probR_plot, assignedOffspring_plot, propHabitat_plot,
+          labels = c("a","b","c","d","e"), nrow=2)
+dev.off()
+
 ########## Plots for WSN talk #########
 ### LRP (LEP_R) with DD
 pdf(file = here::here("Plots/WSN_2019", "LRP_with_DD.pdf"))
