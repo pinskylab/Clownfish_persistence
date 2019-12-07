@@ -880,33 +880,44 @@ output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site
 output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
 output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
 output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
-output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
+#output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
 output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
 output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
 
+#### STOPPED RUNNING HERE!!!
 # Join them together for plotting purposes
 LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
                  output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
-                 output_uncert_offspring_assigned$LEP_out_df, output_uncert_prob_r$LEP_out_df,
-                 output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
+                 output_uncert_offspring_assigned$LEP_out_df,output_uncert_prob_r$LEP_out_df,
+                 #output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
                  output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
+
+LEP_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_by_site_out_df, output_uncert_growth$LEP_by_site_out_df,
+                               output_uncert_survival$LEP_by_site_out_df, output_uncert_breeding_size$LEP_by_site_out_df,
+                               output_uncert_offspring_assigned$LEP_by_site_out_df, output_uncert_prob_r$LEP_by_site_out_df,
+                               output_uncert_dispersal$LEP_by_site_out_df, output_uncert_all$LEP_by_site_out_df)
 
 LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
                     output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
                     output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
-                    output_uncert_prob_r_and_offspring_assigned$LEP_R,
+                    #output_uncert_prob_r_and_offspring_assigned$LEP_R,
                     output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
+
+LEP_R_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_R_by_site_out_df, output_uncert_growth$LEP_R_by_site_out_df,
+                                 output_uncert_survival$LEP_R_by_site_out_df, output_uncert_breeding_size$LEP_R_by_site_out_df,
+                                 output_uncert_offspring_assigned$LEP_R_by_site_out_df, output_uncert_prob_r$LEP_R_by_site_out_df,
+                                 output_uncert_dispersal$LEP_R_by_site_out_df, output_uncert_all$LEP_R_by_site_out_df)
 
 RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
                     output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
                     output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
-                    output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
+                    #output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
                     output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
 
 NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
                    output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
                    output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
-                   output_uncert_prob_r_and_offspring_assigned$NP_out_df,
+                   #output_uncert_prob_r_and_offspring_assigned$NP_out_df,
                    output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
 
 ###### Now run with DD
@@ -917,7 +928,7 @@ output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, s
 output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
 output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
 output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
-output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
+#output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
 output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
 output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
 
@@ -925,25 +936,35 @@ output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_
 LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
                     output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
                     output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
-                    output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
+                    #output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
                     output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
+
+LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
+                       output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
+                       output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
+                       output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
 
 LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
                       output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
                       output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
-                      output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
+                      #output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
                       output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
+
+LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
+                               output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
+                               output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
+                               output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
 
 RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
                       output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
                       output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
-                      output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
+                      #output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
                       output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
 
 NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
                    output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
                    output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
-                   output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
+                   #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
                    output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
 
 
@@ -1060,7 +1081,7 @@ save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_unce
 save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
 save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
 save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
-save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
+#save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
 save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
 save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
 
@@ -1071,7 +1092,7 @@ save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_u
 save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
 save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
 save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
-save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
+#save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
 save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
 save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
 
@@ -1145,16 +1166,16 @@ dev.off()
 
 ##### Figure 4 (abundance + replacement metrics)
 # LEP - why is this so nuts?
-LEP_plot <- ggplot(data = output_uncert_all$LEP_out_df, aes(x=value)) +
-  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+  geom_histogram(bins=500, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
   xlab('LEP') + ggtitle('LEP') +
   theme_bw()
 
-ggplot(data = output_uncert_all_DD$LEP_by_site_out_df %>% filter(site == 9), aes(x=value)) +
-  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+  geom_histogram(bins=500, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
@@ -1162,8 +1183,8 @@ ggplot(data = output_uncert_all_DD$LEP_by_site_out_df %>% filter(site == 9), aes
   theme_bw()
 
 # LRP with DD
-LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
-  geom_histogram(bins=40, color = 'gray', fill = 'gray') +
+LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
@@ -1339,6 +1360,31 @@ realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reo
 pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDDcompensation.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
 plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
 dev.off()
+
+##### LEP by site
+pdf(file = here::here("Plots/FigureDrafts","APP_FIG_LEP_by_site.pdf"))
+ggplot(data = output_uncert_all_DD$LEP_by_site_out_df, aes(x=value)) +
+  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+  geom_vline(xintercept = LEP_best_est, color = "black") +
+  xlab('LEP') + ggtitle('LEP by site') +
+  theme_bw() +
+  facet_wrap(~site)
+dev.off()
+
+##### LRP by site
+pdf(file = here::here("Plots/FigureDrafts","APP_FIG_LRP_by_site.pdf"))
+ggplot(data = output_uncert_all_DD$LEP_R_by_site_out_df, aes(x=value)) +
+  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+  geom_vline(xintercept = LEP_R_best_est, color = "black") +
+  xlab('LRP') + 
+  theme_bw() +
+  facet_wrap(~site)
+dev.off()
+
 
 ##### Uncertainty exploration for LEP
 # All together
