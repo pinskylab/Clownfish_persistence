@@ -26,9 +26,23 @@ max_dist = 200
 #                encounters_dist_mean$dist2016, encounters_dist_mean$dist2017, encounters_dist_mean$dist2018, na.rm=TRUE)  # this is very large (766, recap prob goes essentially to zero at < 100)
 dist_values = min_dist+(0:n_dist_steps)*(max_dist-min_dist)/n_dist_steps
 
+# Sites we didn't revisit
+one_time_sites <- c("Sitio Lonas", "Sitio Tugas", "Caridad Proper")
+
+# No-space sites, without ones we didn't revisted
+no_space_sites_revisited = c("Cabatoan", "Caridad Cemetery", "Elementary School", "Gabas", "Haina",
+                             "Hicgop South", "N. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", 
+                             "San Agustin", "Sitio Baybayon", "S. Magbangon", "Tamakin Dacot", "Visca", "Wangag")
+
 #################### Functions: ####################
 
 #################### Running things: ####################
+##### Take out fish at sites we didn't re-visit
+encounters_dist_mean <- encounters_dist_mean %>% filter(!site %in% one_time_sites)
+encounters_dist_mean_by_year <- encounters_dist_mean_by_year %>% filter(!site %in% one_time_sites)
+encounters_size_0 <- encounters_size_0 %>% filter(!site %in% one_time_sites)
+encounters_size_means <- encounters_size_means %>% filter(!site %in% one_time_sites)
+
 ##### Create data frames for analysis, joining trait info and distance info
 # Mean size (by year), mean distance (by year)
 eall_meanYsize_meanYdist <- left_join(encounters_size_means, encounters_dist_mean_by_year %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
@@ -41,7 +55,7 @@ eall_meanYsize_meanYdist <- eall_meanYsize_meanYdist[complete.cases(eall_meanYsi
 eall_meanYsize_meanYdist <- eall_meanYsize_meanYdist %>%
   mutate(site = case_when(site == "Cabatoan" ~ "Cabatoan",
                           site == "Caridad Cemetery" ~ "CaridadCemetery",
-                          site == "Caridad Proper" ~ "CaridadProper",
+                          #site == "Caridad Proper" ~ "CaridadProper",
                           site == "Elementary School" ~ "ElementarySchool",
                           site == "Gabas" ~ "Gabas",
                           site == "Haina" ~"Haina",
@@ -53,8 +67,8 @@ eall_meanYsize_meanYdist <- eall_meanYsize_meanYdist %>%
                           site == "S. Magbangon" ~ "SMagbangon",
                           site == "San Agustin" ~ "SanAgustin",
                           site == "Sitio Baybayon" ~ "SitioBaybayon",
-                          site == "Sitio Lonas" ~ "SitioLonas",
-                          site == "Sitio Tugas" ~ "SitioTugas",
+                          #site == "Sitio Lonas" ~ "SitioLonas",
+                          #site == "Sitio Tugas" ~ "SitioTugas",
                           site == "Tamakin Dacot" ~ "TamakinDacot",
                           site == "Visca" ~ "Visca",
                           site == "Wangag" ~ "Wangag"))
@@ -122,16 +136,16 @@ model_comp_meanYsize_meanYdist <- model_comp_meanYsize_meanYdist %>%
 results_df_1 <- as.data.frame(eall_meanYsize_meanYdist.Phi.site.plus.size.p.size.plus.dist$results$beta)
 
 # Set indices for effects within results data frame
-surv_size_effect_index = 20
-recap_intercept_index = 21
-recap_size_effect_index = 22
-recap_dist_effect_index = 23
+surv_size_effect_index = 17
+recap_intercept_index = 18
+recap_size_effect_index = 19
+recap_dist_effect_index = 20
 
 ### Look at surv by site for mean size (overall, not by site)
 mean_size_MARK <- mean(c(eall_meanYsize_meanYdist$size2012, eall_meanYsize_meanYdist$size2013, eall_meanYsize_meanYdist$size2014,
                          eall_meanYsize_meanYdist$size2015, eall_meanYsize_meanYdist$size2016, eall_meanYsize_meanYdist$size2017, eall_meanYsize_meanYdist$size2018))
 # start with Cabatoan (intercept is for Cabatoan)
-surv_by_site_mean_size <- data.frame(site = no_space_sites_alpha[1], size = mean_size_MARK) %>%
+surv_by_site_mean_size <- data.frame(site = no_space_sites_revisited[1], size = mean_size_MARK) %>%
   mutate(estimate = results_df_1$estimate[1] + results_df_1$estimate[surv_size_effect_index]*size,
          lcl = results_df_1$lcl[1] + results_df_1$lcl[surv_size_effect_index]*size,
          ucl = results_df_1$ucl[1] + results_df_1$ucl[surv_size_effect_index]*size,
@@ -139,8 +153,8 @@ surv_by_site_mean_size <- data.frame(site = no_space_sites_alpha[1], size = mean
          lcl_prob = logit_recip(lcl),
          ucl_prob = logit_recip(ucl))
 # fill in rest of sites
-for(i in 2:length(no_space_sites_alpha)) {
-  df_to_add <- data.frame(site = no_space_sites_alpha[i], size = mean_size_MARK) %>%
+for(i in 2:length(no_space_sites_revisited)) {
+  df_to_add <- data.frame(site = no_space_sites_revisited[i], size = mean_size_MARK) %>%
     mutate(estimate = results_df_1$estimate[1] + results_df_1$estimate[i] + results_df_1$estimate[surv_size_effect_index]*size,
            lcl = results_df_1$lcl[1] + results_df_1$lcl[i] + results_df_1$lcl[surv_size_effect_index]*size,
            ucl = results_df_1$ucl[1] + results_df_1$ucl[i] + results_df_1$ucl[surv_size_effect_index]*size,
@@ -157,7 +171,7 @@ mean_size_MARK_site <- eall_meanYsize_meanYdist %>%
   summarize(mean_size = mean(c(size2012, size2013, size2014, size2015, size2016, size2017, size2018)))
                   
 # start with Cabatoan
-surv_by_site_mean_size_by_site <- data.frame(site = no_space_sites_alpha[1], size = mean_size_MARK_site$mean_size[1]) %>%
+surv_by_site_mean_size_by_site <- data.frame(site = no_space_sites_revisited[1], size = mean_size_MARK_site$mean_size[1]) %>%
   mutate(estimate = results_df_1$estimate[1] + results_df_1$estimate[surv_size_effect_index]*size,
          lcl = results_df_1$lcl[1] + results_df_1$lcl[surv_size_effect_index]*size,
          ucl = results_df_1$ucl[1] + results_df_1$ucl[surv_size_effect_index]*size,
@@ -165,8 +179,8 @@ surv_by_site_mean_size_by_site <- data.frame(site = no_space_sites_alpha[1], siz
          lcl_prob = logit_recip(lcl),
          ucl_prob = logit_recip(ucl))
 # fill in rest of sites
-for(i in 2:length(no_space_sites_alpha)) {
-  df_to_add <- data.frame(site = no_space_sites_alpha[i], size = mean_size_MARK_site$mean_size[i]) %>%
+for(i in 2:length(no_space_sites_revisited)) {
+  df_to_add <- data.frame(site = no_space_sites_revisited[i], size = mean_size_MARK_site$mean_size[i]) %>%
     mutate(estimate = results_df_1$estimate[1] + results_df_1$estimate[i] + results_df_1$estimate[surv_size_effect_index]*size,
            lcl = results_df_1$lcl[1] + results_df_1$lcl[i] + results_df_1$lcl[surv_size_effect_index]*size,
            ucl = results_df_1$ucl[1] + results_df_1$ucl[i] + results_df_1$ucl[surv_size_effect_index]*size,
@@ -179,7 +193,7 @@ for(i in 2:length(no_space_sites_alpha)) {
 
 ### Now find relationship with size by site
 # start with Cabatoan
-df_size_by_site <- data.frame(site = no_space_sites_alpha[1], size = size_values) %>%
+df_size_by_site <- data.frame(site = no_space_sites_revisited[1], size = size_values) %>%
   mutate(estimate = results_df_1$estimate[1] + results_df_1$estimate[surv_size_effect_index]*size,
          lcl = results_df_1$lcl[1] + results_df_1$lcl[surv_size_effect_index]*size,
          ucl = results_df_1$ucl[1] + results_df_1$ucl[surv_size_effect_index]*size,
@@ -187,8 +201,8 @@ df_size_by_site <- data.frame(site = no_space_sites_alpha[1], size = size_values
          lcl_prob = logit_recip(lcl),
          ucl_prob = logit_recip(ucl))
 # fill in rest 
-for(i in 2:length(no_space_sites_alpha)) {
-  df_to_add <- data.frame(site = no_space_sites_alpha[i], size = size_values) %>%
+for(i in 2:length(no_space_sites_revisited)) {
+  df_to_add <- data.frame(site = no_space_sites_revisited[i], size = size_values) %>%
     mutate(estimate = results_df_1$estimate[1] + results_df_1$estimate[i] + results_df_1$estimate[surv_size_effect_index]*size,
            lcl = results_df_1$lcl[1] + results_df_1$lcl[i] + results_df_1$lcl[surv_size_effect_index]*size,
            ucl = results_df_1$ucl[1] + results_df_1$ucl[i] + results_df_1$ucl[surv_size_effect_index]*size,
@@ -226,14 +240,14 @@ best_fit_model_dfs <- list("model" = eall_meanYsize_meanYdist.Phi.site.plus.size
 # Mean survival by site
 results_df_2 <- as.data.frame(eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist$results$beta)
 
-site_specific_surv <- data.frame(site = no_space_sites_alpha, estimate = NA, se = NA, lcl = NA, ucl = NA)
+site_specific_surv <- data.frame(site = no_space_sites_revisited, estimate = NA, se = NA, lcl = NA, ucl = NA)
 # Cabatoan is the first
 site_specific_surv$estimate[1] = results_df_2$estimate[1]
 site_specific_surv$lcl[1] = results_df_2$lcl[1]
 site_specific_surv$ucl[1] = results_df_2$ucl[1]
 
 # Go through rest of sites - need to be added to Cabatoan estimate
-for (i in 2:length(site_vec)) {
+for (i in 2:length(no_space_sites_revisited)) {
   site_specific_surv$estimate[i] = results_df_2$estimate[1] + results_df_2$estimate[i]
   site_specific_surv$lcl[i] = results_df_2$lcl[1] + results_df_2$lcl[i]
   site_specific_surv$ucl[i] = results_df_2$ucl[1] + results_df_2$ucl[i]
@@ -249,7 +263,7 @@ site_specific_surv <- site_specific_surv %>%
 # Mean survival by site
 results_df_3 <- as.data.frame(eall_meanYsize_meanYdist.Phi.site.p.dist$results$beta)
 
-site_specific_surv_nodist <- data.frame(site = site_vec, estimate = NA, se = NA, lcl = NA, ucl = NA)
+site_specific_surv_nodist <- data.frame(site = no_space_sites_revisited, estimate = NA, se = NA, lcl = NA, ucl = NA)
 
 # Cabatoan is the first
 site_specific_surv_nodist$estimate[1] = results_df_3$estimate[1]
@@ -257,7 +271,7 @@ site_specific_surv_nodist$lcl[1] = results_df_3$lcl[1]
 site_specific_surv_nodist$ucl[1] = results_df_3$ucl[1]
 
 # Go through rest of sites - need to be added to Cabatoan estimate
-for (i in 2:length(site_vec)) {
+for (i in 2:length(no_space_sites_revisited)) {
   site_specific_surv_nodist$estimate[i] = results_df_3$estimate[1] + results_df_3$estimate[i]
   site_specific_surv_nodist$lcl[i] = results_df_3$lcl[1] + results_df_3$lcl[i]
   site_specific_surv_nodist$ucl[i] = results_df_3$ucl[1] + results_df_3$ucl[i]
