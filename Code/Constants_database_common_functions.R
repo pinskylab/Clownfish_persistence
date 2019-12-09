@@ -49,7 +49,7 @@ clown_sample_dive_types <- c("0","A","C","D","E","F","M")  # everything but R (n
 min_tag_size <- 6.0  # minimum size for tagging   
 min_clip_size <- 3.5  # minimum size for fin-clip
 min_size = 0  # minimum fish size 
-max_size = 15  # should check this w/data...
+max_size = 13  # largest fish we've seen
 
 #size thresholds for determining stage - CHECK IF THESE ARE ACTUALLY STILL USED!!
 min_breeding_F_size <- 6  # size thresholds for determining stage (made up based on gut for now, should update based on data - Michelle boxplot?)
