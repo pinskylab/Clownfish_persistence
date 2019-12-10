@@ -13,7 +13,7 @@ library(ggplot2)
 library(RColorBrewer)
 
 # ##### Load anem lat/lons - REDO SO GET THE ANEM INFO FROM DATABASE + A SCRIPT?
-data_anems_2 = as.data.frame(read.csv(here::here("Data", "GPSSurvey.anemlatlong2015-12-16.csv"), row.names=1, stringsAsFactors = FALSE))
+# data_anems_2 = as.data.frame(read.csv(here::here("Data", "GPSSurvey.anemlatlong2015-12-16.csv"), row.names=1, stringsAsFactors = FALSE))
 # 
 # ##### Load anemone files
 # load(file = here::here("Data/Data_from_database", "anem_db.RData"))  # database files
@@ -80,7 +80,11 @@ zoom_site = c("Palanas", "Wangag")
 # Other clownfish species
 other_clownfish_spp = c("APFR","APOC","APPE","PRBI")
 
-#################### Process anems: ####################
+# Shift right for site labels from site center
+long_shift = 0.008
+
+#################### Process anems and patch ids: ####################
+##### Process anems - find just those in zoomed sites (Palanas and Wangag) in the anem sample year (winter 2015), attach lat-lon coords
 data_anems <- anems_Processed_all %>% filter(site %in% zoom_site, year == 2015, month %in% winter_months) %>%  # filter out just anems from 2015 anem survey
   mutate(lat = NA, lon = NA)  
 
@@ -95,6 +99,24 @@ for(i in 1:length(data_anems$lon)) {
 fish_to_join <- rbind(fish_db %>% dplyr::select(fish_spp, anem_table_id), fish_seen_db %>% dplyr::select(fish_spp, anem_table_id)) %>%
   distinct(anem_table_id, .keep_all = TRUE)
 data_anems <- left_join(data_anems, fish_to_join, by = "anem_table_id")
+
+##### Make list of patch ids from N-S and coordinates to plot id on plot so can label in caption
+patch_id_coords <- data.frame(site = site_vec_order$site_name,
+                             patch_id = site_vec_order$geo_order)
+
+# Add in coords of center of patch
+patch_id_coords <- left_join(patch_id_coords, site_centers, by = "site")
+
+# Shift coords to the right slightly from the center of the patch, then make fine-scale adjustments
+patch_id_coords <- patch_id_coords %>% 
+  mutate(id_lat = lat,
+         id_lon = lon + long_shift)
+patch_id_coords$id_lon[1] = patch_id_coords$id_lon[1]+0.003  # move Cabatoan label right slightly
+patch_id_coords$id_lat[8] = patch_id_coords$id_lat[8]+0.001  # move N. Magbangon label up slightly
+patch_id_coords$id_lon[9] = patch_id_coords$id_lon[9]+0.0001  # move Palanas label right slightly
+patch_id_coords$id_lat[11] = patch_id_coords$id_lat[11]-0.0015  # move Poroc San Flower label down slightly
+patch_id_coords$id_lat[14] = patch_id_coords$id_lat[14]-0.0015  # move Sitio Baybayon label down slightly
+patch_id_coords$id_lon[6] = patch_id_coords$id_lon[6]+0.005  # move Haina label right slightly
 
 #################### Make sub-plots and overall plot: ####################
 ##### Main plot of sites
@@ -122,10 +144,16 @@ site_area <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   #annotate(geom = 'text', x = xlims[1]+0.025, y = 10.65, label = '5 km', size = 4) +
   annotate(geom = 'text', x = xlims[1]+0.003, y = 10.65, label = '5 km', size = 5, hjust = 0) +
   xlab("Longitude (°E)") + ylab('Latitude (°N)') +
-  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
+  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 0.5) +
   geom_line(data = hab_line_coords, aes(x = long, y = lat, group = group), color = patch_color, lwd = 2) +
   #annotate(geom = "text", x = xlims[1]+0.033, y = 10.865, label = "Habitat \n patches", size = 4)
   annotate(geom = "text", x = xlims[1]+0.003, y = 10.845, label = "Habitat \n patches", size = 5, hjust = 0)
+
+# Add in site id numbers
+for(i in 1:length(patch_id_coords$site)) {
+  site_area <- site_area +
+    annotate("text", x=patch_id_coords$id_lon[i], y=patch_id_coords$id_lat[i], label=patch_id_coords$patch_id[i], size=2.8)
+}
 
 ##### Inset map of Philippines
 inset_map <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
@@ -137,7 +165,7 @@ inset_map <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
         axis.text=element_blank(),
         axis.ticks=element_blank(),
         axis.line=element_blank()) +
-  geom_polygon(data = zoomed_area_coords, aes(x = long, y = lat, group = group), fill = NA, color = "black", lwd = 1) +
+  geom_polygon(data = zoomed_area_coords, aes(x = long, y = lat, group = group), fill = NA, color = "black", lwd = 0.75) +
   #annotate(geom = 'text', x = 120.8, y = 8.3, label = 'Philippines', cex=4) 
   annotate(geom = 'text', x = 121.8, y = 8.3, label = 'Philippines', cex=5) 
 
