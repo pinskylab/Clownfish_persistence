@@ -88,7 +88,13 @@ site_vec_NS <- c('Palanas', 'Wangag', 'N. Magbangon', 'S. Magbangon' , 'Cabatoan
 no_space_sites_alpha <- c("Cabatoan", "Caridad Cemetery", "Caridad Proper", "Elementary School", "Gabas", "Haina", "Hicgop South",
                           "N. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", "San Agustin", "Sitio Baybayon", 
                           "Sitio Lonas", "Sitio Tugas", "S. Magbangon", "Tamakin Dacot", "Visca", "Wangag")
+# No-space sites, without ones we didn't revisted
+no_space_sites_revisited = c("Cabatoan", "Caridad Cemetery", "Elementary School", "Gabas", "Haina",
+                             "Hicgop South", "N. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", 
+                             "San Agustin", "Sitio Baybayon", "S. Magbangon", "Tamakin Dacot", "Visca", "Wangag")
 
+# Sites not revisited (only sampled in 1 year)
+sites_not_revisited = c("Caridad Proper", "Sitio Lonas", "Sitio Tugas")
 
 ##### Anemones at edges of sites (eventually, put this in an Excel sheet and input - and check these values...) (visually from QGIS, in particular mid anems totally eyeballed)
 Cabatoan_N <- 198 # 3195, 951 other options, 2502

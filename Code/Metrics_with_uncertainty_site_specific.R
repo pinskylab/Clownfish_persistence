@@ -43,11 +43,11 @@ load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # all 
 #source(here::here("Code", "Growth_analysis.R"))  # this script needs to be cleaned up before it would be reasonble to actually source it here
 
 # Load survival and recap from MARK models
-best_MARK_model <- load(file = here::here("Data/Script_outputs", "best_fit_model_dfs.RData"))
-Phi_size_pos = 20  # placement of size effect for survival
-p_int_pos = 21  # placement of intercept for recap prob
-p_size_pos = 22  # placement of size effect for recap prob
-p_dist_pos = 23  # placement of distance effect for recap prob
+load(file = here::here("Data/Script_outputs", "best_fit_model_dfs.RData"))  # load best MARK model
+Phi_size_pos = 17  # placement of size effect for survival
+p_int_pos = 18  # placement of intercept for recap prob
+p_size_pos = 19  # placement of size effect for recap prob
+p_dist_pos = 20  # placement of distance effect for recap prob
 # survival_output = readRDS(file=here::here("Data/Script_outputs", "eall_mean_Phi_size_p_size_plus_dist.RData"))  # MARK output (lowest AICc model)
 # Phi_int_pos = 1  # placement of intercept for survival
 # Phi_size_pos = 2  # placement of size effect for survival
@@ -433,9 +433,9 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
     # Select parameter set
     params <- param_sets[i,]
     
-    surv_params <- data.frame(site = no_space_sites_alpha, Sint = NA, Sl = NA, stringsAsFactors = FALSE)
-    for(j in 1:length(no_space_sites_alpha)) {
-      surv_params$site[j] = no_space_sites_alpha[j]
+    surv_params <- data.frame(site = c(no_space_sites_revisited, sites_not_revisited), Sint = NA, Sl = NA, stringsAsFactors = FALSE)
+    for(j in 1:length(c(no_space_sites_revisited, sites_not_revisited))) {
+      surv_params$site[j] = c(no_space_sites_revisited, sites_not_revisited)[j]
       surv_params$Sint[j] = site_based_surv_sets[[j]]$Sint[i]
       surv_params$Sl[j] = site_based_surv_sets[[j]]$Sl[i]
     }
@@ -519,13 +519,22 @@ mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  # might b
 start_recruit_size = mean_sampled_offspring_size
 
 ### Best-estimate survival parameters by site
-site_surv_best_est <- data.frame(site = no_space_sites_alpha, Sint = NA, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+site_surv_best_est <- data.frame(site = no_space_sites_revisited, Sint = NA, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+
 # Cabatoan
 site_surv_best_est$Sint[1] = best_fit_model_dfs$results$estimate[1]
 # fill in rest of sites
-for(i in 2:length(no_space_sites_alpha)) {
+for(i in 2:length(no_space_sites_revisited)) {
   site_surv_best_est$Sint[i] = best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[i]
 }
+
+# Fill in average of other sites for sites not revisited and estimated (Sitio Lonas, Sitio Tugas, Caridad Proper)
+avg_Sint = sum(best_fit_model_dfs$results$estimate[1]*16, best_fit_model_dfs$results$estimate[2:16])/16  
+avg_Sint_withoutCC = sum(best_fit_model_dfs$results$estimate[1]*15, best_fit_model_dfs$results$estimate[3:16])/15  # avg Sint of all sites except Caridad Cemetery  
+site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = avg_Sint, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+
+# Bind them together
+site_surv_best_est <- rbind(site_surv_best_est, site_surv_notrevisited)
 
 ### LEP, starting at different sizes
 LEP_different_sizes <- site_surv_best_est %>%
@@ -551,6 +560,13 @@ for(i in 1:length(LEP_different_sizes$site)) {
                                               clutches_per_year_mean, breeding_size_mean, 3.5, start_recruit_sd, 
                                               eggs_slope_log, eggs_intercept_log, eyed_effect)
 }
+
+# ##### Sensitivity test to different max sizes for LEP
+# max_size_sens <- c(9,9.5,10,10.5,11,11.5,12,12.5,13)  # max sizes to try
+# LEP_max_size_sens <- list()
+# for(i in 1:length(max_size_sens)) {
+#   
+# }
 
 ########## Estimate survival from egg to recruit (method similar to Johnson et al. 2018):
 
@@ -696,18 +712,34 @@ theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
 
 ### Create survival parameter sets 
 site_surv_param_sets <- list()
+
 # Cabatoan first
 site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
                            Sint_site = 0, 
                            Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
   mutate(Sint = Sint_C + Sint_site)
 site_surv_param_sets[[1]] <- site_surv_df
-# then rest of sites
-for(i in 2:length(no_space_sites_alpha)) {
+
+# then rest of sites where survival was estimated
+for(i in 2:length(no_space_sites_revisited)) {
   site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
                              Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[i], max=best_fit_model_dfs$results$ucl[i]), 
                              Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
     mutate(Sint = Sint_C + Sint_site)
+  site_surv_param_sets[[i]] <- site_surv_df
+}
+
+# then for the three that use average (Caridad Proper, Sitio Lonas, Sitio Tugas)
+avg_Sint_lcl = sum(best_fit_model_dfs$results$lcl[1]*16, best_fit_model_dfs$results$lcl[2:16])/16  # avg Sint lcl, all sites included
+avg_Sint_ucl = sum(best_fit_model_dfs$results$ucl[1]*16, best_fit_model_dfs$results$ucl[2:16])/16  # avg Sint ucl, all sites included
+avg_Sint_lcl_withoutCC = sum(best_fit_model_dfs$results$lcl[1]*15, best_fit_model_dfs$results$lcl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
+avg_Sint_ucl_withoutCC = sum(best_fit_model_dfs$results$ucl[1]*15, best_fit_model_dfs$results$ucl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
+
+for(i in length(no_space_sites_revisited)+1:length(site_vec)) {
+  site_surv_df <- data.frame(Sint_C = NA, 
+                             Sint_site = NA, 
+                             Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC),
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
   site_surv_param_sets[[i]] <- site_surv_df
 }
 
@@ -719,12 +751,20 @@ site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], 
                            Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
   mutate(Sint = Sint_C + Sint_site)
 site_surv_best_est_sets[[1]] <- site_surv_df
-# then rest of sites
-for(i in 2:length(no_space_sites_alpha)) {
+# then rest of sites that are revisited
+for(i in 2:length(no_space_sites_revisited)) {
   site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
                              Sint_site = rep(best_fit_model_dfs$results$estimate[i], n_runs), 
                              Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
     mutate(Sint = Sint_C + Sint_site)
+  site_surv_best_est_sets[[i]] <- site_surv_df
+}
+# then three that use average
+for(i in length(no_space_sites_revisited)+1:length(site_vec)) {
+  site_surv_df <- data.frame(Sint_C = NA, 
+                             Sint_site = NA, 
+                             Sint = rep(avg_Sint, n_runs),
+                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs))
   site_surv_best_est_sets[[i]] <- site_surv_df
 }
 
