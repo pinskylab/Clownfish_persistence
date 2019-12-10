@@ -29,11 +29,6 @@ dist_values = min_dist+(0:n_dist_steps)*(max_dist-min_dist)/n_dist_steps
 # Sites we didn't revisit
 one_time_sites <- c("Sitio Lonas", "Sitio Tugas", "Caridad Proper")
 
-# No-space sites, without ones we didn't revisted
-no_space_sites_revisited = c("Cabatoan", "Caridad Cemetery", "Elementary School", "Gabas", "Haina",
-                             "Hicgop South", "N. Magbangon", "Palanas", "Poroc Rose", "Poroc San Flower", 
-                             "San Agustin", "Sitio Baybayon", "S. Magbangon", "Tamakin Dacot", "Visca", "Wangag")
-
 #################### Functions: ####################
 
 #################### Running things: ####################
