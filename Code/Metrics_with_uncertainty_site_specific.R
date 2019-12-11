@@ -1329,7 +1329,7 @@ pdf(file = here::here("Plots/FigureDrafts", "APP_FIG_surv_by_size_and_site_Phisi
 ggplot(data = surv_by_site_to_plot, aes(x = size, y = estimate_prob, fill = site)) +
   geom_line(aes(color=site)) + 
   geom_ribbon(aes(ymin=lcl_prob, ymax=ucl_prob), alpha=0.5) +
-  ylab("survival probability") + ggtitle("Phi:site+size, p:size+dist") + xlab("size (cm)") +
+  ylab("survival probability") + xlab("size (cm)") + #ggtitle("Phi:site+size, p:size+dist") +
   facet_wrap(~site) +
   #facet_wrap(~site, labeller=label_context(labels, multi_line = TRUE))+
   theme_bw() 
@@ -1345,18 +1345,18 @@ dev.off()
 p_by_dist_plot <- ggplot(data = best_fit_model_dfs$recap_dist, aes(x = dist, y = estimate_prob)) +
   geom_line() + 
   geom_ribbon(aes(ymin=lcl_prob, ymax=ucl_prob), alpha=0.5) +
-  ylab("recapture probability") + ggtitle("Phi:site+size, p:size+dist") + xlab("distance (m)") +
+  ylab("recapture probability") + xlab("distance (m)") + #ggtitle("Phi:site+size, p:size+dist") + 
   theme_bw() 
 
 # p (by size)
 p_by_size_plot <- ggplot(data = best_fit_model_dfs$recap_size, aes(x = size, y = estimate_prob)) +
   geom_line() + 
   geom_ribbon(aes(ymin=lcl_prob, ymax=ucl_prob), alpha=0.5) +
-  ylab("recapture probability") + ggtitle("Phi:site+size, p:size+dist") + xlab("size (cm)") +
+  ylab("recapture probability") + xlab("size (cm)") + #ggtitle("Phi:site+size, p:size+dist") + 
   theme_bw() 
 
 # Put them together
-pdf(file = here::here("Plots/FigureDrafts", "APP_FIG_recap_effects_Phisiteplussize_psizeplusdist.pdf"))
+pdf(file = here::here("Plots/FigureDrafts", "APP_FIG_recap_effects_Phisiteplussize_psizeplusdist.pdf"), width=7, height=4)
 plot_grid(p_by_dist_plot, p_by_size_plot, labels=c("a","b"), nrow=1)
 dev.off()
 
@@ -1367,14 +1367,14 @@ LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
-  xlab('LRP') + ggtitle('LRP') +
+  xlab('LRP') + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local without DD
 LEP_R_local_plot <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
-  xlab("local LRP") + ggtitle("Local replacement") +
+  xlab("local LRP") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Put them together
@@ -1393,13 +1393,14 @@ best_est_metrics_mean_offspring$Cmat$dest_site <- replace(best_est_metrics_mean_
 output_uncert_all$SP_vals_with_params$site <- replace(output_uncert_all$SP_vals_with_params$site, 
                                                          output_uncert_all$SP_vals_with_params$site=="Tamakin Dacot", 
                                                          "Tomakin Dako")
+SP_best_est$site <- replace(SP_best_est$site, SP_best_est$site=="Tamakin Dacot", "Tomakin Dako")
 
 # SP (not accounting for DD)
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est, aes(x = site, y = SP_value), color = "black") +
-  xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
-  ylim(c(0,0.65)) +
+  xlab("site") + ylab("SP") + #ggtitle("Self-persistence") +
+  #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
@@ -1407,14 +1408,14 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(si
 NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est, color = "black") +
-  xlab('NP') + ggtitle('Network persistence') +
+  xlab('NP') + #ggtitle('Network persistence') +
   theme_bw()
 
 # realized connectivity matrix (not accounting for DD)
 realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
   scale_fill_gradient(high='black', low='white', name='Recruits') +
-  xlab('origin') + ylab('destination') + ggtitle('Realized connectivity matrix') +
+  xlab('origin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   theme(legend.position = "bottom")
@@ -1423,94 +1424,100 @@ pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDD
 plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
 dev.off()
 
-##### LEP by site
+##### LEP by site (with DD compensation)
+LEP_by_site_to_plot <- left_join(output_uncert_all_DD$LEP_by_site_out_df, site_vec_order, by = c("site"="alpha_order"))  # add in site name
+
 pdf(file = here::here("Plots/FigureDrafts","APP_FIG_LEP_by_site.pdf"))
-ggplot(data = output_uncert_all_DD$LEP_by_site_out_df, aes(x=value)) +
+ggplot(data = LEP_by_site_to_plot, aes(x=value)) +
   geom_histogram(bins=100, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
-  xlab('LEP') + ggtitle('LEP by site') +
+  xlab('LEP') + #ggtitle('LEP by site') +
   theme_bw() +
-  facet_wrap(~site)
+  facet_wrap(~site_name)
 dev.off()
 
-##### LRP by site
+##### LRP by site (with DD compensation)
+LRP_by_site_to_plot <- left_join(output_uncert_all_DD$LEP_R_by_site_out_df, site_vec_order, by = c("site"="alpha_order"))  # add in site name
+
 pdf(file = here::here("Plots/FigureDrafts","APP_FIG_LRP_by_site.pdf"))
-ggplot(data = output_uncert_all_DD$LEP_R_by_site_out_df, aes(x=value)) +
+ggplot(data = LRP_by_site_to_plot, aes(x=value)) +
   geom_histogram(bins=100, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
   xlab('LRP') + 
   theme_bw() +
-  facet_wrap(~site)
+  facet_wrap(~site_name)
 dev.off()
 
 
 ##### Uncertainty exploration for LEP
 # All together
-LEP_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"))
+ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "growth", "survival", "all"),
                                value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("Uncertainty in LEP") +
+  xlab("uncertainty type") + ylab("LEP") + #ggtitle("Uncertainty in LEP") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
-
-# start recruit size
-LEP_start_recruit_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size")), aes(x=uncertainty_type, y=value)) +
-  geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("start recruit size"), value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("Recruit size effects") +
-  theme_bw() +
-  theme(axis.text.x = element_blank())
-
-# breeding size
-LEP_breeding_size_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("breeding size")), aes(x=uncertainty_type, y=value)) +
-  geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("breeding size"), value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("Breeding size effects") +
-  theme_bw() +
-  theme(axis.text.x = element_blank())
-
-# growth
-LEP_growth_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("growth")), aes(x=uncertainty_type, y=value)) +
-  geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("growth"), value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("Growth curve effects") +
-  theme_bw() +
-  theme(axis.text.x = element_blank())
-
-# survival
-LEP_survival_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("survival")), aes(x=uncertainty_type, y=value)) +
-  geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("survival"), value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("Survival effects") +
-  theme_bw() +
-  theme(axis.text.x = element_blank())
-
-# all
-LEP_all_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("all")), aes(x=uncertainty_type, y=value)) +
-  geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("all"), value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("All uncertainty effects") +
-  theme_bw() +
-  theme(axis.text.x = element_blank())
-
-# put together
-pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"))
-plot_grid(LEP_uncertainty_plot, LEP_start_recruit_uncertainty_plot, LEP_breeding_size_uncertainty_plot, LEP_growth_uncertainty_plot, 
-          LEP_survival_uncertainty_plot, LEP_all_uncertainty_plot, labels=c("a","b","c","d","e","f"), nrow=3)
 dev.off()
 
-ggplot(data = output_uncert_survival_DD$LEP_by_site_out_df, aes(x=uncertainty_type, y=value)) +
-  geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("survival"), value = LEP_best_est), color = "black") +
-  xlab("LEP") + ggtitle("Survival effects") + 
-  facet_wrap(~site) +
-  theme_bw() +
-  theme(axis.text.x = element_blank())
+# # start recruit size
+# LEP_start_recruit_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size")), aes(x=uncertainty_type, y=value)) +
+#   geom_violin(fill="grey") +
+#   geom_point(data = data.frame(uncertainty_type = c("start recruit size"), value = LEP_best_est), color = "black") +
+#   xlab("LEP") + ggtitle("Recruit size effects") +
+#   theme_bw() +
+#   theme(axis.text.x = element_blank())
+# 
+# # breeding size
+# LEP_breeding_size_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("breeding size")), aes(x=uncertainty_type, y=value)) +
+#   geom_violin(fill="grey") +
+#   geom_point(data = data.frame(uncertainty_type = c("breeding size"), value = LEP_best_est), color = "black") +
+#   xlab("LEP") + ggtitle("Breeding size effects") +
+#   theme_bw() +
+#   theme(axis.text.x = element_blank())
+# 
+# # growth
+# LEP_growth_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("growth")), aes(x=uncertainty_type, y=value)) +
+#   geom_violin(fill="grey") +
+#   geom_point(data = data.frame(uncertainty_type = c("growth"), value = LEP_best_est), color = "black") +
+#   xlab("LEP") + ggtitle("Growth curve effects") +
+#   theme_bw() +
+#   theme(axis.text.x = element_blank())
+# 
+# # survival
+# LEP_survival_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("survival")), aes(x=uncertainty_type, y=value)) +
+#   geom_violin(fill="grey") +
+#   geom_point(data = data.frame(uncertainty_type = c("survival"), value = LEP_best_est), color = "black") +
+#   xlab("LEP") + ggtitle("Survival effects") +
+#   theme_bw() +
+#   theme(axis.text.x = element_blank())
+# 
+# # all
+# LEP_all_uncertainty_plot <- ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("all")), aes(x=uncertainty_type, y=value)) +
+#   geom_violin(fill="grey") +
+#   geom_point(data = data.frame(uncertainty_type = c("all"), value = LEP_best_est), color = "black") +
+#   xlab("LEP") + ggtitle("All uncertainty effects") +
+#   theme_bw() +
+#   theme(axis.text.x = element_blank())
+
+# # put together
+# pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"))
+# plot_grid(LEP_uncertainty_plot, LEP_start_recruit_uncertainty_plot, LEP_breeding_size_uncertainty_plot, LEP_growth_uncertainty_plot, 
+#           LEP_survival_uncertainty_plot, LEP_all_uncertainty_plot, labels=c("a","b","c","d","e","f"), nrow=3)
+# dev.off()
+# 
+# ggplot(data = output_uncert_survival_DD$LEP_by_site_out_df, aes(x=uncertainty_type, y=value)) +
+#   geom_violin(fill="grey") +
+#   geom_point(data = data.frame(uncertainty_type = c("survival"), value = LEP_best_est), color = "black") +
+#   xlab("LEP") + ggtitle("Survival effects") + 
+#   facet_wrap(~site) +
+#   theme_bw() +
+#   theme(axis.text.x = element_blank())
 
 ##### Uncertainty exploration for RperE
 pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"))
@@ -1518,7 +1525,7 @@ ggplot(data = RperE_uncert_DD %>% filter(uncertainty_type %in% c("breeding size"
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
                                value = recruits_per_egg_best_est_DD), color = "black") +
-  xlab("recruits-per-egg") + ggtitle("Uncertainty in egg-recruit survival") +
+  xlab("uncertainty type") + ylab("recruits-per-egg") + #ggtitle("Uncertainty in egg-recruit survival") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
@@ -1529,7 +1536,7 @@ ggplot(data = LEP_R_uncert_DD %>% filter(uncertainty_type %in% c("start recruit 
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
                                value = LEP_R_best_est_DD), color = "black") +
-  xlab("LRP") + ggtitle("Uncertainty in LRP") +
+  xlab("uncertainty type") + ylab("LRP") + #ggtitle("Uncertainty in LRP") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
@@ -1540,7 +1547,7 @@ ggplot(data = NP_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
                                value = NP_best_est_DD), color = "black") +
-  xlab("recruits-per-egg") + ggtitle("Uncertainty in network persistence") +
+  xlab("uncertainty type") + ylab("NP") + #ggtitle("Uncertainty in network persistence") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
@@ -1550,28 +1557,28 @@ dev.off()
 startRecruit_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size)) +
   geom_histogram(bins=40, color="gray", fill="gray") +
   geom_vline(xintercept = mean_sampled_offspring_size) +
-  xlab("recruit size (cm)") + ggtitle("Census size") +
+  xlab("recruit census size (cm)") + #ggtitle("Census size") +
   theme_bw()
 
 # Growth - Linf + k (VBL growth model) - show here too even though also in main text?
 growthLinf_k_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=Linf, y=k_growth)) +
   geom_point(color = "gray", fill = "gray") +
   geom_point(x = Linf_growth_mean, y = k_growth_mean, color = "black", fill = "black") +
-  xlab('Linf (cm)') + ylab("k") + ggtitle("VBL growth model") +
+  xlab('Linf (cm)') + ylab("K") + #ggtitle("VBL growth model") +
   theme_bw()
 
 # Capture probability (prob_r)
 probR_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = prob_r)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
   geom_vline(xintercept = prob_r_mean, color = "black") +
-  xlab("P_c") + ggtitle("Capture probability") +
+  xlab("P_c") + #ggtitle("Capture probability") +
   theme_bw()
 
 # Assigned offspring
 assignedOffspring_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = assigned_offspring)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
   geom_vline(xintercept = n_offspring_matched, color = "black") +
-  xlab("# assigned offspring") + ggtitle("Assigned offspring") +
+  xlab("# assigned offspring") + #ggtitle("Assigned offspring") +
   theme_bw()
 
 # Habitat and DD scaling
@@ -1586,7 +1593,7 @@ prop_scaling_vals_for_plot <- data.frame(value = c("P_h", "P_d", "P_s", "DD"),
                                                       prop_sampling_area_habitat, (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
 propHabitat_plot <- ggplot(data = prop_scaling_vals_for_plot, aes(x = value, y = estimate)) +
   geom_point() +
-  xlab("") + ylab("proportion") + ggtitle("Habitat scaling") +
+  xlab("recruit scaling parameter") + ylab("proportion") + #ggtitle("Habitat scaling") +
   ylim(c(0,1.8)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
