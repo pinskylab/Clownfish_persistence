@@ -924,7 +924,6 @@ output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_sur
 output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
 output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
 
-#### STOPPED RUNNING HERE!!!
 # Join them together for plotting purposes
 LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
                  output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
@@ -1027,22 +1026,21 @@ param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_
          k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
          prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area (right?)
          offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = 1) 
-
-# NOT SURE WHY THE ONE ABOVE IS WRONG BUT IT GIVES A LOWER NP THAN THE USUAL BEST ESTIMATE!
-param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_tsteps) %>%
-  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, #recruits_per_egg = recruits_per_egg_best_est,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
          perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
+# # NOT SURE WHY THE ONE ABOVE IS WRONG BUT IT GIVES A LOWER NP THAN THE USUAL BEST ESTIMATE!
+# param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_tsteps) %>%
+#   mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+#          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
+#          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+#          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+#          k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
+#          #Sl = Sl_mean, Sint = Sint_mean,
+#          breeding_size = breeding_size_mean, #recruits_per_egg = recruits_per_egg_best_est,
+#          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+#          prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
+#          total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+#          perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
 
 # Calculate the metrics for the best estimates
 best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_surv_best_est, site_dist_info, site_vec_order, FALSE)
@@ -1073,7 +1071,7 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
          prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
          offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = 1)  
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
 
 output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
 output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
@@ -1112,9 +1110,33 @@ LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
 ##### What-if calculation 5) If we include the ghost population recruits too, is the population NP persistent?
 
 #################### Metrics and parameters summarized for easy access: ####################
-#metrics_params_summary <- list(k_disp = k_allyears, theta_disp = theta_allyears, )
+metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_disp_lcl","k_disp_ucl","theta_disp_lcl","theta_disp_ucl",
+                                                      "L_inf","L_inf_lcl","Linf_ucl","k_growth","k_growth_lcl","k_growth_ucl",
+                                                      "best_est_NP_DD","NP_DD_lcl","NP_DD_ucl",
+                                                      "best_est_LEP_avg","best_est_LEP_site_min","best_est_LEP_site_max",
+                                                      "best_est_LRP_avg","best_est_LRP_site_min","best_est_LRP_site_max",
+                                                      "best_est_local_replacement_avg","best_est_local_replacement_site_min","best_est_local_replacement_site_max",
+                                                      "best_est_recruits_per_egg_avg","rperE_avg_lcl","rperE_avg_ucl",
+                                                      "WI_all_offs_NP_DD", "WI_all_offs_NP"),
+                                     type = c("param","param","param","param","param","param",
+                                              "param","param","param","param","param","param",
+                                              "metric","metric","metric",
+                                              "metric","metric","metric",
+                                              "metric","metric","metric",
+                                              "metric","metric","metric",
+                                              "metric","metric","metric",
+                                              "metric","metric"),
+                                     value = c(k_allyears, theta_allyears, min(k_connectivity_set), max(k_connectivity_set), min(theta_connectivity_set), max(theta_connectivity_set),
+                                               Linf_growth_mean, min(Linf_set), max(Linf_set), k_growth_mean, min(k_growth_set), max(k_growth_set),
+                                               best_est_metrics_mean_offspring_DD$NP, min(output_uncert_all_DD$NP_out_df$value), max(output_uncert_all_DD$NP_out_df$value),
+                                               LEP_best_est, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP),
+                                               best_est_metrics_mean_offspring_DD$LEP_R_mean, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R),
+                                               best_est_metrics_mean_offspring_DD$LEP_R_local_mean, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R_local), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R_local),
+                                               best_est_metrics_mean_offspring_DD$recruits_per_egg, min(output_uncert_all_DD$RperE_out_df$value), max(output_uncert_all_DD$RperE_out_df$value),
+                                               best_est_metrics_mean_offspring_all_offspring_DD$NP, best_est_metrics_mean_offspring_all_offspring$NP))
 
 #################### Save output: ####################
+# Runs without DD compensation
 save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
 save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
 save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
@@ -1128,6 +1150,7 @@ save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert
 save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
 save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
 
+# Runs with DD compensation
 save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
 save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
 save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
@@ -1138,6 +1161,14 @@ save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_unc
 #save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
 save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
 save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
+
+# What-ifs
+save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
+save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
+
+# Summary of parameters and metrics, for easy reference while writing
+save(metrics_params_summary, file=here::here("Data/Script_outputs","metrics_params_summary.RData"))
+
 
 #################### Plots: ####################
 
