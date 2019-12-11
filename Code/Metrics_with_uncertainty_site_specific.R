@@ -1111,6 +1111,9 @@ LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
 
 ##### What-if calculation 5) If we include the ghost population recruits too, is the population NP persistent?
 
+#################### Metrics and parameters summarized for easy access: ####################
+#metrics_params_summary <- list(k_disp = k_allyears, theta_disp = theta_allyears, )
+
 #################### Save output: ####################
 save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
 save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
@@ -1159,7 +1162,7 @@ dispersal_df <- data.frame(distance = distance_vec, kernel_bestfit = connectivit
 dispersal_kernel_plot <- ggplot(data=dispersal_df, aes(x=distance, y=kernel_bestfit, ymin=kernel_CI1, ymax=kernel_CI2)) +
   geom_line(color='black') +
   geom_ribbon(alpha=0.5, color='gray') +
-  xlab('distance (km)') + ylab('dispersal probability') + ggtitle('Dispersal kernel') +
+  xlab('distance (km)') + ylab('dispersal probability') + #ggtitle('Dispersal kernel') +
   theme_bw() 
 
 # Growth curve - plot the data and linear model for fish caught about a year apart, models for only one recapture pair per fish, pairs selected randomly and models fit 1000x
@@ -1170,7 +1173,7 @@ growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
   geom_ribbon(aes(x=seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
                   ymin = (min(growth_info_estimate$intercept_est) + min(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
                   ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "light gray", alpha = 0.5) +
-  xlab("length (cm)") + ylab("length (cm) next year") + ggtitle('Growth') +
+  xlab("length (cm)") + ylab("length (cm) next year") + #ggtitle('Growth') +
   theme_bw()
 
 # Alternate version if want to do a VBL instead
@@ -1187,7 +1190,7 @@ growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
 breeding_size_plot <- ggplot(data = recap_first_female, aes(x=size)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept=breeding_size_mean, color='black') +
-  xlab('size (cm)') + ggtitle('Female transition size') +
+  xlab('transition size (cm)') + #ggtitle('Female transition size') +
   theme_bw()
 
 # Survival plot (for now doing an example site - Palanas, but could change that...)
@@ -1196,7 +1199,7 @@ survival_output_to_plot <- best_fit_model_dfs$surv_site_size %>% filter(site == 
 survival_plot <- ggplot(data = survival_output_to_plot, aes(size, estimate_prob)) +
   geom_ribbon(aes(ymin=lcl_prob,ymax=ucl_prob),color="gray",fill="gray") +
   geom_line(color="black") +
-  xlab("size (cm)") + ylab("probability of survival") + ggtitle("Annual survival (ex. Palanas)") +
+  xlab("size (cm)") + ylab("probability of survival \n (ex. site: Palanas)") + #ggtitle("Annual survival (ex. Palanas)") +
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 
@@ -1205,44 +1208,61 @@ plot_grid(dispersal_kernel_plot, growth_curve_plot, survival_plot, breeding_size
 dev.off()
 
 ##### Figure 4 (abundance + replacement metrics)
-# LEP - why is this so nuts?
-LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+# LEP - why is this so nuts? (because CP,ST,SL and CC have wide uncertainty around survival, gives wide range of LEP) - here shown without them
+LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
   geom_histogram(bins=500, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
-  xlab('LEP') + ggtitle('LEP') +
+  xlab('LEP') + #ggtitle('LEP') +
   theme_bw()
 
-LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
-  geom_histogram(bins=500, color = 'gray', fill = 'gray') +
-  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
-  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
-  geom_vline(xintercept = LEP_best_est, color = "black") +
-  xlab('LEP') + ggtitle('LEP') +
-  theme_bw()
+# LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+#   geom_histogram(bins=500, color = 'gray', fill = 'gray') +
+#   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+#   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+#   geom_vline(xintercept = LEP_best_est, color = "black") +
+#   xlab('LEP') + ggtitle('LEP') +
+#   theme_bw()
+# 
+# LEP_plot <- ggplot(data = output_uncert_all$LEP_out_df, aes(x=value)) +
+#   geom_histogram(bins=500, color = 'gray', fill = 'gray') +
+#   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+#   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+#   geom_vline(xintercept = LEP_best_est, color = "black") +
+#   xlab('LEP') + ggtitle('LEP') +
+#   theme_bw()
 
-# LRP with DD
-LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
-  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+# LRP with DD - this is by site, with CC,CP,SL,ST removed
+# LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_by_site_out_df %>% filter(site %in% c(1,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+#   geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+#   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+#   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
+#   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
+#   xlab('LRP') + #ggtitle('LRP') +
+#   theme_bw()
+
+# LRP with DD - this is average across sites
+LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(bins=50, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
-  xlab('LRP') + ggtitle('LRP') +
+  xlab('LRP') + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local with DD
 LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
-  xlab("local LRP") + ggtitle("Local replacement") +
+  xlab("local replacement") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Abundance trend 
 Fig4_abundance_plot <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
   geom_line(color="grey") +
   geom_line(data=site_trends_all, aes(x=year, y=mean_nF), color = "black", size=1.5) +
-  xlab("year") + ylab("# females") + ggtitle("Estimated abundance through time") +
+  xlab("year") + ylab("# females") + #ggtitle("Estimated abundance through time") +
   scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017")) +
   theme_bw()
 
@@ -1262,13 +1282,14 @@ best_est_metrics_mean_offspring_DD$Cmat$dest_site <- replace(best_est_metrics_me
 output_uncert_all_DD$SP_vals_with_params$site <- replace(output_uncert_all_DD$SP_vals_with_params$site, 
                                                          output_uncert_all_DD$SP_vals_with_params$site=="Tamakin Dacot", 
                                                          "Tomakin Dako")
+SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamakin Dacot", "Tomakin Dako")
 
 # SP (accounting for DD)
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("Site") + ylab("SP") + ggtitle("Self-persistence") +
-  ylim(c(0,0.65)) +
+  xlab("site") + ylab("SP") + #ggtitle("Self-persistence") +
+  #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
@@ -1276,17 +1297,18 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reor
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab('NP') + ggtitle('Network persistence') +
+  xlab('NP') + #ggtitle('Network persistence') +
   theme_bw()
 
 # realized connectivity matrix
 realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
   scale_fill_gradient(high='black', low='white', name='Recruits') +
-  xlab('origin') + ylab('destination') + ggtitle('Realized connectivity matrix') +
+  xlab('origin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(angle=45,hjust=1))
 
 pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
 plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
