@@ -5,6 +5,7 @@
 
 # Length of region (total_range_of_sampling_area is from Metrics_with_uncertainty)
 region_width_km <- total_range_of_sampling_area/1000
+region_width_km <- 27.92313
 
 # Proportion of habitat of actual sites - prop_sampling_area_habitat (from Metrics_with_uncertainty), say it's 20%
 
