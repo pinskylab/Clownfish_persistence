@@ -1695,7 +1695,8 @@ ggplot(data = LEP_by_site_to_plot, aes(x=value)) +
   geom_vline(xintercept = LEP_best_est, color = "black") +
   xlab('LEP') + #ggtitle('LEP by site') +
   theme_bw() +
-  facet_wrap(~site_name)
+  facet_wrap(~site_name) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
 ##### LRP by site (with DD compensation)
