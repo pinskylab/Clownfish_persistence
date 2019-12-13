@@ -88,7 +88,7 @@ Here, we further our understanding of metapopulation dynamics in a network of pa
 
 For a population to persist, individuals must be able to replace themselves on average at low abundance \citep[e.g.][]{hastings_persistence_2006,botsford_connectivity_2009}. In non-spatially structured populations, we use criteria such as the average number of recruiting offspring each individual produces during its life (called $R_0$ when the population is age-structured and density-independent) or the growth rate of the population (such as the dominant eigenvalue $\lambda$ of an age-structured Leslie matrix) \citep{caswell_matrix_2001, burgess2014beyond}. For spatially-structured populations, we must also consider the spatial spread of offspring, often represented through a dispersal kernel or connectivity matrix \citep[e.g.][]{cowen_scaling_2006, buston2011probability, hogan_local_2011, daloia2015patterns}). 
 
-We consider four primary metrics to assess whether and how the population is persistent: 1) lifetime recruit production (LRP), to assess whether the population has enough surviving offspring to achieve replacement, 2) self-persistence (SP), to assess whether any individual patch can persist in isolation without input from other patches, 3) network persistence (NP), to assess whether the metapopulation is persistent as a connected unit, and 4) local replacement (LR), as another assessment of whether individuals replace themselves with recruits retained within population. We explain each metric below in detail. To represent the uncertainty in our estimates, we calculate each metric 1000 times, pulling each input parameter from a distribution or range. In our results, we show the range of values of each persistence metric as well as our best estimate. % Should this have the \% Reference the section with \ref?
+We consider four primary metrics to assess whether and how the population is persistent: 1) lifetime recruit production (LRP), to assess whether the population has enough surviving offspring to achieve replacement, 2) self-persistence (SP), to assess whether any individual patch can persist in isolation without input from other patches, 3) network persistence (NP), to assess whether the metapopulation is persistent as a connected unit, and 4) local replacement (LR), as second assessment of whether individuals replace themselves with recruits retained within population. We explain each metric below in detail. To represent the uncertainty in our estimates, we calculate each metric 1000 times, pulling each input parameter from a distribution or range. In our results, we show our best estimate of each persistence metric along with the range of uncertainty values. % Should this have the \% Reference the section with \ref?
 
 \paragraph*{Lifetime recruit production}
 
@@ -96,11 +96,11 @@ We find the estimated number of recruits an individual recruit will produce (lif
 \begin{equation}
 \text{LRP} = \text{LEP} * S_e. \label{EQN_LRP}
 \end{equation}
-If $LRP \geq 1$, the population has the potential for replacement; indviduals produce enough surviving offspring, before taking into account dispersal. If $LRP < 1$, the individuals are not replacing themselves and the population cannot persist without input from outside patches. We use all recruits produced by adults in our population, regardless of where they settle, to estimate $LRP$.
+If $LRP \geq 1$, the population has the potential for replacement; indviduals produce enough surviving offspring, before considering dispersal. If $LRP < 1$, the individuals are not replacing themselves and the population cannot persist without input from outside patches and is a sink habitat within a larger metapopulation \citep{pulliam1988sources}. We use all recruits produced by adults in our population to estimate $LRP$, regardless of where they settle.
 
 \paragraph*{Self-persistence} 
 
-A patch is able to persist in isolation (self-persistent) if individuals produce enough offspring that survive to recruitment (LRP) and settle in the natal patch (with probability of dispersal $p_{i,i}$) to replace themselves. 
+A patch is able to persist in isolation (self-persistent) if individuals produce enough offspring that survive to recruitment (LRP) and settle in the natal patch ($i$, with probability of dispersal $p_{i,i}$) to replace themselves:
 
 \begin{equation}
 \begin{split}
@@ -108,23 +108,23 @@ A patch is able to persist in isolation (self-persistent) if individuals produce
 %SP_i &= \text{LEP} \times S_e \times \frac{p_{i,i} \times \text{\# recruits from patch i}}{S_e \times \text{\# eggs produced by patch i}} \\ 
 %SP_i &= \text{LEP} \times S_e \times \frac{p_{i,i} \times \text{\# recruits from site $i$}}{S_e \times \text{\# eggs produced by patch $i$}} \\
 %SP_i &= \text{LEP} \times S_e \times p_{i,i}. \label{EQN_SP}
-SP_i &= \text{LRP} \times p_{i,i}, \label{EQN_SP}  % check this...
+SP_i &= \text{LRP}_i \times p_{i,i}. \label{EQN_SP}  % check this...
 \end{split}
 \end{equation}
 
-where $p_{i,i}$ is the probability that a recruit born in patch $i$ will settle in patch $i$, given that it survives to recruit somewhere. 
+%where $p_{i,i}$ is the probability that a recruit born in patch $i$ will settle in patch $i$, given that it survives to recruit somewhere. 
 
-A patch is self-persistent if $\text{SP} \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole is persistent as well \citep{hastings_persistence_2006, burgess2014beyond}. Our equation for SP is a modification of that used in \cite{burgess2014beyond}, which uses LEP to represent offspring produced and uses local retention - the number of surviving recruits that disperse back to the natal patch divided the number of eggs produced by the natal patch - to capture egg-recruit survival and dispersal combined: $\text{LEP} \times \text{local retention} \geq 1$. We modify this to include egg-recruit survival in the offspring term, using LRP in place of LEP, to assess whether a particular patch $i$ is self-persistent.
+A patch $i$ is self-persistent if $\text{SP}_i \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole is persistent as well \citep{hastings_persistence_2006, burgess2014beyond}. Our equation for SP is a modification of that used in \cite{burgess2014beyond}, which uses LEP to represent offspring produced and uses local retention (the number of surviving recruits that disperse back to the natal patch divided by the number of eggs produced by the natal patch) to capture egg-recruit survival and dispersal combined: $\text{LEP} \times \text{local retention} \geq 1$. We modify this to include egg-recruit survival in the offspring term instead, using LRP in place of LEP. %, to assess whether a particular patch $i$ is self-persistent.
 
 \paragraph*{Network persistence}
 
-In addition to the production of each site, network persistence explicitly considers dispersal of individuals among sites, which is a critical part of the larval life stage. We represent dispersal with a dispersal kernel, which relates the likelihood of an individual traveling to distanced traveled. We find the probabilities of a recruit dispersing between each set of sites ($p_{i,j}$) by integrating the dispersal kernel over the distances between sites. We then create a realized connectivity matrix $C$ by multiplying the dispersal probabilities by the expected number of recruits an individual produces: $C_{i,j} = \text{LRP} \times p_{i,j}$ \citep[][though we include egg-recruit survival in LRP, rather than in $p_{i,j}$ as they do]{burgess2014beyond}. The diagonal entries of $C$, where the origin and destination are the same site, are the values of self-persistence for each individual site. 
+Network persistence explicitly considers dispersal of individuals among sites, a critical part of the larval life stage, in addition to the reproduction and survival at each site. We represent dispersal with a dispersal kernel, which relates the likelihood of an individual dispersing to the distanced traveled. We find the probabilities of a recruit dispersing between each set of sites ($p_{i,j}$) by integrating the dispersal kernel over the distances between sites. We then create a realized connectivity matrix $C$ by multiplying the dispersal probabilities by the expected number of recruits an individual produces: $C_{i,j} = \text{LRP} \times p_{i,j}$ \citep[][though we include egg-recruit survival in LRP, rather than in $p_{i,j}$ as they do]{burgess2014beyond}. The diagonal entries of $C$, where the origin and destination are the same site, are the values of self-persistence for each individual site. 
 
-Network persistence evaluates the largest real eigenvalue of the realized connectivity matrix $\lambda_C$, which must be greater than $1$ for the network to persist without outside input: $\text{NP} = \lambda_C > 1$ \citep[e.g.][]{hastings_persistence_2006, white_population_2010, burgess2014beyond}.
+Network persistence evaluates the largest real eigenvalue of the realized connectivity matrix $\lambda_C$, which must be greater than $1$ for the network to persist without outside input: $\text{NP} = \lambda_C \geq 1$ \citep[e.g.][]{hastings_persistence_2006, white_population_2010, burgess2014beyond}.
 
 \paragraph*{Local replacement}
 
-Like network persistence, local replacement (LR) asseses whether the population is locally self-sustaining. Rather than considering dispersal explicitly as network persistence does, local replacement modifies LRP to estimate the average number of recruits produced per individual that return to settle within our sites. We estimate LR by multiplying LEP by the proportion of eggs produced that survive and return to recruit at our sites ($R_e$), a modification of egg-recruit survival. If $LR \geq 1$, individuals produce enough locally-retained offspring to replace themselves and the population can persist in isolation. % One way we assess whether our population is locally self-sustaining is by estimating the number of recruits produced per individual that return to settle within our sites, local replacement (LR).
+Like network persistence, local replacement (LR) asseses whether the population is locally self-sustaining. Rather than considering dispersal explicitly as network persistence does, local replacement modifies LRP to estimate the average number of recruits produced per individual that return to settle within our sites. We estimate LR by multiplying LEP by the proportion of eggs produced that survive and return to recruit at our sites ($R_e$), a modification of egg-recruit survival that implicitly includes dispersal. If $LR \geq 1$, individuals produce enough locally-retained offspring to replace themselves and the population can persist in isolation. % One way we assess whether our population is locally self-sustaining is by estimating the number of recruits produced per individual that return to settle within our sites, local replacement (LR).
 \begin{equation}
 \text{LR} = \text{LEP} \times R_e. \label{EQN_LR}
 \end{equation}
@@ -343,7 +343,7 @@ Our estimates of persistence metrics suggest that it is possible but not likely 
 \begin{figure}[H] % Schematic
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/Schematic/Schematic.pdf}}
-	\caption{This schematic represents the data collected for fish at each life stage and how they match to the equations and metrics we estimate. We consider recruits to be offspring in their first year of settlement, represented by the 3.5-6.0 cm range. \label{FIG_Schematic}} 
+	\caption{This schematic visualizes the data collected for fish at each life stage and how they match to the equations and metrics we estimate. We consider recruits to be offspring in their first year of settlement, represented by the 3.5-6.0 cm range. \label{FIG_Schematic}} 
 \end{figure}
 
 % Figure 2 - map + photo
