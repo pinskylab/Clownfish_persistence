@@ -1250,6 +1250,15 @@ NP_by_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals,
                                        NP_min = NP_vec_perc_hab_avgSurvs_min,
                                        NP_max = NP_vec_perc_hab_avgSurvs_max, stringsAsFactors = FALSE)
 
+# Find percent above 1 for what-if
+NP_above1_perc_hab_realSurvs <- data.frame(perc_hab = perc_hab_vals, perc_persistent = NA)
+NP_above1_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals, perc_persistent = NA)
+
+for(i in 1:length(perc_hab_vals)) {
+  NP_above1_perc_hab_realSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value >= 1)/n_runs
+  NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
+}
+
 # ##### What-if calculation 4) For the largest patch to be SP (highest p(i,i)), what would LRP need to be? And then what would LEP and egg-recruit survival need to be to acheive that LRP?
 # highest_self_disp <- max(best_est)
 
@@ -1262,6 +1271,8 @@ NP_by_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals,
 #################### Metrics and parameters summarized for easy access: ####################
 metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_disp_lcl","k_disp_ucl","theta_disp_lcl","theta_disp_ucl",
                                                       "L_inf","L_inf_lcl","Linf_ucl","k_growth","k_growth_lcl","k_growth_ucl",
+                                                      "n_parents_genotyped","n_offspring_genotyped","n_offspring_matched", "assignment_rate",
+                                                      "Ph","Pc","Ps","Pd",
                                                       "best_est_NP_DD","NP_DD_lcl","NP_DD_ucl",
                                                       "best_est_LEP_avg","best_est_LEP_site_min","best_est_LEP_site_max",
                                                       "best_est_LRP_avg","best_est_LRP_site_min","best_est_LRP_site_max",
@@ -1271,6 +1282,8 @@ metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_d
                                                       "WI_LRP_for_NP","WI_LEP_for_NP","WI_LEP_for_NP_DD","WI_RperE_for_NP"),
                                      type = c("param","param","param","param","param","param",
                                               "param","param","param","param","param","param",
+                                              "param","param","param","param",
+                                              "param","param","param","param",
                                               "metric","metric","metric",
                                               "metric","metric","metric",
                                               "metric","metric","metric",
@@ -1280,6 +1293,8 @@ metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_d
                                               "metric","metric","metric","metric"),
                                      value = c(k_allyears, theta_allyears, min(k_connectivity_set), max(k_connectivity_set), min(theta_connectivity_set), max(theta_connectivity_set),
                                                Linf_growth_mean, min(Linf_set), max(Linf_set), k_growth_mean, min(k_growth_set), max(k_growth_set),
+                                               n_parents_genotyped, n_offspring_genotyped, n_offspring_matched, assignment_rate,
+                                               Ph, prob_r_mean, Ps, Pd,
                                                best_est_metrics_mean_offspring_DD$NP, min(output_uncert_all_DD$NP_out_df$value), max(output_uncert_all_DD$NP_out_df$value),
                                                LEP_best_est, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP),
                                                best_est_metrics_mean_offspring_DD$LEP_R_mean, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R),
@@ -1540,7 +1555,22 @@ NP_perc_hab_avgSurvs_plot_sd <- ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=per
   geom_ribbon(alpha=0.5, color="gray", fill="gray") +
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
-  xlab("proportion habitat") + ylab("NP (average survivals)") +
+  #xlab("proportion habitat") + ylab("NP (average survivals)") +
+  xlab("proportion habitat") + ylab("NP") +
+  theme_bw()
+
+# percent of runs with NP>1, realSurvs
+perc_hab_realSurvs_persistent_plot <- ggplot(data = NP_above1_perc_hab_realSurvs, aes(x=perc_hab, y=perc_persistent*100)) +
+  geom_line(color="black") +
+  geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
+  xlab("proportion habitat") + ylab("percent runs persistent") +
+  theme_bw()
+
+# percent of runs with NP>1, avgSurvs
+perc_hab_avgSurvs_persistent_plot <- ggplot(data = NP_above1_perc_hab_avgSurvs, aes(x=perc_hab, y=perc_persistent*100)) +
+  geom_line(color="black") +
+  geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
+  xlab("proportion habitat") + ylab("% runs persistent") +
   theme_bw()
 
 ### Put them together
@@ -1552,6 +1582,11 @@ dev.off()
 # with min and max as ribbon
 pdf(file=here::here("Plots/FigureDrafts","NP_by_per_hab_min_max_ribbon.pdf"), width=6, height=3)
 plot_grid(NP_perc_hab_realSurvs_plot_min_max, NP_perc_hab_avgSurvs_plot_min_max, nrow=1, labels=c("a","b"))
+dev.off()
+
+# avgSurvs, ribbon with sd and % runs persistent -THIS IS THE ONE IN THE DRAFT RIGHT NOW!
+pdf(file=here::here("Plots/FigureDrafts","NP_perc_hab_perc_persist_sd_ribbon.pdf"), width=6, height=3)
+plot_grid(NP_perc_hab_avgSurvs_plot_sd, perc_hab_avgSurvs_persistent_plot, nrow=1, labels=c("a","b"))
 dev.off()
 
 # just average survs, sd
