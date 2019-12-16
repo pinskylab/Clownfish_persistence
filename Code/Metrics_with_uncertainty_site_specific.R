@@ -1472,8 +1472,8 @@ Fig4_abundance_plot <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, gr
   theme_bw()
 
 # Put them together
-pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement.pdf'))
-plot_grid(Fig4_abundance_plot, LEP_plot, LEP_R_plot_DD, LEP_R_local_plot_DD,
+pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement.pdf'), width=6, height=6)
+plot_grid(Fig4_abundance_plot,LEP_plot, LEP_R_plot_DD, LEP_R_local_plot_DD,
           labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
@@ -1493,31 +1493,37 @@ SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamaki
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("site") + ylab("SP") + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab("SP") + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+  #theme(axis.title.x = element_text(margin = margin(r=500)))
 
 # NP (accounting for DD)
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
   xlab('NP') + #ggtitle('Network persistence') +
-  theme_bw()
+  theme_bw() 
 
 # realized connectivity matrix
 realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
   scale_fill_gradient(high='black', low='white', name='Recruits') +
-  xlab('origin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
+  xlab('\norigin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
   theme_bw() +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=1)) +
   theme(legend.position = "bottom") +
-  theme(legend.text = element_text(angle=45,hjust=1))
+  theme(legend.text = element_text(angle=45,hjust=1)) 
 
-pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
-plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
+# pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+# plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
+# dev.off()
+
+pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
+
 
 ##### Figure 6 (what ifs)
 ## NP by perc hab - actual site-specific survivals
@@ -1669,11 +1675,11 @@ LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
 LEP_R_local_plot <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
-  xlab("local LRP") + #ggtitle("Local replacement") +
+  xlab("local replacement") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Put them together
-pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_LRP_LocalReplacement_withoutDDconsidered.pdf'))
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_LRP_LocalReplacement_withoutDDconsidered.pdf'), width=6, height=3)
 plot_grid(LEP_R_plot, LEP_R_local_plot, labels = c("a","b"), nrow=1)
 dev.off()
 
@@ -1694,7 +1700,7 @@ SP_best_est$site <- replace(SP_best_est$site, SP_best_est$site=="Tamakin Dacot",
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est, aes(x = site, y = SP_value), color = "black") +
-  xlab("site") + ylab("SP") + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab("SP") + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
@@ -1710,13 +1716,13 @@ NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
 realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
   scale_fill_gradient(high='black', low='white', name='Recruits') +
-  xlab('origin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
+  xlab('\norigin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   theme(legend.position = "bottom")
 
-pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDDcompensation.pdf'), width=10, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
-plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDDcompensation.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
 
 ##### LEP by site (with DD compensation)
