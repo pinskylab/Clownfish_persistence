@@ -1453,14 +1453,14 @@ LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) 
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
-  xlab('LRP') + #ggtitle('LRP') +
+  xlab('LRP_DD') + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local with DD
 LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
-  xlab("local replacement") + #ggtitle("Local replacement") +
+  xlab("LR_DD") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Abundance trend 
@@ -1493,7 +1493,7 @@ SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamaki
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab("SP") + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab("SP_DD") + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
@@ -1503,7 +1503,7 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reor
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab('NP') + #ggtitle('Network persistence') +
+  xlab('NP_DD') + #ggtitle('Network persistence') +
   theme_bw() 
 
 # realized connectivity matrix
@@ -1562,7 +1562,7 @@ NP_perc_hab_avgSurvs_plot_sd <- ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=per
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
   #xlab("proportion habitat") + ylab("NP (average survivals)") +
-  xlab("proportion habitat") + ylab("NP") +
+  xlab("proportion habitat") + ylab("NP_DD") +
   theme_bw()
 
 # percent of runs with NP>1, realSurvs
@@ -1602,7 +1602,7 @@ ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=perc_hab, y=NP, ymin=NP-NP_sd, ymax
   geom_ribbon(alpha=0.5, color="gray", fill="gray") +
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
-  xlab("proportion habitat") + ylab("NP") +
+  xlab("proportion habitat") + ylab("NP_DD") +
   theme_bw()
 dev.off()
 
