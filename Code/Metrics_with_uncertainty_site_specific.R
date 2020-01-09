@@ -784,6 +784,21 @@ k_theta_indices = sample(1:length(k_theta_allyear_95CI_values$k_eval), size=n_ru
 k_connectivity_set = k_theta_allyear_95CI_values$k_eval[k_theta_indices]
 theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
 
+### Create better growth estimate parameter sets
+growth_set_intercept_est_mean <- mean(growth_info_estimate$intercept_est)  # mean of the intercept estimates from the fits with different growth pairs for fish with multiple
+growth_set_intercept_se_mean <- mean(growth_info_estimate$intercept_se)  # mean of intercept se estimates
+growth_set_slope_est_mean <- mean(growth_info_estimate$slope_est)  # mean of slope estimates from the fits with different growth pairs randomly chosen for fish with multiple
+growth_set_slope_se_mean <- mean(growth_info_estimate$slope_se)
+
+# Select 1000 slopes and intercepts using the mean and se from the fits, then find k and Linf from that
+growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-growth_set_slope_se_mean, growth_set_slope_est_mean+growth_set_slope_se_mean),  # choose slope values from within mean+-SE range
+                                intercept_est = runif(n_runs, growth_set_intercept_est_mean-growth_set_intercept_se_mean, growth_set_intercept_est_mean+growth_set_intercept_se_mean))  # choose intercept values from within mean+-SE range
+growth_set_params <- growth_set_params %>%
+  mutate(k_est = -log(slope_est),
+         Linf_est = intercept_est/(1-slope_est))
+
+# mutate(k_est = -log(slope_est),
+#        Linf_est = intercept_est/(1 - slope_est))
 ### Create survival parameter sets 
 site_surv_param_sets <- list()
 
@@ -889,7 +904,8 @@ param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Linf = Linf_set, 
+         #k_growth = k_growth_set, s = s, Linf = Linf_set, 
+         k_growth = growth_set_params$k_est, s=s, Linf = growth_set_params$Linf_est,
          #Sl = Sl_mean, Sint = Sint_mean,
          breeding_size = breeding_size_mean, 
          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
@@ -987,7 +1003,8 @@ param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Linf = Linf_set, 
+         k_growth = growth_set_params$k_est, s = s, Linf = growth_set_params$Linf_est,
+         #k_growth = k_growth_set, s = s, Linf = Linf_set, 
          #Sl = Sl_set,  Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
@@ -1004,7 +1021,12 @@ output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offs
 output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
 #output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
 output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
+
 output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
+output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+
 
 # Join them together for plotting purposes
 LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
@@ -1088,7 +1110,7 @@ NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_gr
                    #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
                    output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
 
-
+####### NEED TO EDIT GROWTH UNCERTAINTY INPUTS IN PARAMS AND RE-RUN THESE WHAT-IFS WITH THOSE!!
 #################### What-if calculations: ####################
 ##### What-if calculation 1) what if all genotyped offspring came from the population?
 
@@ -1146,7 +1168,8 @@ param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
          start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_set, s = s, Linf = Linf_set,
+         #k_growth = k_growth_set, s = s, Linf = Linf_set,
+         k_growth = growth_set_params$k_est, s = s, Linf = growth_set_params$Linf_est,
          #Sl = Sl_set, , Sint = Sint_set,
          breeding_size = breeding_size_set,
          k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
@@ -1231,6 +1254,7 @@ for(i in 1:length(perc_hab_vals)) {
   perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
 }
 
+###### 
 # Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
 NP_vec_perc_hab_avgSurvs_best_est <- perc_hab_best_ests_avgSurvs[[1]]$NP  # best estimate NP
 NP_vec_perc_hab_avgSurvs_sd <- sd(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
@@ -1453,14 +1477,14 @@ LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) 
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
-  xlab('LRP_DD') + #ggtitle('LRP') +
+  xlab(bquote("LRP"[DD])) + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local with DD
 LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
-  xlab("LR_DD") + #ggtitle("Local replacement") +
+  xlab(bquote("LR"[DD])) + #ggtitle("Local replacement") +
   theme_bw()
 
 # Abundance trend 
@@ -1493,7 +1517,7 @@ SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamaki
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab("SP_DD") + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab(bquote("SP"[DD])) + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
@@ -1503,7 +1527,7 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reor
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab('NP_DD') + #ggtitle('Network persistence') +
+  xlab(bquote("NP"[DD])) + #ggtitle('Network persistence') +
   theme_bw() 
 
 # realized connectivity matrix
@@ -1562,7 +1586,7 @@ NP_perc_hab_avgSurvs_plot_sd <- ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=per
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
   #xlab("proportion habitat") + ylab("NP (average survivals)") +
-  xlab("proportion habitat") + ylab("NP_DD") +
+  xlab("proportion habitat") + ylab(bquote("NP"[DD])) +
   theme_bw()
 
 # percent of runs with NP>1, realSurvs
@@ -1602,7 +1626,7 @@ ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=perc_hab, y=NP, ymin=NP-NP_sd, ymax
   geom_ribbon(alpha=0.5, color="gray", fill="gray") +
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
-  xlab("proportion habitat") + ylab("NP_DD") +
+  xlab("proportion habitat") + ylab(bquote("NP"[DD])) +
   theme_bw()
 dev.off()
 
@@ -1873,7 +1897,7 @@ growthLinf_k_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, ae
 probR_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x = prob_r)) +
   geom_histogram(bins = 40, color = "gray", fill = "gray") +
   geom_vline(xintercept = prob_r_mean, color = "black") +
-  xlab("P_c") + #ggtitle("Capture probability") +
+  xlab(bquote("P"[c])) + #ggtitle("Capture probability") +
   theme_bw()
 
 # Assigned offspring
