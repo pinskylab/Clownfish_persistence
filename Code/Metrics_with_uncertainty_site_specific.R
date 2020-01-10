@@ -1021,11 +1021,10 @@ output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offs
 output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
 #output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
 output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
-
 output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
-output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
-output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
-output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+# output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+# output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+# output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
 
 
 # Join them together for plotting purposes
@@ -1439,11 +1438,21 @@ dev.off()
 ##### Figure 4 (abundance + replacement metrics)
 # LEP - why is this so nuts? (because CP,ST,SL and CC have wide uncertainty around survival, gives wide range of LEP) - here shown without them
 LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
-  geom_histogram(bins=500, color = 'gray', fill = 'gray') +
+  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  #geom_freqpoly() +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
-  xlab('LEP') + #ggtitle('LEP') +
+  xlab("lifetime egg production (LEP)") + #ggtitle('LEP') +
+  theme_bw()
+
+LEP_plot_freq <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=100, color = 'gray', fill = 'gray') +
+  #geom_freqpoly() +
+  #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
+  geom_vline(xintercept = LEP_best_est, color = "black") +
+  xlab("lifetime egg production (LEP)") + ylab("relative frequency") + #ggtitle('LEP') +
   theme_bw()
 
 # LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
@@ -1477,14 +1486,28 @@ LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) 
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
-  xlab(bquote("LRP"[DD])) + #ggtitle('LRP') +
+  xlab(bquote("lifetime recruit production (LRP"[DD] ~")")) + #ggtitle('LRP') +
+  theme_bw()
+
+LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=50, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
+  geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
+  xlab(bquote("lifetime recruit production (LRP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local with DD
 LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
-  xlab(bquote("LR"[DD])) + #ggtitle("Local replacement") +
+  xlab(bquote("local replacement (LR"[DD] ~")")) + #ggtitle("Local replacement") +
+  theme_bw()
+
+LEP_R_local_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
+  xlab(bquote("local replacement (LR"[DD] ~")")) + ylab("relative frequency") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Abundance trend 
@@ -1498,6 +1521,12 @@ Fig4_abundance_plot <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, gr
 # Put them together
 pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement.pdf'), width=6, height=6)
 plot_grid(Fig4_abundance_plot,LEP_plot, LEP_R_plot_DD, LEP_R_local_plot_DD,
+          labels = c("a","b","c","d"), nrow=2)
+dev.off()
+
+# Put them together, using frequency plots instead of histograms
+pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement_FreqPlots.pdf'), width=6, height=6)
+plot_grid(Fig4_abundance_plot, LEP_plot_freq, LEP_R_plot_DD_freq, LEP_R_local_plot_DD_freq,
           labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
@@ -1517,7 +1546,7 @@ SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamaki
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab(bquote("SP"[DD])) + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab(bquote("self persistence (SP"[DD] ~")")) + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
@@ -1527,7 +1556,13 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reor
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab(bquote("NP"[DD])) + #ggtitle('Network persistence') +
+  xlab(bquote("network persistence (NP"[DD] ~")")) + #ggtitle('Network persistence') +
+  theme_bw() 
+
+NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est_DD, color = "black") +
+  xlab(bquote("network persistence (NP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('Network persistence') +
   theme_bw() 
 
 # realized connectivity matrix
@@ -1544,10 +1579,15 @@ realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes
 # plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1,1.5,1), labels = c("a","b","c"), nrow=1)
 # dev.off()
 
+# All three together - NP as histogram
 pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
 plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
 
+# All three together - NP as frequency
+pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR_freq.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
+dev.off()
 
 ##### Figure 6 (what ifs)
 ## NP by perc hab - actual site-specific survivals
@@ -1586,7 +1626,7 @@ NP_perc_hab_avgSurvs_plot_sd <- ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=per
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
   #xlab("proportion habitat") + ylab("NP (average survivals)") +
-  xlab("proportion habitat") + ylab(bquote("NP"[DD])) +
+  xlab("proportion habitat") + ylab(bquote("network persistence (NP"[DD] ~")")) +
   theme_bw()
 
 # percent of runs with NP>1, realSurvs
@@ -1626,7 +1666,7 @@ ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=perc_hab, y=NP, ymin=NP-NP_sd, ymax
   geom_ribbon(alpha=0.5, color="gray", fill="gray") +
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
-  xlab("proportion habitat") + ylab(bquote("NP"[DD])) +
+  xlab("proportion habitat") + ylab(bquote("network persistence (NP"[DD] ~")")) +
   theme_bw()
 dev.off()
 
@@ -1692,19 +1732,38 @@ LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
-  xlab('LRP') + #ggtitle('LRP') +
+  xlab('lifetime recruit production (LRP)') + #ggtitle('LRP') +
+  theme_bw()
+
+LEP_R_plot_freq <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = 'gray', fill = 'gray') +
+  #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
+  #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
+  geom_vline(xintercept = LEP_R_best_est, color = "black") +
+  xlab('lifetime recruit production (LRP)') + ylab("relative frequency") + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local without DD
 LEP_R_local_plot <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
-  xlab("local replacement") + #ggtitle("Local replacement") +
+  xlab("local replacement (LR)") + #ggtitle("Local replacement") +
   theme_bw()
 
-# Put them together
+LEP_R_local_plot_freq <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
+  geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
+  xlab("local replacement (LR)") + ylab("relative frequency") + #ggtitle("Local replacement") +
+  theme_bw()
+
+# Put them together - histograms
 pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_LRP_LocalReplacement_withoutDDconsidered.pdf'), width=6, height=3)
 plot_grid(LEP_R_plot, LEP_R_local_plot, labels = c("a","b"), nrow=1)
+dev.off()
+
+# Put them together - frequencies
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_LRP_LocalReplacement_withoutDDconsidered_freq.pdf'), width=6, height=3)
+plot_grid(LEP_R_plot_freq, LEP_R_local_plot_freq, labels = c("a","b"), nrow=1)
 dev.off()
 
 ##### SP metrics, NP metrics, connectivity matrices without density dependence considered
@@ -1724,7 +1783,7 @@ SP_best_est$site <- replace(SP_best_est$site, SP_best_est$site=="Tamakin Dacot",
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab("SP") + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab("self persistence (SP)") + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
@@ -1733,7 +1792,13 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(si
 NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est, color = "black") +
-  xlab('NP') + #ggtitle('Network persistence') +
+  xlab('network persistence (NP)') + #ggtitle('Network persistence') +
+  theme_bw()
+
+NP_plot_freq <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = NP_best_est, color = "black") +
+  xlab('network persistence (NP)') + ylab("relative frequency") + #ggtitle('Network persistence') +
   theme_bw()
 
 # realized connectivity matrix (not accounting for DD)
@@ -1745,8 +1810,14 @@ realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reo
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   theme(legend.position = "bottom")
 
+# put together (NP as histogram)
 pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDDcompensation.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
 plot_grid(SP_plot, realized_C_plot, NP_plot, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
+dev.off()
+
+# put together (NP as frequency)
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDDcompensation_freq.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot, realized_C_plot, NP_plot_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
 
 ##### LEP by site (with DD compensation)
@@ -1754,11 +1825,12 @@ LEP_by_site_to_plot <- left_join(output_uncert_all_DD$LEP_by_site_out_df, site_v
 
 pdf(file = here::here("Plots/FigureDrafts","APP_FIG_LEP_by_site.pdf"))
 ggplot(data = LEP_by_site_to_plot, aes(x=value)) +
-  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  #geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=100, color="gray", fill="gray") + 
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_best_est, color = "black") +
-  xlab('LEP') + #ggtitle('LEP by site') +
+  xlab('lifetime egg production (LEP)') + ylab("relative frequency") + #ggtitle('LEP by site') +
   theme_bw() +
   facet_wrap(~site_name) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
@@ -1769,11 +1841,12 @@ LRP_by_site_to_plot <- left_join(output_uncert_all_DD$LEP_R_by_site_out_df, site
 
 pdf(file = here::here("Plots/FigureDrafts","APP_FIG_LRP_by_site.pdf"))
 ggplot(data = LRP_by_site_to_plot, aes(x=value)) +
-  geom_histogram(bins=100, color = 'gray', fill = 'gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=100, color="gray", fill="gray") + 
+  #geom_histogram(bins=100, color = 'gray', fill = 'gray') +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_best_est %>% filter(recruit_size == "mean offspring"))$LEP, color='black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
-  xlab('LRP') + 
+  xlab("lifetime recruit production (LRP)") + ylab("relative frequency") +
   theme_bw() +
   facet_wrap(~site_name)
 dev.off()
@@ -1786,7 +1859,7 @@ ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size"
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "growth", "survival", "all"),
                                value = LEP_best_est), color = "black") +
-  xlab("uncertainty type") + ylab("LEP") + #ggtitle("Uncertainty in LEP") +
+  xlab("uncertainty type") + ylab("lifetime egg production (LEP)") + #ggtitle("Uncertainty in LEP") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
@@ -1862,7 +1935,7 @@ ggplot(data = LEP_R_uncert_DD %>% filter(uncertainty_type %in% c("start recruit 
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
                                value = LEP_R_best_est_DD), color = "black") +
-  xlab("uncertainty type") + ylab("LRP") + #ggtitle("Uncertainty in LRP") +
+  xlab("uncertainty type") + ylab("lifetime recruit production (LRP)") + #ggtitle("Uncertainty in LRP") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
@@ -1873,7 +1946,7 @@ ggplot(data = NP_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
                                value = NP_best_est_DD), color = "black") +
-  xlab("uncertainty type") + ylab("NP") + #ggtitle("Uncertainty in network persistence") +
+  xlab("uncertainty type") + ylab("network persistence (NP)") + #ggtitle("Uncertainty in network persistence") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
