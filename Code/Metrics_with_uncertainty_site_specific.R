@@ -1951,6 +1951,26 @@ ggplot(data = NP_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 dev.off()
 
+##### Uncertainty exploration for NP - with all included - why were start recruit size and dispersal not included before?
+# rename params for easier understanding (will eventually fix in code above)
+NP_uncert_DD_for_plot <- NP_uncert_DD
+NP_uncert_DD_for_plot$uncertainty_type <- replace(NP_uncert_DD_for_plot$uncertainty_type, 
+                                                  NP_uncert_DD_for_plot$uncertainty_type == "dispersal k",
+                                                  "dispersal")
+NP_uncert_DD_for_plot$uncertainty_type <- replace(NP_uncert_DD_for_plot$uncertainty_type, 
+                                                  NP_uncert_DD_for_plot$uncertainty_type == "start recruit size",
+                                                  "recruit census size")
+
+pdf(file = here::here("Plots/FigureDrafts", "NP_uncertainty_by_param.pdf"))
+ggplot(data = NP_uncert_DD_for_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "prob r", "growth", "survival", "dispersal", "recruit census size", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "dispersal", "recruit census size", "all"),
+                               value = NP_best_est_DD), color = "black") +
+  xlab("uncertainty type") + ylab("network persistence (NP)") + #ggtitle("Uncertainty in network persistence") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+dev.off()
+
 ##### Parameters (and their uncertainty) not shown in main text fig 
 # Census (start-recruit) size 
 startRecruit_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size)) +
