@@ -10,25 +10,25 @@ library(here)
 
 #################### Load data from database and other analyses: ####################
 ### Option 1: pull from database + GitHub
-source(here::here("Code", "Pull_data_from_database.R"))
+# source(here::here("Code", "Pull_data_from_database.R"))
 
 ### Option 2: load previously-pulled saved files
-# # Database files
-# load(file = here::here("Data/Data_from_database", "anem_db.RData"))
-# load(file = here::here("Data/Data_from_database", "fish_db.RData"))
-# load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
-# load(file = here::here("Data/Data_from_database", "dives_db.RData"))
-# load(file = here::here("Data/Data_from_database", "gps_db.RData"))
-# 
-# # Files from other analyses (parentage, matching up fish, etc.)
-# #fish_obs = readRDS(file = here::here("Data/From_other_analyses", "fish-obs.RData"))  # matched-up observations of individual fish
-# load(file = here::here("Data/From_other_analyses", "fish-obs.RData"))
-# load(file = here::here("Data/From_other_analyses", "site_centers.RData"))  # site centers
-# load(file = here::here("Data/From_other_analyses", "kernel_summary.RData"))  # kernel fits
-# load(file = here::here("Data/From_other_analyses", "all_parents.RData"))  # all parents in parentage analysis
-# load(file = here::here("Data/From_other_analyses", "all_offspring.RData"))  # all offspring in parentage analysis
-# load(file = here::here("Data/From_other_analyses", "k_theta_allyear_95CI_values.RData"))  # 95% k and theta fits
-# load(file = here::here("Data/From_other_analyses", "length_count8llEA.RData"))  # size-fecundity model
+# Database files
+load(file = here::here("Data/Data_from_database", "anem_db.RData"))
+load(file = here::here("Data/Data_from_database", "fish_db.RData"))
+load(file = here::here("Data/Data_from_database", "fish_seen_db.RData"))
+load(file = here::here("Data/Data_from_database", "dives_db.RData"))
+load(file = here::here("Data/Data_from_database", "gps_db.RData"))
+
+# Files from other analyses (parentage, matching up fish, etc.)
+#fish_obs = readRDS(file = here::here("Data/From_other_analyses", "fish-obs.RData"))  # matched-up observations of individual fish
+load(file = here::here("Data/From_other_analyses", "fish-obs.RData"))
+load(file = here::here("Data/From_other_analyses", "site_centers.RData"))  # site centers
+load(file = here::here("Data/From_other_analyses", "kernel_summary.RData"))  # kernel fits
+load(file = here::here("Data/From_other_analyses", "all_parents.RData"))  # all parents in parentage analysis
+load(file = here::here("Data/From_other_analyses", "all_offspring.RData"))  # all offspring in parentage analysis
+load(file = here::here("Data/From_other_analyses", "k_theta_allyear_95CI_values.RData"))  # 95% k and theta fits
+load(file = here::here("Data/From_other_analyses", "length_count8llEA.RData"))  # size-fecundity model
 
 #################### Set constants and parameters: ####################
 

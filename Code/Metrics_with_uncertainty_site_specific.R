@@ -100,7 +100,6 @@ eggs_slope_log = size_fecundity_model$coefficients[2]
 eyed_effect = size_fecundity_model$coefficients[3]
 
 ##### Parameters for what-ifs
-region_width_km <- total_range_of_sampling_area/1000  # length of region (if it was a straight line...)
 perc_hab_vals <- seq(from=0.05,to=0.95, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
 n_sites = length(site_vec_order$site_name)
 
@@ -824,7 +823,7 @@ avg_Sint_ucl = sum(best_fit_model_dfs$results$ucl[1]*16, best_fit_model_dfs$resu
 avg_Sint_lcl_withoutCC = sum(best_fit_model_dfs$results$lcl[1]*15, best_fit_model_dfs$results$lcl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
 avg_Sint_ucl_withoutCC = sum(best_fit_model_dfs$results$ucl[1]*15, best_fit_model_dfs$results$ucl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
 
-for(i in length(no_space_sites_revisited)+1:length(site_vec$site_name)) {
+for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
   site_surv_df <- data.frame(Sint_C = NA, 
                              Sint_site = NA, 
                              Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC),
@@ -834,7 +833,7 @@ for(i in length(no_space_sites_revisited)+1:length(site_vec$site_name)) {
 
 # Make one with average Sint (without CC) for all sites
 site_surv_avg_Sint_param_sets <- list()
-for(i in 1:length(site_vec$site_name)) {
+for(i in 1:length(site_vec_order$site_name)) {
   site_surv_df <- data.frame(Sint_C = NA, Sint_site = NA, Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos]),
                              Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC))
   site_surv_avg_Sint_param_sets[[i]] <- site_surv_df
@@ -857,7 +856,7 @@ for(i in 2:length(no_space_sites_revisited)) {
   site_surv_best_est_sets[[i]] <- site_surv_df
 }
 # then three that use average
-for(i in length(no_space_sites_revisited)+1:length(site_vec$site_name)) {
+for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
   site_surv_df <- data.frame(Sint_C = NA, 
                              Sint_site = NA, 
                              Sint = rep(avg_Sint, n_runs),
@@ -1022,6 +1021,7 @@ output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_sur
 #output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
 output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
 output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
+
 # output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
 # output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
 # output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
@@ -1203,6 +1203,8 @@ LEP_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$recruits_per_egg
 LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
 
 ##### What-if calculation 4) - how much habitat would we need for the sampling region to be persistent? (code from Sensitivity_to_site_size.R)
+# Set width of region
+region_width_km <- total_range_of_sampling_area/1000  # length of region (if it was a straight line...)
 
 # Go through different habitat percentages and find site locations, distances, etc. for equally sized and spaced sites  
 site_dist_info_habperc <- list()
@@ -1640,7 +1642,7 @@ perc_hab_realSurvs_persistent_plot <- ggplot(data = NP_above1_perc_hab_realSurvs
 perc_hab_avgSurvs_persistent_plot <- ggplot(data = NP_above1_perc_hab_avgSurvs, aes(x=perc_hab, y=perc_persistent*100)) +
   geom_line(color="black") +
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
-  xlab("proportion habitat") + ylab("% runs persistent") +
+  xlab("proportion habitat") + ylab("% estimates persistent") +
   theme_bw()
 
 ### Put them together

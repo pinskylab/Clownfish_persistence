@@ -255,6 +255,10 @@ model_1_runs <- model_1_runs %>%
 ### Also tried a gam, with random effects by fish_id but really don't have that many fish with multiple long recaptures, didn't fit well
 # If come across a way to use varying time intervals, random effects by fish_id, measurement error at all measurement points, and uncertainty in Linf and k, would be great but maybe something to do down the road...
 
+##### Comparing growth rates of fish alone on an anemone to those with larger fish
+
+##### Bump up best estimate of K
+
 #################### Plots: ####################
 
 # Plot histogram of Linf and k estimates for n_runs with choosing different recap pairs
