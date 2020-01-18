@@ -103,6 +103,9 @@ eyed_effect = size_fecundity_model$coefficients[3]
 perc_hab_vals <- seq(from=0.05,to=0.95, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
 n_sites = length(site_vec_order$site_name)
 
+##### Find total number of metal-tagged anemones
+n_total_metal_anems <- anems_visited_by_year %>% filter(method == "metal tags") %>% filter(year == "2018") %>% summarize(n_total_anems_all_sites = sum(n_total_anems))
+
 #################### Functions: ####################
 # # Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
 # disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
@@ -1109,6 +1112,39 @@ NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_gr
                    #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
                    output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
 
+
+##### Find range of uncertainty for LEP average and LRP average (with DD)
+LRP_best_est_avg_DD_min <- min(output_uncert_all_DD$LEP_R_out_df$value)
+LRP_best_est_avg_DD_max <- max(output_uncert_all_DD$LEP_R_out_df$value)
+
+LEP_best_est_avg_min <- min(output_uncert_all_DD$LEP_out_df$value)
+LEP_best_est_avg_max <- max(output_uncert_all_DD$LEP_out_df$value)
+
+##### Find range of LR estimates with uncertainty (with DD)
+LR_DD_min <- min(output_uncert_all_DD$LEP_R_local_out_df$value)
+LR_DD_max <- max(output_uncert_all_DD$LEP_R_local_out_df$value)
+
+#### Find range of LR with all recruits estimates with uncertainty (with DD)
+LR_all_recruits_DD_min <- min(output_uncert_all_offspring_all_DD$LEP_R_local_out_df$value)
+LR_all_recruits_DD_max <- max(output_uncert_all_offspring_all_DD$LEP_R_local_out_df$value)
+
+# ##### SP estimate range and % > 1 for Haina and Wangag
+SP_Haina_min <- min(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
+SP_Haina_max <- max(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
+SP_Wangag_min <- min(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Wangag") %>% select(SP))
+SP_Wangag_max <- max(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Wangag") %>% select(SP))
+
+SP_Haina_perc_above_1 <- output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina") %>% filter(SP >= 0.5) %>% summarize(n_estimates = n()) 
+SP_Wangag_perc_above_1 <- output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Wangag") %>% filter(SP >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+##### Find % of metrics above persistence thresholds
+LRP_est_avg_DD_above_1 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+LR_est_DD_above_1 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+LR_all_recruits_est_DD_above_1 <- output_uncert_all_offspring_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+
 ####### NEED TO EDIT GROWTH UNCERTAINTY INPUTS IN PARAMS AND RE-RUN THESE WHAT-IFS WITH THOSE!!
 #################### What-if calculations: ####################
 ##### What-if calculation 1) what if all genotyped offspring came from the population?
@@ -1201,6 +1237,9 @@ egg_recruit_survival_for_NP <- LRP_for_NP/mean(best_est_metrics_mean_offspring$L
 LEP_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$recruits_per_egg
 
 LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
+
+# % of estimates of LRP (with DD) that are >= LRP_for_NP
+LRP_ests_above_LRP_for_NP <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= LRP_for_NP) %>% summarize(n_estimates = n()) %>% select(n_estimates)
 
 ##### What-if calculation 4) - how much habitat would we need for the sampling region to be persistent? (code from Sensitivity_to_site_size.R)
 # Set width of region
@@ -1304,7 +1343,9 @@ metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_d
                                                       "best_est_local_replacement_avg","best_est_local_replacement_site_min","best_est_local_replacement_site_max",
                                                       "best_est_recruits_per_egg_avg","rperE_avg_lcl","rperE_avg_ucl",
                                                       "WI_all_offs_NP_DD","WI_all_offs_NP",
-                                                      "WI_LRP_for_NP","WI_LEP_for_NP","WI_LEP_for_NP_DD","WI_RperE_for_NP"),
+                                                      "WI_LRP_for_NP","WI_LEP_for_NP","WI_LEP_for_NP_DD","WI_RperE_for_NP",
+                                                      "breeding_size_mean", "min_breeding_transition_size", "max_breeding_transition_size",
+                                                      "P_DD"),
                                      type = c("param","param","param","param","param","param",
                                               "param","param","param","param","param","param",
                                               "param","param","param","param",
@@ -1315,7 +1356,9 @@ metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_d
                                               "metric","metric","metric",
                                               "metric","metric","metric",
                                               "metric","metric",
-                                              "metric","metric","metric","metric"),
+                                              "metric","metric","metric","metric",
+                                              "param","param","param",
+                                              "param"),
                                      value = c(k_allyears, theta_allyears, min(k_connectivity_set), max(k_connectivity_set), min(theta_connectivity_set), max(theta_connectivity_set),
                                                Linf_growth_mean, min(Linf_set), max(Linf_set), k_growth_mean, min(k_growth_set), max(k_growth_set),
                                                n_parents_genotyped, n_offspring_genotyped, n_offspring_matched, assignment_rate,
@@ -1326,7 +1369,9 @@ metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_d
                                                best_est_metrics_mean_offspring_DD$LEP_R_local_mean, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R_local), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R_local),
                                                best_est_metrics_mean_offspring_DD$recruits_per_egg, min(output_uncert_all_DD$RperE_out_df$value), max(output_uncert_all_DD$RperE_out_df$value),
                                                best_est_metrics_mean_offspring_all_offspring_DD$NP, best_est_metrics_mean_offspring_all_offspring$NP,
-                                               LRP_for_NP,LEP_for_NP,LEP_for_NP_DD,egg_recruit_survival_for_NP))
+                                               LRP_for_NP,LEP_for_NP,LEP_for_NP_DD,egg_recruit_survival_for_NP,
+                                               breeding_size_mean, min(recap_first_female$size), max(recap_first_female$size),
+                                               (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
 
 #################### Save output: ####################
 # Runs without DD compensation
