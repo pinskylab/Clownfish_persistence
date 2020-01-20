@@ -686,11 +686,11 @@ for(i in 1:length(all_parents_site$site)) {
 # Find proportion of total area under dispersal kernel (where total area to INF is 2 (1 for each side)) covered within sample sites
 all_parents_site <- all_parents_site %>%
   mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
-         prop_disp_area_within_sites = total_disp_area_within_sites/2,
+         prop_disp_area_within_sites = total_disp_area_within_sites,  # now, dispersal kernel normalized to 0.5 so total to N and S combined is 1
          total_parent_area_sampled = total_disp_area_within_sites*nparents)
 
 all_parents_site_summarized <- all_parents_site %>%
-  summarize(total_parent_kernel_area = sum(nparents)*2,
+  summarize(total_parent_kernel_area = sum(nparents),  # no longer need to multiply by 2 because sum of kernel to N and kernel to S is 1
             sampled_parent_kernel_area = sum(total_parent_area_sampled),
             prop_parent_kernel_area_sampled = sampled_parent_kernel_area/total_parent_kernel_area)
 
