@@ -1339,7 +1339,7 @@ for(i in 1:(length(perc_hab_vals)+1)) {
 # And makes sense that best est isn't NP>1 even at 100% habitat because still not retaining all of the offspring produced there...
 
 ##### Are fish getting evicted from the LEP matrix?
-max_size_test_vec <- seq(from=10, to=20, by=0.1 )
+max_size_test_vec <- seq(from=breeding_size_mean, to=20, by=0.1 )
 LEP_test_max_size <- data.frame(max_size = max_size_test_vec, LEP = NA)
 
 for(i in 1:length(max_size_test_vec)) {
@@ -2101,6 +2101,16 @@ pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_Parameter_inputs.pdf'))  # 
 plot_grid(startRecruit_plot, growthLinf_k_plot, probR_plot, assignedOffspring_plot, propHabitat_plot,
           labels = c("a","b","c","d","e"), nrow=2)
 dev.off()
+
+##### LEP vs. max size
+pdf(file = here::here("Plots/FigureDrafts", "LEP_vs_max_size.pdf"))
+ggplot(data = LEP_test_max_size , aes(x=max_size, y=LEP)) +
+  geom_point() +
+  geom_vline(xintercept = Linf_growth_mean, color = "red") +
+  xlab("max size (cm)") + ylab("LEP") + 
+  theme_bw()
+dev.off()
+
 
 ########## Plots for WSN talk #########
 ### LRP (LEP_R) with DD
