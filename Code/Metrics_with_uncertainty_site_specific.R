@@ -100,7 +100,7 @@ eggs_slope_log = size_fecundity_model$coefficients[2]
 eyed_effect = size_fecundity_model$coefficients[3]
 
 ##### Parameters for what-ifs
-perc_hab_vals <- seq(from=0.05,to=0.95, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
+perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
 n_sites = length(site_vec_order$site_name)
 
 ##### Find total number of metal-tagged anemones
@@ -1287,11 +1287,11 @@ for(i in 1:length(perc_hab_vals)) {
   site_dist_info_habperc[[i]] <- site_dist_out_df
 }
 
-# Add 100%
-site_dist_out_df <- make_output_with_dist(n_sites, 1.0, region_width_km)
-site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
-site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
-site_dist_info_habperc[[20]] <- site_dist_out_df
+# # Add 100%
+# site_dist_out_df <- make_output_with_dist(n_sites, 1.0, region_width_km)
+# site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+# site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+# site_dist_info_habperc[[20]] <- site_dist_out_df
 
 
 # Make site-survs use numbers as names to match
@@ -1334,9 +1334,9 @@ for(i in 1:length(perc_hab_vals)) {
   perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
 }
 
-# Add in 100% habitat (put into perc_hab_vals and for loop later!)
-perc_hab_best_ests_avgSurvs[[20]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[20]], site_vec_order, TRUE)
-perc_hab_uncertainty_avgSurvs[[20]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[20]], site_vec_order, "all: hab sens, avg surv", TRUE)
+# # Add in 100% habitat (put into perc_hab_vals and for loop later!)
+# perc_hab_best_ests_avgSurvs[[20]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[20]], site_vec_order, TRUE)
+# perc_hab_uncertainty_avgSurvs[[20]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[20]], site_vec_order, "all: hab sens, avg surv", TRUE)
 
 
 ###### 
@@ -1346,14 +1346,14 @@ NP_vec_perc_hab_avgSurvs_sd <- sd(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$v
 NP_vec_perc_hab_avgSurvs_min <- min(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
 NP_vec_perc_hab_avgSurvs_max <- max(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
 
-for(i in 2:(length(perc_hab_vals)+1)) {
+for(i in 2:(length(perc_hab_vals))) {
   NP_vec_perc_hab_avgSurvs_best_est <- c(NP_vec_perc_hab_avgSurvs_best_est, perc_hab_best_ests_avgSurvs[[i]]$NP)
   NP_vec_perc_hab_avgSurvs_sd <- c(NP_vec_perc_hab_avgSurvs_sd, sd(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
   NP_vec_perc_hab_avgSurvs_min <- c(NP_vec_perc_hab_avgSurvs_min, min(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
   NP_vec_perc_hab_avgSurvs_max <- c(NP_vec_perc_hab_avgSurvs_max, max(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
 }
 
-NP_by_perc_hab_avgSurvs <- data.frame(perc_hab = c(perc_hab_vals,1.0),
+NP_by_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals,
                                        NP = NP_vec_perc_hab_avgSurvs_best_est,
                                        NP_sd = NP_vec_perc_hab_avgSurvs_sd,
                                        NP_min = NP_vec_perc_hab_avgSurvs_min,
@@ -1361,9 +1361,9 @@ NP_by_perc_hab_avgSurvs <- data.frame(perc_hab = c(perc_hab_vals,1.0),
 
 # Find percent above 1 for what-if
 NP_above1_perc_hab_realSurvs <- data.frame(perc_hab = perc_hab_vals, perc_persistent = NA)
-NP_above1_perc_hab_avgSurvs <- data.frame(perc_hab = c(perc_hab_vals,1.0), perc_persistent = NA)
+NP_above1_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals, perc_persistent = NA)
 
-for(i in 1:(length(perc_hab_vals)+1)) {
+for(i in 1:(length(perc_hab_vals))) {
   #NP_above1_perc_hab_realSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value >= 1)/n_runs
   NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
 }
