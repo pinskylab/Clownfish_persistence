@@ -1144,6 +1144,39 @@ NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% s
 
 LR_all_recruits_est_DD_above_1 <- output_uncert_all_offspring_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
 
+########## Find range and % above threshold of values without DD
+# Find range of uncertainty for LEP average and LRP average (without DD)
+LRP_best_est_avg_min <- min(output_uncert_all$LEP_R_out_df$value)
+LRP_best_est_avg_max <- max(output_uncert_all$LEP_R_out_df$value)
+
+# Find range of Se (without DD)
+RperE_min <- min(output_uncert_all$RperE_out_df$value)
+RperE_max <- max(output_uncert_all$RperE_out_df$value)
+
+# Find range of LR estimates with uncertainty (without DD)
+LR_min <- min(output_uncert_all$LEP_R_local_out_df$value)
+LR_max <- max(output_uncert_all$LEP_R_local_out_df$value)
+
+# Find range of NP
+NP_min <- min(output_uncert_all$NP_out_df$value)
+NP_max <- max(output_uncert_all$NP_out_df$value)
+
+# Find range of LR with all recruits estimates with uncertainty (with DD)
+LR_all_recruits_min <- min(output_uncert_all_offspring_all$LEP_R_local_out_df$value)
+LR_all_recruits_max <- max(output_uncert_all_offspring_all$LEP_R_local_out_df$value)
+
+# SP estimate range and % > 1 for Haina 
+SP_Haina_min_noDD <- min(output_uncert_all$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
+SP_Haina_max_noDD <- max(output_uncert_all$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
+
+SP_Haina_perc_above_1_noDD <- output_uncert_all$SP_vals_with_params %>% filter(site == "Haina") %>% filter(SP >= 0.5) %>% summarize(n_estimates = n()) 
+
+# Find % of metrics above persistence thresholds
+LRP_est_avg_above_1 <- output_uncert_all$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+LR_est_above_1 <- output_uncert_all$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+NP_est_above_1 <- output_uncert_all$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+LR_all_recruits_est_above_1 <- output_uncert_all_offspring_all$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
 
 ####### NEED TO EDIT GROWTH UNCERTAINTY INPUTS IN PARAMS AND RE-RUN THESE WHAT-IFS WITH THOSE!!
 #################### What-if calculations: ####################
@@ -1933,14 +1966,15 @@ dev.off()
 
 ##### Uncertainty exploration for LEP
 # All together
-pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"))
+pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"), width=6, height=4)
 ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "growth", "survival", "all"),
                                value = LEP_best_est), color = "black") +
   xlab("uncertainty type") + ylab("lifetime egg production (LEP)") + #ggtitle("Uncertainty in LEP") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  +
+  theme(text=element_text(size=12))
 dev.off()
 
 # # start recruit size
@@ -1998,29 +2032,40 @@ dev.off()
 #   theme(axis.text.x = element_blank())
 
 ##### Uncertainty exploration for RperE
-pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"))
-ggplot(data = RperE_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+RperE_uncert_DD_plot <- RperE_uncert_DD
+RperE_uncert_DD_plot$uncertainty_type <- replace(RperE_uncert_DD_plot$uncertainty_type, 
+                                                 RperE_uncert_DD_plot$uncertainty_type=="prob r", 
+                                               "capture probability")
+pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"), width=6, height=4)
+ggplot(data = RperE_uncert_DD_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability (P_c)", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all"),
                                value = recruits_per_egg_best_est_DD), color = "black") +
   xlab("uncertainty type") + ylab("recruits-per-egg") + #ggtitle("Uncertainty in egg-recruit survival") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(text=element_text(size=12))
 dev.off()
 
 ##### Uncertainty exploration for LRP
-pdf(file = here::here("Plots/FigureDrafts", "LRP_uncertainty_by_param.pdf"))
-ggplot(data = LEP_R_uncert_DD %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "assigned offspring", "prob r", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+LEP_R_uncert_DD_plot <- LEP_R_uncert_DD
+LEP_R_uncert_DD_plot$uncertainty_type <- replace(LEP_R_uncert_DD_plot$uncertainty_type, 
+                                                 LEP_R_uncert_DD_plot$uncertainty_type=="prob r", 
+                                                 "capture probability")
+
+pdf(file = here::here("Plots/FigureDrafts", "LRP_uncertainty_by_param.pdf"), width=6, height=4)
+ggplot(data = LEP_R_uncert_DD_plot %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "assigned offspring", "capture probability", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
+  geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "assigned offspring", "capture probability", "growth", "survival", "all"),
                                value = LEP_R_best_est_DD), color = "black") +
   xlab("uncertainty type") + ylab("lifetime recruit production (LRP)") + #ggtitle("Uncertainty in LRP") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(text=element_text(size=12))
 dev.off()
 
 ##### Uncertainty exploration for NP
-pdf(file = here::here("Plots/FigureDrafts", "NP_uncertainty_by_param.pdf"))
+pdf(file = here::here("Plots/FigureDrafts", "NP_uncertainty_by_param.pdf"), width=6)
 ggplot(data = NP_uncert_DD %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "all"),
@@ -2039,15 +2084,19 @@ NP_uncert_DD_for_plot$uncertainty_type <- replace(NP_uncert_DD_for_plot$uncertai
 NP_uncert_DD_for_plot$uncertainty_type <- replace(NP_uncert_DD_for_plot$uncertainty_type, 
                                                   NP_uncert_DD_for_plot$uncertainty_type == "start recruit size",
                                                   "recruit census size")
+NP_uncert_DD_for_plot$uncertainty_type <- replace(NP_uncert_DD_for_plot$uncertainty_type, 
+                                                  NP_uncert_DD_for_plot$uncertainty_type == "prob r",
+                                                  "capture probability")
 
-pdf(file = here::here("Plots/FigureDrafts", "NP_uncertainty_by_param.pdf"))
-ggplot(data = NP_uncert_DD_for_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "prob r", "growth", "survival", "dispersal", "recruit census size", "all")), aes(x=uncertainty_type, y=value)) +
+pdf(file = here::here("Plots/FigureDrafts", "NP_uncertainty_by_param.pdf"), width=6, height=5)
+ggplot(data = NP_uncert_DD_for_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "dispersal", "recruit census size", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
-  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "prob r", "growth", "survival", "dispersal", "recruit census size", "all"),
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "dispersal", "recruit census size", "all"),
                                value = NP_best_est_DD), color = "black") +
   xlab("uncertainty type") + ylab("network persistence (NP)") + #ggtitle("Uncertainty in network persistence") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(text = element_text(size=12))
 dev.off()
 
 ##### Parameters (and their uncertainty) not shown in main text fig 
