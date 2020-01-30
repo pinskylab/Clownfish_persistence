@@ -1287,13 +1287,6 @@ for(i in 1:length(perc_hab_vals)) {
   site_dist_info_habperc[[i]] <- site_dist_out_df
 }
 
-# # Add 100%
-# site_dist_out_df <- make_output_with_dist(n_sites, 1.0, region_width_km)
-# site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
-# site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
-# site_dist_info_habperc[[20]] <- site_dist_out_df
-
-
 # Make site-survs use numbers as names to match
 site_surv_best_est_avg_Sint <- site_surv_best_est %>%
   mutate(Sint = avg_Sint_withoutCC)
@@ -1334,11 +1327,6 @@ for(i in 1:length(perc_hab_vals)) {
   perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
 }
 
-# # Add in 100% habitat (put into perc_hab_vals and for loop later!)
-# perc_hab_best_ests_avgSurvs[[20]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[20]], site_vec_order, TRUE)
-# perc_hab_uncertainty_avgSurvs[[20]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[20]], site_vec_order, "all: hab sens, avg surv", TRUE)
-
-
 ###### 
 # Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
 NP_vec_perc_hab_avgSurvs_best_est <- perc_hab_best_ests_avgSurvs[[1]]$NP  # best estimate NP
@@ -1367,6 +1355,37 @@ for(i in 1:(length(perc_hab_vals))) {
   #NP_above1_perc_hab_realSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value >= 1)/n_runs
   NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
 }
+
+##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
+# Load generated parameter sets
+load(file = here::here("Data/Script_outputs", "param_set_full.RData"))
+
+# Create new site distance data frames
+site_dist_info_200m <- site_dist_info %>%
+  mutate(d1_km = if_else(d1_km-0.2 > 0, d1_km - 0.2, 0),  # near edge of site is 200m closer (but can't be negative...)
+         d2_km = d2_km + 0.2)  # far edge of site is 200m farther away
+site_dist_info_500m <- site_dist_info %>%
+  mutate(d1_km = if_else(d1_km-0.5 > 0, d1_km - 0.5, 0),  # near edge of site is 500m closer (but can't be negative...)
+         d2_km = d2_km + 0.5)  # far edge of site is 500m farther away
+site_dist_info_1000m <- site_dist_info %>%
+  mutate(d1_km = if_else(d1_km - 1 > 0, d1_km - 1, 0),  # near edge of site is 1000m closer
+         d2_km = d2_km + 1)
+
+# Do runs (with DD)
+best_est_metrics_larv_nav_200m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_200m, site_vec_order, "TRUE")
+best_est_metrics_larv_nav_500m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_500m, site_vec_order, "TRUE")
+best_est_metrics_larv_nav_1000m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_1000m, site_vec_order, "TRUE")
+output_uncert_all_DD_larv_nav_200m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_200m, site_vec_order, "all", TRUE)
+output_uncert_all_DD_larv_nav_500m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_500m, site_vec_order, "all", TRUE)
+output_uncert_all_DD_larv_nav_1000m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_1000m, site_vec_order, "all", TRUE)
+
+# And without DD
+best_est_metrics_larv_nav_200m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_200m, site_vec_order, "FALSE")
+best_est_metrics_larv_nav_500m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_500m, site_vec_order, "FALSE")
+best_est_metrics_larv_nav_1000m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_1000m, site_vec_order, "FALSE")
+output_uncert_all_larv_nav_200m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_200m, site_vec_order, "all", FALSE)
+output_uncert_all_larv_nav_500m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_500m, site_vec_order, "all", FALSE)
+output_uncert_all_larv_nav_1000m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_1000m, site_vec_order, "all", FALSE)
 
 ##### What if our sites retained all of the offspring they produced? Persistent then? Yes, because LRP is > 1, right?
 # And makes sense that best est isn't NP>1 even at 100% habitat because still not retaining all of the offspring produced there...
@@ -1474,6 +1493,20 @@ save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_ha
 save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
 save(NP_by_perc_hab_realSurvs, file=here::here("Data/Script_outputs","NP_by_perc_hab_realSurvs.RData"))
 save(NP_by_perc_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_by_perc_hab_avgSurvs.RData"))
+
+# Larval navigation sensitivity
+save(best_est_metrics_larv_nav_200m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
+save(best_est_metrics_larv_nav_200m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m_DD.RData"))  # 200m each side of patch, DD comp
+save(best_est_metrics_larv_nav_500m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
+save(best_est_metrics_larv_nav_500m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m_DD.RData"))  # 500m each side of patch, DD comp
+save(best_est_metrics_larv_nav_1000m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
+save(best_est_metrics_larv_nav_1000m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m_DD.RData"))  # 1000m each side of patch, DD comp
+save(output_uncert_all_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
+save(output_uncert_all_DD_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_200m.RData"))  # 200m each side of patch, DD comp
+save(output_uncert_all_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
+save(output_uncert_all_DD_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_500m.RData"))  # 500m each side of patch, DD comp
+save(output_uncert_all_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
+save(output_uncert_all_DD_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_1000m.RData"))  # 1000m each side of patch, DD comp
 
 # Summary of parameters and metrics, for easy reference while writing
 save(metrics_params_summary, file=here::here("Data/Script_outputs","metrics_params_summary.RData"))
@@ -1791,6 +1824,89 @@ ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=perc_hab, y=NP, ymin=NP_min, ymax=N
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
   xlab("proportion habitat") + ylab("NP") +
   theme_bw()
+dev.off()
+
+##### Fig 6 alternates (other what-ifs) - larval navigation
+# 200 meters either side of patch
+SP_plot_DD_200m <- ggplot(data = output_uncert_all_DD_larv_nav_200m$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
+  geom_violin(fill="grey") +
+  geom_point(data = best_est_metrics_larv_nav_200m_DD$SP, aes(x = site, y = SP_value), color = "black") +
+  xlab("\nsite") + ylab(bquote("self persistence (SP"[DD] ~")")) + #ggtitle("Self-persistence") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+NP_plot_DD_freq_200m <- ggplot(data = output_uncert_all_DD_larv_nav_200m$NP_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = best_est_metrics_larv_nav_200m_DD$NP, color = "black") +
+  xlab(bquote("network persistence (NP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('Network persistence') +
+  theme_bw() 
+
+realized_C_plot_DD_200m <- ggplot(data = best_est_metrics_larv_nav_200m_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_R)) +
+  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  xlab('\norigin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=1)) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(angle=45,hjust=1)) 
+
+pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR_freq_200m.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot_DD_200m, realized_C_plot_DD_200m, NP_plot_DD_freq_200m, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
+dev.off()
+
+# 500 meters either side of patch
+SP_plot_DD_500m <- ggplot(data = output_uncert_all_DD_larv_nav_500m$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
+  geom_violin(fill="grey") +
+  geom_point(data = best_est_metrics_larv_nav_500m_DD$SP, aes(x = site, y = SP_value), color = "black") +
+  xlab("\nsite") + ylab(bquote("self persistence (SP"[DD] ~")")) + #ggtitle("Self-persistence") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+NP_plot_DD_freq_500m <- ggplot(data = output_uncert_all_DD_larv_nav_500m$NP_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = best_est_metrics_larv_nav_500m_DD$NP, color = "black") +
+  xlab(bquote("network persistence (NP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('Network persistence') +
+  theme_bw() 
+
+realized_C_plot_DD_500m <- ggplot(data = best_est_metrics_larv_nav_500m_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_R)) +
+  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  xlab('\norigin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=1)) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(angle=45,hjust=1)) 
+
+pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR_freq_500m.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot_DD_500m, realized_C_plot_DD_500m, NP_plot_DD_freq_500m, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
+dev.off()
+
+# 1000 meters either side of patch
+SP_plot_DD_1000m <- ggplot(data = output_uncert_all_DD_larv_nav_1000m$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
+  geom_violin(fill="grey") +
+  geom_point(data = best_est_metrics_larv_nav_1000m_DD$SP, aes(x = site, y = SP_value), color = "black") +
+  xlab("\nsite") + ylab(bquote("self persistence (SP"[DD] ~")")) + #ggtitle("Self-persistence") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+NP_plot_DD_freq_1000m <- ggplot(data = output_uncert_all_DD_larv_nav_1000m$NP_out_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_vline(xintercept = best_est_metrics_larv_nav_1000m_DD$NP, color = "black") +
+  xlab(bquote("network persistence (NP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('Network persistence') +
+  theme_bw() 
+
+realized_C_plot_DD_1000m <- ggplot(data = best_est_metrics_larv_nav_1000m_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
+  geom_tile(aes(fill=prob_disp_R)) +
+  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  xlab('\norigin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=1)) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(angle=45,hjust=1)) 
+
+# All three together - NP as frequency
+pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR_freq_1000m.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(SP_plot_DD_1000m, realized_C_plot_DD_1000m, NP_plot_DD_freq_1000m, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
 
 ########## Appendix figures #########
