@@ -144,10 +144,10 @@ site_area <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   #annotate(geom = 'text', x = xlims[1]+0.025, y = 10.65, label = '5 km', size = 4) +
   annotate(geom = 'text', x = xlims[1]+0.003, y = 10.65, label = '5 km', size = 5, hjust = 0) +
   xlab("Longitude (°E)") + ylab('Latitude (°N)') +
-  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 0.5) +
-  geom_line(data = hab_line_coords, aes(x = long, y = lat, group = group), color = patch_color, lwd = 2) +
+  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 0.5) 
+  #geom_line(data = hab_line_coords, aes(x = long, y = lat, group = group), color = patch_color, lwd = 2) +
   #annotate(geom = "text", x = xlims[1]+0.033, y = 10.865, label = "Habitat \n patches", size = 4)
-  annotate(geom = "text", x = xlims[1]+0.003, y = 10.845, label = "Habitat \n patches", size = 5, hjust = 0)
+  #annotate(geom = "text", x = xlims[1]+0.003, y = 10.845, label = "Habitat \n patches", size = 5, hjust = 0)
 
 # Add in site id numbers
 for(i in 1:length(patch_id_coords$site)) {
@@ -188,7 +188,7 @@ Albuera_patch <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   geom_polygon(color = land_color, fill = land_color) +
   geom_polygon(data = patches[[Palanas_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Palanas
   geom_polygon(data = patches[[Wangag_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Wangag
-  geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
+  #geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
   geom_point(data = anems_to_plot, aes(x = lon, y = lat, group = group, color = species), alpha=0.7, size=1) +
   scale_color_manual(values = colslist[1:3]) +
   theme(legend.position = c(0.1, 0.25)) + 
@@ -213,6 +213,14 @@ pdf(file=here::here("Plots/FigureDrafts", "Map_and_photo.pdf"))
 plot_grid(top_row, photo_plot, labels = c("","c"), nrow=2, rel_heights = c(1.7,1))
 dev.off()
 
+##### Try orientation of map along left side, then zoomed in patches and photo stacked on right
+# Put the zoomed in patches and photo together
+right_side <- plot_grid(Albuera_patch, photo_plot, labels = c("b","c"), nrow=2)
+
+# Add map with sites in
+pdf(file=here::here("Plots/FigureDrafts","Map_and_photo_2.pdf"), height=6)
+plot_grid(sites_with_inset, NULL, right_side, labels=c("a","",""), ncol=3, rel_widths = c(1.5,0.02,1))
+dev.off()
 
 ##### Map with inset (but no red box) for poster
 sites_with_inset_for_poster <- ggdraw(site_area) + 
