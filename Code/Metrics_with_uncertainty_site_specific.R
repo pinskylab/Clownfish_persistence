@@ -1356,6 +1356,98 @@ for(i in 1:(length(perc_hab_vals))) {
   NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
 }
 
+##### What if - same habitat density, wider region - should re-do this so the patches stay in the center, just extend the region!!
+region_width_list <- c(region_width_km, 35, 40, 45, 50, 55)
+
+# Go through different region widths for the real habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
+site_dist_info_wider_region <- list()
+for(i in 1:length(region_width_list)) {
+  site_dist_out_df <- make_output_with_dist(n_sites, Ps, region_width_list[i])
+  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+  site_dist_info_wider_region[[i]] <- site_dist_out_df
+}
+
+# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
+wider_region_best_ests_avgSurvs <- list()
+wider_region_uncertainty_avgSurvs <- list()
+for(i in 1:length(region_width_list)) {
+  wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
+  wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
+}
+
+# Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
+NP_vec_wider_region_avgSurvs_best_est <- wider_region_best_ests_avgSurvs[[1]]$NP  # best estimate NP
+NP_vec_wider_region_avgSurvs_sd <- sd(wider_region_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
+NP_vec_wider_region_avgSurvs_min <- min(wider_region_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
+NP_vec_wider_region_avgSurvs_max <- max(wider_region_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
+
+for(i in 2:(length(region_width_list))) {
+  NP_vec_wider_region_avgSurvs_best_est <- c(NP_vec_wider_region_avgSurvs_best_est, wider_region_best_ests_avgSurvs[[i]]$NP)
+  NP_vec_wider_region_avgSurvs_sd <- c(NP_vec_wider_region_avgSurvs_sd, sd(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value))
+  NP_vec_wider_region_avgSurvs_min <- c(NP_vec_wider_region_avgSurvs_min, min(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value))
+  NP_vec_wider_region_avgSurvs_max <- c(NP_vec_wider_region_avgSurvs_max, max(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value))
+}
+
+NP_by_wider_region_avgSurvs <- data.frame(region_width = region_width_list,
+                                      NP = NP_vec_wider_region_avgSurvs_best_est,
+                                      NP_sd = NP_vec_wider_region_avgSurvs_sd,
+                                      NP_min = NP_vec_wider_region_avgSurvs_min,
+                                      NP_max = NP_vec_wider_region_avgSurvs_max, stringsAsFactors = FALSE)
+
+# Find percent above 1 for what-if
+NP_above1_wider_region_realSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
+NP_above1_wider_region_avgSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
+
+for(i in 1:(length(region_width_list))) {
+  NP_above1_wider_region_avgSurvs$perc_persistent[i] = sum(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
+}
+
+##### What if - 100% habitat, wider region
+# Go through different region widths for the real habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
+site_dist_info_wider_region_all_hab <- list()
+for(i in 1:length(region_width_list)) {
+  site_dist_out_df <- make_output_with_dist(n_sites, 1.0, region_width_list[i])
+  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+  site_dist_info_wider_region_all_hab[[i]] <- site_dist_out_df
+}
+
+# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
+wider_region_all_hab_best_ests_avgSurvs <- list()
+wider_region_all_hab_uncertainty_avgSurvs <- list()
+for(i in 1:length(region_width_list)) {
+  wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
+  wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
+}
+
+# Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
+NP_vec_wider_region_all_hab_avgSurvs_best_est <- wider_region_all_hab_best_ests_avgSurvs[[1]]$NP  # best estimate NP
+NP_vec_wider_region_all_hab_avgSurvs_sd <- sd(wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
+NP_vec_wider_region_all_hab_avgSurvs_min <- min(wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
+NP_vec_wider_region_all_hab_avgSurvs_max <- max(wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
+
+for(i in 2:(length(region_width_list))) {
+  NP_vec_wider_region_all_hab_avgSurvs_best_est <- c(NP_vec_wider_region_all_hab_avgSurvs_best_est, wider_region_all_hab_best_ests_avgSurvs[[i]]$NP)
+  NP_vec_wider_region_all_hab_avgSurvs_sd <- c(NP_vec_wider_region_all_hab_avgSurvs_sd, sd(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
+  NP_vec_wider_region_all_hab_avgSurvs_min <- c(NP_vec_wider_region_all_hab_avgSurvs_min, min(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
+  NP_vec_wider_region_all_hab_avgSurvs_max <- c(NP_vec_wider_region_all_hab_avgSurvs_max, max(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
+}
+
+NP_by_wider_region_all_hab_avgSurvs <- data.frame(region_width = region_width_list,
+                                          NP = NP_vec_wider_region_all_hab_avgSurvs_best_est,
+                                          NP_sd = NP_vec_wider_region_all_hab_avgSurvs_sd,
+                                          NP_min = NP_vec_wider_region_all_hab_avgSurvs_min,
+                                          NP_max = NP_vec_wider_region_all_hab_avgSurvs_max, stringsAsFactors = FALSE)
+
+# Find percent above 1 for what-if
+NP_above1_wider_region_all_hab_realSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
+NP_above1_wider_region_all_hab_avgSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
+
+for(i in 1:(length(region_width_list))) {
+  NP_above1_wider_region_all_hab_avgSurvs$perc_persistent[i] = sum(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
+}
+
 ##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
 # Load generated parameter sets
 load(file = here::here("Data/Script_outputs", "param_set_full.RData"))
@@ -1493,6 +1585,13 @@ save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_ha
 save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
 save(NP_by_perc_hab_realSurvs, file=here::here("Data/Script_outputs","NP_by_perc_hab_realSurvs.RData"))
 save(NP_by_perc_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_by_perc_hab_avgSurvs.RData"))
+save(NP_above1_perc_hab_realSurvs, file=here::here("Data/Script_outputs","NP_above1_perc_hab_realSurvs.RData"))
+save(NP_above1_perc_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_perc_hab_avgSurvs.RData"))
+
+save(NP_by_wider_region_avgSurvs, file=here::here("Data/Script_outputs","NP_by_wider_region_avgSurvs.RData"))
+save(NP_above1_wider_region_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_wider_region_avgSurvs.RData"))
+save(NP_by_wider_region_all_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_by_wider_region_all_hab_avgSurvs.RData"))
+save(NP_above1_wider_region_all_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_wider_region_all_hab_avgSurvs.RData"))
 
 # Larval navigation sensitivity
 save(best_est_metrics_larv_nav_200m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
@@ -1824,6 +1923,50 @@ ggplot(data = NP_by_perc_hab_avgSurvs, aes(x=perc_hab, y=NP, ymin=NP_min, ymax=N
   geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") +
   xlab("proportion habitat") + ylab("NP") +
   theme_bw()
+dev.off()
+
+##### Fig 6 alternates (other what-ifs) - wider region, same perc hab
+# NP across region widths showing +- sd in ribbon
+NP_wider_region_avgSurvs_plot_sd <- ggplot(data = NP_by_wider_region_avgSurvs, aes(x=region_width, y=NP, ymin=NP-NP_sd, ymax=NP+NP_sd)) +
+  geom_line(color="black") +
+  geom_ribbon(alpha=0.5, color="gray", fill="gray") +
+  geom_hline(yintercept = 1, color = "blue") +
+  geom_vline(xintercept = region_width_km, color = "orange") +
+  #xlab("proportion habitat") + ylab("NP (average survivals)") +
+  xlab("region width (km)") + ylab(bquote("network persistence (NP"[DD] ~")")) +
+  theme_bw()
+
+# percent of runs with NP>1, avgSurvs
+wider_region_avgSurvs_persistent_plot <- ggplot(data = NP_above1_wider_region_avgSurvs, aes(x=region_width, y=perc_persistent*100)) +
+  geom_line(color="black") +
+  geom_vline(xintercept = region_width_km, color = "orange") +
+  xlab("region width (km)") + ylab("% estimates persistent") +
+  theme_bw()
+
+# both together
+pdf(file=here::here("Plots/FigureDrafts","NP_wider_region_perc_persist_sd_ribbon.pdf"), width=6, height=3)
+plot_grid(NP_wider_region_avgSurvs_plot_sd, wider_region_avgSurvs_persistent_plot, nrow=1, labels=c("a","b"))
+dev.off()
+
+##### Fig 6 alternates (other what-ifs) - wider region, 100% perc hab
+# NP across region widths showing +- sd in ribbon
+NP_wider_region_all_hab_avgSurvs_plot_sd <- ggplot(data = NP_by_wider_region_all_hab_avgSurvs, aes(x=region_width, y=NP, ymin=NP-NP_sd, ymax=NP+NP_sd)) +
+  geom_line(color="black") +
+  geom_ribbon(alpha=0.5, color="gray", fill="gray") +
+  geom_hline(yintercept = 1, color = "blue") +
+  #xlab("proportion habitat") + ylab("NP (average survivals)") +
+  xlab("region width (km)") + ylab(bquote("network persistence (NP"[DD] ~")")) +
+  theme_bw()
+
+# percent of runs with NP>1, avgSurvs
+wider_region_all_hab_avgSurvs_persistent_plot <- ggplot(data = NP_above1_wider_region_all_hab_avgSurvs, aes(x=region_width, y=perc_persistent*100)) +
+  geom_line(color="black") +
+  xlab("region width (km)") + ylab("% estimates persistent") +
+  theme_bw()
+
+# both together
+pdf(file=here::here("Plots/FigureDrafts","NP_wider_region_all_hab_perc_persist_sd_ribbon.pdf"), width=6, height=3)
+plot_grid(NP_wider_region_all_hab_avgSurvs_plot_sd, wider_region_all_hab_avgSurvs_persistent_plot, nrow=1, labels=c("a","b"))
 dev.off()
 
 ##### Fig 6 alternates (other what-ifs) - larval navigation
