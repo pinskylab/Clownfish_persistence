@@ -9,6 +9,39 @@ library(geosphere)
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
 #################### Functions: ####################
+# Find the maximum buffer distance to the north and south of each side without overlapping the next site's shadow
+findBufferDistance <- function(org_site, site_buffer_df, northern_most_site_pos, southern_most_site_pos){
+  org_site_pos <- (site_buffer_df %>% filter(site == org_site))$geo_order  # find geographic position (site order) of origin site
+  # distances and buffer to the north
+  if(org_site_pos == northern_most_site_pos) {  # if this is the northern-most site, no limits to the buffer to the north
+    dist_to_N_m = max_larval_nav_buffer
+    max_buffer_N_m = max_larval_nav_buffer
+  } else {
+    dest_site_N_pos <- org_site_pos - 1  # find the geo order of the site one to the north
+    dist_to_N_m <- distHaversine(c((site_buffer_df %>% filter(site == org_site))$N_lon, (site_buffer_df %>% filter(site == org_site))$N_lat),  # find the distance between the northern edge of the origin site and the southern edge of the next site north
+                                 c((site_buffer_df %>% filter(geo_order == dest_site_N_pos))$S_lon, (site_buffer_df %>% filter(geo_order == dest_site_N_pos))$S_lat))
+    max_buffer_N_m = dist_to_N_m/2 
+  }
+  
+  # distances and buffer to the south
+  if(org_site_pos == southern_most_site_pos) {  # if this is the northern-most site, no limits to the buffer to the north
+    dist_to_S_m = max_larval_nav_buffer
+    max_buffer_S_m = max_larval_nav_buffer
+  } 
+  else {
+    dest_site_S_pos <- org_site_pos + 1  # find the geo order of the site one to the south
+    dist_to_S_m <- distHaversine(c((site_buffer_df %>% filter(site == org_site))$S_lon, (site_buffer_df %>% filter(site == org_site))$S_lat),  # find the distance between the southern edge of the origin site and the northern edge of the next site south
+                                 c((site_buffer_df %>% filter(geo_order == dest_site_S_pos))$N_lon, (site_buffer_df %>% filter(geo_order == dest_site_S_pos))$N_lat))
+    max_buffer_S_m = dist_to_S_m/2 
+  }
+  
+  out <- list(dist_to_N_m = dist_to_N_m, 
+              max_buffer_N_m = max_buffer_N_m,
+              dist_to_S_m = dist_to_S_m,
+              max_buffer_S_m = max_buffer_S_m)
+  return(out)
+}
+
 
 #################### Running things: ####################
 
@@ -221,6 +254,52 @@ site_dist_info <- site_dist_info %>%
   dplyr::rename(dest_alpha_order = alpha_order, dest_geo_order = geo_order)
 
 
+##### Find distances between edges of adjacent sites
+site_buffer_info <- data.frame(site = site_vec_order$site_name, 
+                               alpha_order = site_vec_order$alpha_order,
+                               geo_order = site_vec_order$geo_order,
+                               N_lat = NA,  # lat coordinate of north edge of site
+                               N_lon = NA,  # lon coordinate of north edge of site
+                               S_lat = NA,  # lat coordinate of north edge of site
+                               S_lon = NA)  # lon coordinate of north edge of site
+
+# Put in coordinates of north and south edges of sites                             
+for(i in 1:length(site_buffer_info$site)) {
+  site_val = site_buffer_info$site[i]
+  site_buffer_info$N_lat[i] = (site_edges_info %>% filter(site == site_val, anem_loc == "north"))$lat
+  site_buffer_info$N_lon[i] = (site_edges_info %>% filter(site == site_val, anem_loc == "north"))$lon
+  site_buffer_info$S_lat[i] = (site_edges_info %>% filter(site == site_val, anem_loc == "south"))$lat
+  site_buffer_info$S_lon[i] = (site_edges_info %>% filter(site == site_val, anem_loc == "south"))$lon
+}
+
+# Calculate max buffer distances for each site to N and S
+site_buffer_info <- site_buffer_info %>%
+  mutate(dist_to_N_m = NA,  # distance between this site and the next to the north
+         dist_to_S_m = NA,  # distance between this site and the next to the south
+         max_buffer_N_m = NA,  # maximum buffer to the north (half of the distance to nearest site to the north)
+         max_buffer_S_m = NA)  # maximum buffer to the south (half of the distance to nearest site to the south))
+
+for(i in 1:length(site_buffer_info$site)) {
+  buffer_out <- findBufferDistance(site_buffer_info$site[i], site_buffer_info, northern_site_pos, southern_site_pos)
+  site_buffer_info$dist_to_N_m[i] <- buffer_out$dist_to_N_m
+  site_buffer_info$max_buffer_N_m[i] <- buffer_out$max_buffer_N_m
+  site_buffer_info$dist_to_S_m[i] <- buffer_out$dist_to_S_m
+  site_buffer_info$max_buffer_S_m[i] <- buffer_out$max_buffer_S_m
+}
+
+# Convert to km too
+site_buffer_info <- site_buffer_info %>%
+  mutate(dist_to_N_km = dist_to_N_m/1000,
+         max_buffer_N_km = max_buffer_N_m/1000,
+         dist_to_S_km = dist_to_S_m/1000,
+         max_buffer_S_km = max_buffer_S_m/1000)
+
+# 
+# findSiteDistsWithBuffer <- function(buffer, site_buffer_info) {
+#   site_dist_buffer <- site_buffer_fin
+# }
+
+
 # 
 # # Find the number of parents at each site (eventually, this parent file pull will go in Constants_database_common_functions). Just putting it here for now b/c going to use original 913, with same distribution as current parents
 # all_parents_site <- all_parents %>%
@@ -290,7 +369,7 @@ site_dist_info <- site_dist_info %>%
 save(site_width_info, file=here::here("Data/Script_outputs", "site_width_info.RData"))  # width of sites, distance to edges of sampling area
 save(site_dist_info, file=here::here("Data/Script_outputs", "site_dist_info.RData"))  # distances between pairs of sites for kernel integration
 save(sampling_area_edges, file=here::here("Data/Script_outputs", "sampling_area_edges.RData"))  # coordinates of northern-most anem and southern-most anem of sampling area
-
+save(site_buffer_info, file=here::here("Data/Script_outputs", "site_buffer_info.RData"))  # maximum buffer from each site to the N and S
 
 
 # ################ Code from where these calcs were originally done in PersistenceMetrics.F

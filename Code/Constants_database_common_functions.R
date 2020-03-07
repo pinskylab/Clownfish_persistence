@@ -64,6 +64,9 @@ tag1_2018 <- 2938  # first anemone tag in 2018
 ##### Other values
 clutches_per_year_mean = 11.9  # from Holtswarth paper
 n_runs = 1000  # number of runs for uncertainty analyses
+max_larval_nav_buffer = 1000 # in m, maximum amount of buffer added to site edges to account for larval navigation
+northern_site_pos = 1  # when sites are ordered N-S, number of northern-most site
+southern_site_pos = 19  # when sites are orderes N-S, number of southern-most site
 
 ##### Site information
 # Vector of sites, in alphabetical order, for referencing sites easily in plots and filtering and such (does not include Sitio Hicgop, which has no fish)
