@@ -1452,6 +1452,7 @@ for(i in 1:(length(region_width_list))) {
 ##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
 # Load generated parameter sets
 load(file = here::here("Data/Script_outputs", "param_set_full.RData"))
+load(file = here::here("Data/Script_outputs","site_surv_param_sets.RData"))
 
 # # Re-estimate number of offspring, where scaling for loss to dispersal to non-habitat is altered for the amount of navigation
 findPropHabWithLarvalNav <- function(nav_buffer, site_buffer_info_df, site_width_info_df, sampling_range) {  # nav_buffer = distance larvae can navigate in m, site_buffer_info_df = site_buffer_info, site_width_info_df = site_width_info, sampling_range = total_range_of_sampling_area
@@ -1564,37 +1565,95 @@ findSiteDistsWithNavBuffer <- function(nav_buffer, site_dist_info_df, site_buffe
   return(site_dist_info_out %>% select(-dist_mid_to_S_m, -dist_mid_to_S_km, -dist_mid_to_N_m, -dist_mid_to_N_km))
 }
 
-# Go through nav distances an
+# Go through nav distances and find parameter sets and distance data frames
+nav_buffer_vec <- c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0)
 
-# Test new function
-test_site_dist <- findSiteDistsWithNavBuffer(1, site_dist_info, site_buffer_info)
+larv_nav_prop_hab <- rep(NA,length(nav_buffer_vec))
+larv_nav_params_list <- list()
+larv_nav_site_dists_list <- list()
+larv_nav_best_ests <- list()
+larv_nav_uncert_all <- list()
 
-# Create new site distance data frames
-site_dist_info_200m <- site_dist_info %>%
-  mutate(d1_km = if_else(d1_km-0.2 > 0, d1_km - 0.2, 0),  # near edge of site is 200m closer (but can't be negative...)
-         d2_km = d2_km + 0.2)  # far edge of site is 200m farther away
-site_dist_info_500m <- site_dist_info %>%
-  mutate(d1_km = if_else(d1_km-0.5 > 0, d1_km - 0.5, 0),  # near edge of site is 500m closer (but can't be negative...)
-         d2_km = d2_km + 0.5)  # far edge of site is 500m farther away
-site_dist_info_1000m <- site_dist_info %>%
-  mutate(d1_km = if_else(d1_km - 1 > 0, d1_km - 1, 0),  # near edge of site is 1000m closer
-         d2_km = d2_km + 1)
+for(i in 1:length(nav_buffer_vec)) {
+  # Find prop hab for scaling
+  larv_nav_prop_hab[i] <- findPropHabWithLarvalNav(nav_buffer_vec[i]*1000, site_buffer_info, site_width_info, total_range_of_sampling_area)
+  # Make new param set
+  larv_nav_params_list[[i]] <- makeParamSetWithSampledHab(param_best_est_mean_collected_offspring, larv_nav_prop_hab[i])
+  # Find distances
+  larv_nav_site_dists_list[[i]] <- findSiteDistsWithNavBuffer(nav_buffer_vec[i], site_dist_info, site_buffer_info)
+  # Make new param set with uncertainty with larv_nav prop_hab
+  param_set_full_larv_nav <- param_set_full
+  param_set_full_larv_nav$prop_hab <- rep(larv_nav_prop_hab[i],n_runs)
+  # Do best ests
+  larv_nav_best_ests[[i]] <- calcMetrics(larv_nav_params_list[[i]], site_surv_best_est, larv_nav_site_dists_list[[i]], site_vec_order, "TRUE")
+  larv_nav_uncert_all[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full_larv_nav, site_surv_param_sets, larv_nav_site_dists_list[[i]], site_vec_order, "all", TRUE)
+}
 
-# Do runs (with DD)
-best_est_metrics_larv_nav_200m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_200m, site_vec_order, "TRUE")
-best_est_metrics_larv_nav_500m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_500m, site_vec_order, "TRUE")
-best_est_metrics_larv_nav_1000m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_1000m, site_vec_order, "TRUE")
-output_uncert_all_DD_larv_nav_200m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_200m, site_vec_order, "all", TRUE)
-output_uncert_all_DD_larv_nav_500m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_500m, site_vec_order, "all", TRUE)
-output_uncert_all_DD_larv_nav_1000m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_1000m, site_vec_order, "all", TRUE)
+# Make plot - km larv nav on x axis, NP on y axis
+# Make dfs
+larv_nav_plot_df <- larv_nav_uncert_all[[1]]$NP_out_df %>% select(value,run) %>% mutate(larv_nav = nav_buffer_vec[1])  # one for uncertainty runs
+for(i in 2:length(nav_buffer_vec)) {
+  larv_nav_plot_df <- rbind(larv_nav_plot_df, larv_nav_uncert_all[[i]]$NP_out_df %>% select(value,run) %>% mutate(larv_nav = nav_buffer_vec[i]))
+}
+larv_nav_best_est_NP_df <- data.frame(larv_nav = rep(NA,length(nav_buffer_vec)), value = rep(NA,length(nav_buffer_vec)))  # and one for best ests
+for(i in 1:length(nav_buffer_vec)) {
+  larv_nav_best_est_NP_df$larv_nav[i] = nav_buffer_vec[i]
+  larv_nav_best_est_NP_df$value[i] = larv_nav_best_ests[[i]]$NP
+}
 
-# And without DD
-best_est_metrics_larv_nav_200m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_200m, site_vec_order, "FALSE")
-best_est_metrics_larv_nav_500m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_500m, site_vec_order, "FALSE")
-best_est_metrics_larv_nav_1000m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_1000m, site_vec_order, "FALSE")
-output_uncert_all_larv_nav_200m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_200m, site_vec_order, "all", FALSE)
-output_uncert_all_larv_nav_500m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_500m, site_vec_order, "all", FALSE)
-output_uncert_all_larv_nav_1000m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_1000m, site_vec_order, "all", FALSE)
+# Plot
+larv_nav_plot <- ggplot(data = larv_nav_plot_df %>% filter(run==1), aes(x=larv_nav, y=value)) +
+  geom_line(color="gray", alpha=0.3) +
+  xlab("larval navigation (km)") + ylab(expression(lambda)) +
+  theme_bw()
+for(i in 2:n_runs) {
+  larv_nav_plot <- larv_nav_plot +
+    geom_line(data=larv_nav_plot_df %>% filter(run==i), color="gray", alpha=0.3)
+}
+larv_nav_plot <- larv_nav_plot +
+  geom_line(data = larv_nav_best_est_NP_df, aes(x=larv_nav,y=value),color="black") 
+
+pdf(file=here::here("Plots/FigureDrafts","larv_nav_NP.pdf"))
+larv_nav_plot
+dev.off()
+
+# Save output
+save(larv_nav_prop_hab, file=here::here("Data/Script_outputs","larv_nav_prop_hab.RData"))
+save(larv_nav_params_list, file=here::here("Data/Script_outputs","larv_nav_params_list.RData"))
+save(larv_nav_best_ests, file=here::here("Data/Script_outputs","larv_nav_best_ests.RData"))
+save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert_all.RData"))
+
+save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
+
+# # Test new function
+# test_site_dist <- findSiteDistsWithNavBuffer(1, site_dist_info, site_buffer_info)
+# 
+# # Create new site distance data frames
+# site_dist_info_200m <- site_dist_info %>%
+#   mutate(d1_km = if_else(d1_km-0.2 > 0, d1_km - 0.2, 0),  # near edge of site is 200m closer (but can't be negative...)
+#          d2_km = d2_km + 0.2)  # far edge of site is 200m farther away
+# site_dist_info_500m <- site_dist_info %>%
+#   mutate(d1_km = if_else(d1_km-0.5 > 0, d1_km - 0.5, 0),  # near edge of site is 500m closer (but can't be negative...)
+#          d2_km = d2_km + 0.5)  # far edge of site is 500m farther away
+# site_dist_info_1000m <- site_dist_info %>%
+#   mutate(d1_km = if_else(d1_km - 1 > 0, d1_km - 1, 0),  # near edge of site is 1000m closer
+#          d2_km = d2_km + 1)
+# 
+# # Do runs (with DD)
+# best_est_metrics_larv_nav_200m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_200m, site_vec_order, "TRUE")
+# best_est_metrics_larv_nav_500m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_500m, site_vec_order, "TRUE")
+# best_est_metrics_larv_nav_1000m_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_1000m, site_vec_order, "TRUE")
+# output_uncert_all_DD_larv_nav_200m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_200m, site_vec_order, "all", TRUE)
+# output_uncert_all_DD_larv_nav_500m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_500m, site_vec_order, "all", TRUE)
+# output_uncert_all_DD_larv_nav_1000m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_1000m, site_vec_order, "all", TRUE)
+# 
+# # And without DD
+# best_est_metrics_larv_nav_200m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_200m, site_vec_order, "FALSE")
+# best_est_metrics_larv_nav_500m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_500m, site_vec_order, "FALSE")
+# best_est_metrics_larv_nav_1000m <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_1000m, site_vec_order, "FALSE")
+# output_uncert_all_larv_nav_200m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_200m, site_vec_order, "all", FALSE)
+# output_uncert_all_larv_nav_500m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_500m, site_vec_order, "all", FALSE)
+# output_uncert_all_larv_nav_1000m <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_1000m, site_vec_order, "all", FALSE)
 
 ##### What if our sites retained all of the offspring they produced? Persistent then? Yes, because LRP is > 1, right?
 # And makes sense that best est isn't NP>1 even at 100% habitat because still not retaining all of the offspring produced there...
