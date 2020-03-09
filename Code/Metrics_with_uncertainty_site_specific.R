@@ -30,6 +30,7 @@ load(file = here::here("Data/Script_outputs", "total_area_sampled_through_time.R
 load(file = here::here("Data/Script_outputs", "site_width_info.RData"))
 load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
 load(file = here::here("Data/Script_outputs", "sampling_area_edges.RData"))
+load(file = here::here("Data/Script_outputs", "site_buffer_info.RData"))
 # source(here::here("Code", "Site_widths_and_distances.R"))
 
 # Load density dependence estimates (from Density_dependence_scaling.R)
@@ -1451,6 +1452,122 @@ for(i in 1:(length(region_width_list))) {
 ##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
 # Load generated parameter sets
 load(file = here::here("Data/Script_outputs", "param_set_full.RData"))
+
+# # Re-estimate number of offspring, where scaling for loss to dispersal to non-habitat is altered for the amount of navigation
+findPropHabWithLarvalNav <- function(nav_buffer, site_buffer_info_df, site_width_info_df, sampling_range) {  # nav_buffer = distance larvae can navigate in m, site_buffer_info_df = site_buffer_info, site_width_info_df = site_width_info, sampling_range = total_range_of_sampling_area
+  # total sum of site widths without buffer
+  sum_of_site_widths <- sum(site_width_info_df$width_m)
+  buffer_to_add_N <- rep(NA, length(site_width_info_df$site))
+  buffer_to_add_S <- rep(NA, length(site_width_info_df$site))
+  
+  # go through sites, check if buffer is less than max amount, then add either buffer or max
+  for(i in 1:length(site_width_info$site)){
+    site_val <- site_width_info$site[i]
+    max_buffer_N <- (site_buffer_info_df %>% filter(site == site_val))$max_buffer_N_m
+    max_buffer_S <- (site_buffer_info_df %>% filter(site == site_val))$max_buffer_S_m
+    
+    # Check north buffer
+    if(nav_buffer > max_buffer_N) {
+      buffer_to_add_N[i] <- max_buffer_N  # if bigger than max buffer, just add the max
+    } else {
+      buffer_to_add_N[i] <- nav_buffer  # otherwise, add the navigation buffer
+    }
+    
+    # Check south buffer
+    if(nav_buffer > max_buffer_S) {
+      buffer_to_add_S[i] <- max_buffer_S  # if bigger than max buffer, just add the max
+    } else {
+      buffer_to_add_S[i] <- nav_buffer  # otherwise, add the navigation buffer
+    }
+  }
+  
+  total_hab <- sum_of_site_widths + sum(buffer_to_add_N) + sum(buffer_to_add_S)
+  
+  prop_hab <- total_hab/total_range_of_sampling_area
+  
+  return(prop_hab)
+}
+
+# Make new param set
+makeParamSetWithSampledHab <- function(param_set, Ps) {  # param_set is param_best_est_mean_collected_offspring, Ps is prop_hab from findPropHabWithLarvalNav
+ param_set_out <- param_set
+ param_set_out$prop_hab <- Ps
+ return(param_set_out)
+}
+
+# # (Rough) proportion of sampling area that is habitat
+# total_sum_of_site_widths <- sum(site_width_info$width_m)
+# prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_area
+# Ps <- prop_sampling_area_habitat
+
+# Re-estimate the distances data frames
+findSiteDistsWithNavBuffer <- function(nav_buffer, site_dist_info_df, site_buffer_info_df) {  # nav_buffer = distance larvae can navigate in km, site_dist_info_df = site_dist_info, site_buffer_info_df = site_buffer_info
+  site_dist_info_out <- site_dist_info_df  # modify existing site_dist_info with buffers built into d1 and d2
+  # Go through site combos (one row in site_dist_info)
+  # For each set of sites, decide if destination is 1) the same as the origin, 2) north of the origin, or 3) south of the origin
+  for(i in 1:length(site_dist_info_df$org_site)) {
+    site_org_val <- site_dist_info_df$org_site[i]
+    site_dest_val <- site_dist_info_df$dest_site[i]
+    site_org_geo <- site_dist_info_df$org_geo_order[i]
+    site_dest_geo <- site_dist_info_df$dest_geo_order[i]
+    
+    # if the origin and destination sites are the same: d1 is unchanged, d2 is d2 + the buffer up to the max buffer in either direction for that site (which leaves a bit on the table on the other side but...)
+    if(site_org_val == site_dest_val) {  
+      max_buffer_N_or_S <- min((site_buffer_info_df %>% filter(site == site_org_val))$max_buffer_N_km, (site_buffer_info_df %>% filter(site == site_org_val))$max_buffer_S_km)  # find min max buffer to N or S
+      if(nav_buffer > max_buffer_N_or_S) {
+        site_dist_info_out$d2_km[i] <- site_dist_info_df$d2_km[i] + max_buffer_N_or_S  # if the nav buffer is greater than the max buffer, use max buffer
+      } else {
+        site_dist_info_out$d2_km[i] <- site_dist_info_df$d2_km[i] + nav_buffer
+      }
+    } else if(site_org_geo > site_dest_geo) {  # if the destination is north of the origin...
+      
+      # buffer d1 (distance to the close side of the destination site)
+      max_buffer_S <- (site_buffer_info_df %>% filter(site == site_dest_val))$max_buffer_S_km  # find the max buffer to the south site of the destination
+      if(nav_buffer > max_buffer_S) {
+        site_dist_info_out$d1_km[i] <- site_dist_info_df$d1_km[i] - max_buffer_S  # d1 is d1 - the buffer up to the max buffer S for the destination site
+      } else {
+        site_dist_info_out$d1_km[i] <- site_dist_info_df$d1_km[i] - nav_buffer
+      }
+      
+      # buffer d2 (distance to the far side of the destination site)
+      max_buffer_N <- (site_buffer_info_df %>% filter(site == site_dest_val))$max_buffer_N_km  # find the max buffer to the north site of the destination
+      if(nav_buffer > max_buffer_N) {
+        site_dist_info_out$d2_km[i] <- site_dist_info_df$d2_km[i] + max_buffer_N  # d2 is d2 + the buffer up to the max buffer N for the destination site
+      } else {
+        site_dist_info_out$d2_km[i] <- site_dist_info_df$d2_km[i] + nav_buffer
+      }
+    } else if(site_org_geo < site_dest_geo) {  # if the destination site is to the south of the origin...
+      
+      # buffer d1 (distance to the close site of the destination site), d1 is d1 - the buffer up to the max buffer N for the destination site
+      max_buffer_N <- (site_buffer_info_df %>% filter(site == site_dest_val))$max_buffer_N_km  # find the max buffer to the north site of the destination
+      if(nav_buffer > max_buffer_N) {  
+        site_dist_info_out$d1_km[i] <- site_dist_info_df$d1_km[i] - max_buffer_N  # d1 is d1 - the buffer up to the max buffer N for the destination site
+      } else {
+        site_dist_info_out$d1_km[i] <- site_dist_info_df$d1_km[i] - nav_buffer
+      }
+      
+      # buffer d2 (distance to far side of destination site), d2 is d2 + the buffer up to the max buffer S for the destination site
+      max_buffer_S <- (site_buffer_info_df %>% filter(site == site_dest_val))$max_buffer_S_km  # find the max buffer to the south site of the destination
+      if(nav_buffer > max_buffer_S) {  
+        site_dist_info_out$d2_km[i] <- site_dist_info_df$d2_km[i] + max_buffer_S  # d2 is d2 + the buffer up to the max buffer S for the destination site
+      } else {
+        site_dist_info_out$d2_km[i] <- site_dist_info_df$d2_km[i] + nav_buffer
+      }
+    }
+  }
+  # If it's the same as the origin, d1 is unchanged, d2 is d2 + the buffer up to the max buffer in either direction for that site (which leaves a bit on the table on the other side but...)
+  # If it's north of the origin, d1 is d1 - the buffer up to the max buffer S for the destination site
+  # If it's north of the origin, d2 is d2 + the buffer up to the max buffer N for the destination site
+  # If it's south of the origin, d1 is d1 - the buffer up to the max buffer N for the destination site
+  # If it's south of the origin, d2 is d2 + the buffer up to the max buffer S for the destination site
+  
+  return(site_dist_info_out %>% select(-dist_mid_to_S_m, -dist_mid_to_S_km, -dist_mid_to_N_m, -dist_mid_to_N_km))
+}
+
+# Go through nav distances an
+
+# Test new function
+test_site_dist <- findSiteDistsWithNavBuffer(1, site_dist_info, site_buffer_info)
 
 # Create new site distance data frames
 site_dist_info_200m <- site_dist_info %>%
