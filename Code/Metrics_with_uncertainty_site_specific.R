@@ -1357,6 +1357,18 @@ for(i in 1:(length(perc_hab_vals))) {
   NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
 }
 
+# Make dfs for plot where each run is it's own line - perc hab on x axis, NP on y axis
+perc_hab_plot_df <- perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[1])  # one for uncertainty runs
+for(i in 2:length(perc_hab_vals)) {
+  perc_hab_plot_df <- rbind(perc_hab_plot_df, perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[i]))
+}
+perc_hab_best_est_NP_df <- data.frame(perc_hab = rep(NA,length(perc_hab_vals)), value = rep(NA,length(perc_hab_vals)))  # and one for best ests
+for(i in 1:length(perc_hab_vals)) {
+  perc_hab_best_est_NP_df$perc_hab[i] = perc_hab_vals[i]
+  perc_hab_best_est_NP_df$value[i] = perc_hab_best_ests_avgSurvs[[i]]$NP
+}
+
+
 ##### What if - same habitat density, wider region - should re-do this so the patches stay in the center, just extend the region!!
 region_width_list <- c(region_width_km, 35, 40, 45, 50, 55)
 
@@ -1404,6 +1416,17 @@ for(i in 1:(length(region_width_list))) {
   NP_above1_wider_region_avgSurvs$perc_persistent[i] = sum(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
 }
 
+# Make dfs for plot where each run is it's own line - region width on x axis, NP on y axis
+wider_region_plot_df <- wider_region_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[1])  # one for uncertainty runs
+for(i in 2:length(region_width_list)) {
+  wider_region_plot_df <- rbind(wider_region_plot_df, wider_region_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[i]))
+}
+wider_region_best_est_NP_df <- data.frame(region_width = rep(NA,length(region_width_list)), value = rep(NA,length(region_width_list)))  # and one for best ests
+for(i in 1:length(region_width_list)) {
+  wider_region_best_est_NP_df$region_width[i] = region_width_list[i]
+  wider_region_best_est_NP_df$value[i] = wider_region_best_ests_avgSurvs[[i]]$NP
+}
+
 ##### What if - 100% habitat, wider region
 # Go through different region widths for the real habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
 site_dist_info_wider_region_all_hab <- list()
@@ -1447,6 +1470,17 @@ NP_above1_wider_region_all_hab_avgSurvs <- data.frame(region_width = region_widt
 
 for(i in 1:(length(region_width_list))) {
   NP_above1_wider_region_all_hab_avgSurvs$perc_persistent[i] = sum(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
+}
+
+# Make dfs for plot where each run is it's own line - region width on x axis, NP on y axis
+wider_region_all_hab_plot_df <- wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[1])  # one for uncertainty runs
+for(i in 2:length(region_width_list)) {
+  wider_region_all_hab_plot_df <- rbind(wider_region_all_hab_plot_df, wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[i]))
+}
+wider_region_all_hab_best_est_NP_df <- data.frame(region_width = rep(NA,length(region_width_list)), value = rep(NA,length(region_width_list)))  # and one for best ests
+for(i in 1:length(region_width_list)) {
+  wider_region_all_hab_best_est_NP_df$region_width[i] = region_width_list[i]
+  wider_region_all_hab_best_est_NP_df$value[i] = wider_region_all_hab_best_ests_avgSurvs[[i]]$NP
 }
 
 ##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
@@ -1589,7 +1623,7 @@ for(i in 1:length(nav_buffer_vec)) {
   larv_nav_uncert_all[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full_larv_nav, site_surv_param_sets, larv_nav_site_dists_list[[i]], site_vec_order, "all", TRUE)
 }
 
-# Make plot - km larv nav on x axis, NP on y axis
+# Make dfs for plot - km larv nav on x axis, NP on y axis
 # Make dfs
 larv_nav_plot_df <- larv_nav_uncert_all[[1]]$NP_out_df %>% select(value,run) %>% mutate(larv_nav = nav_buffer_vec[1])  # one for uncertainty runs
 for(i in 2:length(nav_buffer_vec)) {
@@ -1600,30 +1634,6 @@ for(i in 1:length(nav_buffer_vec)) {
   larv_nav_best_est_NP_df$larv_nav[i] = nav_buffer_vec[i]
   larv_nav_best_est_NP_df$value[i] = larv_nav_best_ests[[i]]$NP
 }
-
-# Plot
-larv_nav_plot <- ggplot(data = larv_nav_plot_df %>% filter(run==1), aes(x=larv_nav, y=value)) +
-  geom_line(color="gray", alpha=0.3) +
-  xlab("larval navigation (km)") + ylab(expression(lambda)) +
-  theme_bw()
-for(i in 2:n_runs) {
-  larv_nav_plot <- larv_nav_plot +
-    geom_line(data=larv_nav_plot_df %>% filter(run==i), color="gray", alpha=0.3)
-}
-larv_nav_plot <- larv_nav_plot +
-  geom_line(data = larv_nav_best_est_NP_df, aes(x=larv_nav,y=value),color="black") 
-
-pdf(file=here::here("Plots/FigureDrafts","larv_nav_NP.pdf"))
-larv_nav_plot
-dev.off()
-
-# Save output
-save(larv_nav_prop_hab, file=here::here("Data/Script_outputs","larv_nav_prop_hab.RData"))
-save(larv_nav_params_list, file=here::here("Data/Script_outputs","larv_nav_params_list.RData"))
-save(larv_nav_best_ests, file=here::here("Data/Script_outputs","larv_nav_best_ests.RData"))
-save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert_all.RData"))
-
-save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
 
 # # Test new function
 # test_site_dist <- findSiteDistsWithNavBuffer(1, site_dist_info, site_buffer_info)
@@ -1752,6 +1762,9 @@ save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_unc
 save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
 save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
 
+# Params
+save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
+
 # What-ifs
 save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
 save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
@@ -1769,19 +1782,30 @@ save(NP_above1_wider_region_avgSurvs, file=here::here("Data/Script_outputs","NP_
 save(NP_by_wider_region_all_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_by_wider_region_all_hab_avgSurvs.RData"))
 save(NP_above1_wider_region_all_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_wider_region_all_hab_avgSurvs.RData"))
 
+save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))
+save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))
+save(wider_region_all_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_best_ests_avgSurvs.RData"))
+save(wider_region_all_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_uncertainty_avgSurvs.RData"))
+
 # Larval navigation sensitivity
-save(best_est_metrics_larv_nav_200m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
-save(best_est_metrics_larv_nav_200m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m_DD.RData"))  # 200m each side of patch, DD comp
-save(best_est_metrics_larv_nav_500m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
-save(best_est_metrics_larv_nav_500m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m_DD.RData"))  # 500m each side of patch, DD comp
-save(best_est_metrics_larv_nav_1000m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
-save(best_est_metrics_larv_nav_1000m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m_DD.RData"))  # 1000m each side of patch, DD comp
-save(output_uncert_all_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
-save(output_uncert_all_DD_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_200m.RData"))  # 200m each side of patch, DD comp
-save(output_uncert_all_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
-save(output_uncert_all_DD_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_500m.RData"))  # 500m each side of patch, DD comp
-save(output_uncert_all_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
-save(output_uncert_all_DD_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_1000m.RData"))  # 1000m each side of patch, DD comp
+save(larv_nav_prop_hab, file=here::here("Data/Script_outputs","larv_nav_prop_hab.RData"))
+save(larv_nav_params_list, file=here::here("Data/Script_outputs","larv_nav_params_list.RData"))
+save(larv_nav_best_ests, file=here::here("Data/Script_outputs","larv_nav_best_ests.RData"))
+save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert_all.RData"))
+
+# # From older version...
+# save(best_est_metrics_larv_nav_200m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
+# save(best_est_metrics_larv_nav_200m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m_DD.RData"))  # 200m each side of patch, DD comp
+# save(best_est_metrics_larv_nav_500m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
+# save(best_est_metrics_larv_nav_500m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m_DD.RData"))  # 500m each side of patch, DD comp
+# save(best_est_metrics_larv_nav_1000m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
+# save(best_est_metrics_larv_nav_1000m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m_DD.RData"))  # 1000m each side of patch, DD comp
+# save(output_uncert_all_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
+# save(output_uncert_all_DD_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_200m.RData"))  # 200m each side of patch, DD comp
+# save(output_uncert_all_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
+# save(output_uncert_all_DD_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_500m.RData"))  # 500m each side of patch, DD comp
+# save(output_uncert_all_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
+# save(output_uncert_all_DD_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_1000m.RData"))  # 1000m each side of patch, DD comp
 
 # Summary of parameters and metrics, for easy reference while writing
 save(metrics_params_summary, file=here::here("Data/Script_outputs","metrics_params_summary.RData"))
@@ -2009,6 +2033,74 @@ pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR_freq.pdf'), width
 plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
 
+##### Figure 6 (what ifs) - new version where there are the four what-if subplots  a) more habitat, b) wider region at same habitat density, c) wider region with 100% hab, d) larval navigation together
+# A: more habitat
+perc_hab_plot <- ggplot(data = perc_hab_plot_df %>% filter(run==1), aes(x=perc_hab, y=value)) +
+  geom_line(color="dark gray", alpha=0.2) +
+  xlab("percent habitat") + ylab(expression(lambda)) +
+  theme_bw()
+for(i in 2:n_runs) {
+  perc_hab_plot <- perc_hab_plot +
+    geom_line(data=perc_hab_plot_df %>% filter(run==i), color="dark gray", alpha=0.2)
+}
+perc_hab_plot <- perc_hab_plot +
+  geom_line(data = perc_hab_best_est_NP_df, aes(x=perc_hab,y=value),color="black") +
+  geom_hline(yintercept = 1, color = "blue") +
+  geom_vline(xintercept = prop_sampling_area_habitat, color = "orange") 
+
+# B: wider region, same habitat density
+wider_region_plot <- ggplot(data = wider_region_plot_df %>% filter(run==1), aes(x=region_width, y=value)) +
+  geom_line(color="dark gray", alpha=0.2) +
+  xlab("region width (km)") + ylab(expression(lambda)) +
+  theme_bw()
+for(i in 2:n_runs) {
+  wider_region_plot <- wider_region_plot +
+    geom_line(data=wider_region_plot_df %>% filter(run==i), color="dark gray", alpha=0.2)
+}
+wider_region_plot <- wider_region_plot +
+  geom_line(data = wider_region_best_est_NP_df, aes(x=region_width,y=value),color="black") +
+  geom_hline(yintercept = 1, color = "blue") +
+  geom_vline(xintercept = region_width_km, color = "orange") 
+
+# C: wider region, 100% habitat density
+wider_region_all_hab_plot <- ggplot(data = wider_region_all_hab_plot_df %>% filter(run==1), aes(x=region_width, y=value)) +
+  geom_line(color="dark gray", alpha=0.2) +
+  xlab("region width (km)") + ylab(expression(lambda)) +
+  theme_bw()
+for(i in 2:n_runs) {
+  wider_region_all_hab_plot <- wider_region_all_hab_plot +
+    geom_line(data=wider_region_all_hab_plot_df %>% filter(run==i), color="dark gray", alpha=0.2)
+}
+wider_region_all_hab_plot <- wider_region_all_hab_plot +
+  geom_line(data = wider_region_all_hab_best_est_NP_df, aes(x=region_width,y=value),color="black") +
+  geom_hline(yintercept = 1, color = "blue") 
+
+# D: larval navigation
+larv_nav_plot <- ggplot(data = larv_nav_plot_df %>% filter(run==1), aes(x=larv_nav, y=value)) +
+  geom_line(color="gray", alpha=0.2) +
+  xlab("larval navigation (km)") + ylab(expression(lambda)) +
+  theme_bw()
+for(i in 2:n_runs) {
+  larv_nav_plot <- larv_nav_plot +
+    geom_line(data=larv_nav_plot_df %>% filter(run==i), color="gray", alpha=0.2)
+}
+larv_nav_plot <- larv_nav_plot +
+  geom_line(data = larv_nav_best_est_NP_df, aes(x=larv_nav,y=value),color="black") +
+  geom_hline(yintercept = 1, color = "blue") 
+
+# All together
+pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels.pdf"), width=6, height=6)
+plot_grid(perc_hab_plot, wider_region_plot, wider_region_all_hab_plot, larv_nav_plot, 
+          nrow=2, labels=c("a","b","c","d"))
+dev.off()
+
+#### Also, save them individually...
+# Larval navigation
+pdf(file=here::here("Plots/FigureDrafts","larv_nav_NP.pdf"))
+larv_nav_plot
+dev.off()
+
+# Previous versions of Fig 6
 ##### Figure 6 (what ifs)
 ## NP by perc hab - actual site-specific survivals
 # showing min and max of NP in ribbon
