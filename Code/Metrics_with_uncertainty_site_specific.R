@@ -1930,7 +1930,7 @@ LEP_R_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) 
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
-  xlab(bquote("lifetime recruit production (LRP"[DD] ~")")) + #ggtitle('LRP') +
+  xlab(bquote("lifetime recruit production (LRP)")) + #ggtitle('LRP') +
   theme_bw()
 
 LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
@@ -1938,20 +1938,20 @@ LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=val
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est_DD, color = "black") +
-  xlab(bquote("lifetime recruit production (LRP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('LRP') +
+  xlab(bquote("lifetime recruit production (LRP)")) + ylab("relative frequency") + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local with DD
 LEP_R_local_plot_DD <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
-  xlab(bquote("local replacement (LR"[DD] ~")")) + #ggtitle("Local replacement") +
+  xlab(bquote("local replacement (LR)")) + #ggtitle("Local replacement") +
   theme_bw()
 
 LEP_R_local_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est_DD, color = "black") +
-  xlab(bquote("local replacement (LR"[DD] ~")")) + ylab("relative frequency") + #ggtitle("Local replacement") +
+  xlab(bquote("local replacement (LR)")) + ylab("relative frequency") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Abundance trend 
@@ -1990,7 +1990,7 @@ SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamaki
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab(bquote("self persistence (SP"[DD] ~")")) + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab(bquote("self persistence (SP)")) + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
@@ -2000,13 +2000,13 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reor
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab(bquote("network persistence (NP"[DD] ~")")) + #ggtitle('Network persistence') +
+  xlab(expression(lambda)) + #ggtitle('Network persistence') +
   theme_bw() 
 
 NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab(bquote("network persistence (NP"[DD] ~")")) + ylab("relative frequency") + #ggtitle('Network persistence') +
+  xlab(expression(lambda)) + ylab("relative frequency") + #ggtitle('Network persistence') +
   theme_bw() 
 
 # realized connectivity matrix
@@ -2371,7 +2371,7 @@ LEP_R_plot <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
-  xlab('lifetime recruit production (LRP)') + #ggtitle('LRP') +
+  xlab(expression("lifetime recruit production (LRP"[ DD]~")")) + #ggtitle('LRP') +
   theme_bw()
 
 LEP_R_plot_freq <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
@@ -2379,20 +2379,20 @@ LEP_R_plot_freq <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   #geom_vline(data = LEP_R_best_est, aes(xintercept = LEP_R, color = recruit_size)) +
   #geom_vline(xintercept = (LEP_R_best_est %>% filter(recruit_size == "mean offspring"))$LEP_R, color = 'black') +
   geom_vline(xintercept = LEP_R_best_est, color = "black") +
-  xlab('lifetime recruit production (LRP)') + ylab("relative frequency") + #ggtitle('LRP') +
+  xlab(expression("lifetime recruit production (LRP"[DD]~")")) + ylab("relative frequency") + #ggtitle('LRP') +
   theme_bw()
 
 # LRP_local without DD
 LEP_R_local_plot <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
-  xlab("local replacement (LR)") + #ggtitle("Local replacement") +
+  xlab(expression("local replacement (LR"[DD]~")")) + #ggtitle("Local replacement") +
   theme_bw()
 
 LEP_R_local_plot_freq <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = LEP_R_local_best_est, color = "black") +
-  xlab("local replacement (LR)") + ylab("relative frequency") + #ggtitle("Local replacement") +
+  xlab(expression("local replacement (LR"[DD]~")")) + ylab("relative frequency") + #ggtitle("Local replacement") +
   theme_bw()
 
 # Put them together - histograms
@@ -2422,7 +2422,7 @@ SP_best_est$site <- replace(SP_best_est$site, SP_best_est$site=="Tamakin Dacot",
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab("self persistence (SP)") + #ggtitle("Self-persistence") +
+  xlab("\nsite") + ylab(expression("self persistence (SP"[DD]~")")) + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
@@ -2431,19 +2431,19 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(si
 NP_plot <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est, color = "black") +
-  xlab('network persistence (NP)') + #ggtitle('Network persistence') +
+  xlab(expression(lambda[DD])) + #ggtitle('Network persistence') +
   theme_bw()
 
 NP_plot_freq <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est, color = "black") +
-  xlab('network persistence (NP)') + ylab("relative frequency") + #ggtitle('Network persistence') +
+  xlab(expression(lambda[DD])) + ylab("relative frequency") + #ggtitle('Network persistence') +
   theme_bw()
 
 # realized connectivity matrix (not accounting for DD)
 realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
-  scale_fill_gradient(high='black', low='white', name='Recruits') +
+  scale_fill_gradient(high='black', low='white', name=expression('Recruits'[DD])) +
   xlab('\norigin') + ylab('destination') + #ggtitle('Realized connectivity matrix') +
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
@@ -2620,7 +2620,7 @@ ggplot(data = NP_uncert_DD_for_plot %>% filter(uncertainty_type %in% c("breeding
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "dispersal", "recruit census size", "all"),
                                value = NP_best_est_DD), color = "black") +
-  xlab("uncertainty type") + ylab("network persistence (NP)") + #ggtitle("Uncertainty in network persistence") +
+  xlab("uncertainty type") + ylab(expression(lambda)) + #ggtitle("Uncertainty in network persistence") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme(text = element_text(size=12))
