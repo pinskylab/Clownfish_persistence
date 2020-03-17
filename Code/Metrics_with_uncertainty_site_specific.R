@@ -1684,6 +1684,9 @@ for(i in 1:length(max_size_test_vec)) {
                                      param_best_est_mean_collected_offspring$egg_size_intercept, param_best_est_mean_collected_offspring$eyed_effect)
 }
   
+##### What is LRP if we include all the arriving offspring (not just those locally produced)?
+# LRP_all_offspring = LEP*Re (right?) # 10.43057 (best_est_metrics_mean_offspring_all_offspring$LEP_R_mean)
+
 
 # ##### What-if calculation 4) For the largest patch to be SP (highest p(i,i)), what would LRP need to be? And then what would LEP and egg-recruit survival need to be to acheive that LRP?
 # highest_self_disp <- max(best_est)
