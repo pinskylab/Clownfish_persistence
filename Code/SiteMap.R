@@ -46,12 +46,18 @@ kmlen = 1/111.12  # length of a km, in °N
 # Limits for maps
 xlims = c(124.64, 124.80) # site areas
 ylims = c(10.63, 10.87)
+xlims_Palanas = c(124.709, 124.7143)
+ylims_Palanas = c(10.871, 10.875)
 xlims_Alb = c(124.708, 124.7174) # Albuera patch 
 ylims_Alb = c(10.867, 10.875)
 xlims_PHL = c(118,127)  # extent of Philippines map
 ylims_PHL = c(6,18)
 ylims_schematic = c(10.58, 10.92)
 xlims_schematic = c(124.64, 124.85)
+
+# Making the site in the red box and Fig B just Palanas...
+xlims_Alb = xlims_Palanas
+ylims_Alb = ylims_Palanas
 
 # xlims_schematic_panel = c(0,2)
 # ylims_schematic_panel = c(0,4)
@@ -76,9 +82,13 @@ colslist[3] = "grey35"  # probably can't see blue patches on a blue background
 
 # Sites in zoom box
 zoom_site = c("Palanas", "Wangag")
+zoom_site = "Palanas"
 
 # Other clownfish species
 other_clownfish_spp = c("APFR","APOC","APPE","PRBI")
+
+# Set which set of anems to show
+anem_fish_species_to_show = c("empty","A. clarkii")
 
 # Shift right for site labels from site center
 long_shift = 0.008
@@ -177,6 +187,7 @@ anems_to_plot <- data_anems %>%
   mutate(species = case_when(is.na(fish_spp) ~ "empty",
                              fish_spp == "APCL" ~ "A. clarkii",
                              fish_spp %in% other_clownfish_spp ~ "other clownfish")) %>%
+  filter(species %in% anem_fish_species_to_show) %>%
   mutate(group = 11)
 
 # Example sites to show are Palanas (7 in current patchlist) and Wangag (16 in current patchlist) 
@@ -187,7 +198,7 @@ Albuera_patch <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   coord_fixed(xlim = xlims_Alb, ylim = ylims_Alb, 1.3) +
   geom_polygon(color = land_color, fill = land_color) +
   geom_polygon(data = patches[[Palanas_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Palanas
-  geom_polygon(data = patches[[Wangag_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Wangag
+  #geom_polygon(data = patches[[Wangag_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Wangag
   #geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
   geom_point(data = anems_to_plot, aes(x = lon, y = lat, group = group, color = species), alpha=0.7, size=1) +
   scale_color_manual(values = colslist[1:3]) +
