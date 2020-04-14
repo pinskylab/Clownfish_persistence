@@ -585,6 +585,22 @@ make_output_with_dist <- function(nsites, perc_hab_val, total_region) {
 
 
 #################### Running things: ####################
+##### Find number of tagged fish, genotyped fish, fish that are marked somehow (to report in paper)
+n_fish_genotyped <- allfish_caught %>%
+  filter(!is.na(gen_id)) %>%
+  distinct(gen_id) %>%
+  summarize(nfish = n())
+
+n_fish_PIT_tagged <- allfish_caught %>%
+  filter(!is.na(tag_id)) %>%
+  distinct(tag_id) %>%
+  summarize(nfish = n())
+
+n_fish_marked <- allfish_caught %>%
+  filter(!is.na(fish_indiv)) %>%
+  distinct(fish_indiv) %>%
+  summarize(nfish = n())
+
 ########## Estimate some of the "best estimates" of metrics/parameters
 breeding_size_mean <- mean(recap_first_female$size)
 prob_r_mean <- mean(prob_r)  # average value of prob r from each recap dive
