@@ -1357,7 +1357,7 @@ for(i in 1:(length(perc_hab_vals))) {
   NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
 }
 
-# Make dfs for plot where each run is it's own line - perc hab on x axis, NP on y axis
+# Make dfs for plot where each run is its own line - perc hab on x axis, NP on y axis
 perc_hab_plot_df <- perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[1])  # one for uncertainty runs
 for(i in 2:length(perc_hab_vals)) {
   perc_hab_plot_df <- rbind(perc_hab_plot_df, perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[i]))
@@ -2003,13 +2003,13 @@ SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reor
 NP_plot_DD <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab(expression(lambda)) + #ggtitle('Network persistence') +
+  xlab(expression(lambda[c])) + #ggtitle('Network persistence') +
   theme_bw() 
 
 NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = NP_best_est_DD, color = "black") +
-  xlab(expression(lambda)) + ylab("relative frequency") + #ggtitle('Network persistence') +
+  xlab(expression(lambda[c])) + ylab("relative frequency") + #ggtitle('Network persistence') +
   theme_bw() 
 
 # realized connectivity matrix
@@ -2040,7 +2040,7 @@ dev.off()
 # A: more habitat
 perc_hab_plot <- ggplot(data = perc_hab_plot_df %>% filter(run==1), aes(x=perc_hab, y=value)) +
   geom_line(color="dark gray", alpha=0.2) +
-  xlab("percent habitat") + ylab(expression(lambda)) +
+  xlab("percent habitat") + ylab(expression(lambda[c])) +
   theme_bw()
 for(i in 2:n_runs) {
   perc_hab_plot <- perc_hab_plot +
@@ -2054,7 +2054,7 @@ perc_hab_plot <- perc_hab_plot +
 # B: wider region, same habitat density
 wider_region_plot <- ggplot(data = wider_region_plot_df %>% filter(run==1), aes(x=region_width, y=value)) +
   geom_line(color="dark gray", alpha=0.2) +
-  xlab("region width (km)") + ylab(expression(lambda)) +
+  xlab("region width (km)") + ylab(expression(lambda[c])) +
   theme_bw()
 for(i in 2:n_runs) {
   wider_region_plot <- wider_region_plot +
@@ -2068,7 +2068,7 @@ wider_region_plot <- wider_region_plot +
 # C: wider region, 100% habitat density
 wider_region_all_hab_plot <- ggplot(data = wider_region_all_hab_plot_df %>% filter(run==1), aes(x=region_width, y=value)) +
   geom_line(color="dark gray", alpha=0.2) +
-  xlab("region width (km)") + ylab(expression(lambda)) +
+  xlab("region width (km)") + ylab(expression(lambda[c])) +
   theme_bw()
 for(i in 2:n_runs) {
   wider_region_all_hab_plot <- wider_region_all_hab_plot +
@@ -2081,7 +2081,7 @@ wider_region_all_hab_plot <- wider_region_all_hab_plot +
 # D: larval navigation
 larv_nav_plot <- ggplot(data = larv_nav_plot_df %>% filter(run==1), aes(x=larv_nav, y=value)) +
   geom_line(color="gray", alpha=0.2) +
-  xlab("larval navigation (km)") + ylab(expression(lambda)) +
+  xlab("larval navigation (km)") + ylab(expression(lambda[c])) +
   theme_bw()
 for(i in 2:n_runs) {
   larv_nav_plot <- larv_nav_plot +
