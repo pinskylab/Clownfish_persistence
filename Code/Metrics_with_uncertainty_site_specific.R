@@ -2583,7 +2583,7 @@ RperE_uncert_DD_plot$uncertainty_type <- replace(RperE_uncert_DD_plot$uncertaint
                                                  RperE_uncert_DD_plot$uncertainty_type=="prob r", 
                                                "capture probability")
 pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"), width=6, height=4)
-ggplot(data = RperE_uncert_DD_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability (P_c)", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+ggplot(data = RperE_uncert_DD_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all"),
                                value = recruits_per_egg_best_est_DD), color = "black") +
