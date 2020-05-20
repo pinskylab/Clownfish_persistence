@@ -13,6 +13,9 @@ source(here::here('Code', 'Constants_database_common_functions.R')) # Just runni
 library(ggplot2)
 library(grid)
 library(gridExtra)
+library(plotly)  # for 3-D plot in Fig5C
+#devtools::install_github("AckerDWM/gg3D")  # install gg3D for 3-D plot in Fig5C
+library(gg3D)
 library(cowplot)
 
 ##### JUST FOR NOW, LOAD 1-D THETA AND K FIT AND UNCERTAINTY!
@@ -1499,6 +1502,74 @@ for(i in 1:length(region_width_list)) {
   wider_region_all_hab_best_est_NP_df$value[i] = wider_region_all_hab_best_ests_avgSurvs[[i]]$NP
 }
 
+##### What if for % habitat and region width combined
+# Find the site dist info
+perc_hab_vals_long_form <- seq(from=0.01, to=1.0, by = 0.01)
+region_width_list_long_form <- seq(from = 20, to = 55, by = 1)
+
+site_dist_info_wider_region_perc_hab <- list()
+list_val = 1
+for(i in 1:length(region_width_list_long_form)) {
+  for(j in 1:length(perc_hab_vals_long_form)) {
+    site_dist_out_df <- make_output_with_dist(n_sites, perc_hab_vals_long_form[j], region_width_list_long_form[i])
+    site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+    site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+    site_dist_info_wider_region_perc_hab[[list_val]] <- site_dist_out_df
+    list_val = list_val + 1
+  }
+}
+
+# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
+wider_region_perc_hab_best_ests_avgSurvs <- list()
+#wider_region_perc_hab_uncertainty_avgSurvs <- list()
+for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
+  wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
+  #  wider_region_perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, "all: region sens, perc hab sens, avg surv", TRUE)
+  print(i)
+}
+
+# Make dfs for plot where region width, perc hab, and NP all listed
+wider_region_perc_hab_plot_df <- data.frame(NP = rep(NA, length(region_width_list_long_form)*length(perc_hab_vals_long_form)))
+for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
+  wider_region_perc_hab_plot_df$NP[i] = wider_region_perc_hab_best_ests_avgSurvs[[i]]$NP
+}
+wider_region_perc_hab_plot_df$region_width = (as.data.frame(region_width_list_long_form, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each = length(perc_hab_vals_long_form))))$region_width_list_long_form
+wider_region_perc_hab_plot_df$perc_hab = rep(perc_hab_vals_long_form, length(region_width_list_long_form))
+
+# Put NP into categories: 0-.2, 0.2-0.4, 0.4-0.6, 0.6-0.8, 0.8-1.0, >1.0
+wider_region_perc_hab_plot_df_categories <- wider_region_perc_hab_plot_df %>%
+  mutate(NP_category = case_when(NP < 0.2 ~ "< 0.2",
+                                 (0.2 <= NP & NP < 0.4) ~ "[0.2 - 0.4)",
+                                 (0.4 <= NP & NP < 0.6) ~ "[0.4 - 0.6)",
+                                 (0.6 <= NP & NP < 0.8) ~ "[0.6 - 0.8)",
+                                 (0.8 <= NP & NP < 1) ~ "[0.8 - 1)",
+                                 (NP >= 1) ~ ">= 1")) %>%
+  mutate(order_6 = case_when(NP < 0.2 ~ 1,
+                           (0.2 <= NP & NP < 0.4) ~ 2,
+                           (0.4 <= NP & NP < 0.6) ~ 3,
+                           (0.6 <= NP & NP < 0.8) ~ 4,
+                           (0.8 <= NP & NP < 1) ~ 5,
+                           (NP >= 1) ~ 6)) %>%
+  mutate(NP_two_category = case_when(NP < 1 ~ "< 1",
+                                     NP >= 1 ~ ">= 1")) %>%
+  mutate(order_2 = case_when(NP < 1 ~ 1,
+                             NP >= 1 ~ 2)) %>%
+  mutate(NP_categories = case_when(NP < 0.25 ~ "< 0.25",
+                                 (0.25 <= NP & NP < 0.5) ~ "[0.25 - 0.5)",
+                                 (0.5 <= NP & NP < 0.75) ~ "[0.5 - 0.75)",
+                                 (0.75 <= NP & NP < 1) ~ "[0.75 - 1)",
+                                 (NP >= 1) ~ ">= 1")) %>%
+  mutate(order_5 = case_when(NP < 0.25 ~ 1,
+                                   (0.25 <= NP & NP < 0.5) ~ 2,
+                                   (0.5 <= NP & NP < 0.75) ~ 3,
+                                   (0.75 <= NP & NP < 1) ~ 4,
+                                   (NP >= 1) ~ 5))
+
+save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgSurvs.RData"))
+save(wider_region_perc_hab_plot_df, file=here::here("Data/Script_outputs","wider_region_perc_hab_plot_df.RData"))
+#save(wider_region_perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_uncertainty_avgSurvs.RData"))
+#save(site_surv_avg_Sint_param_sets, file=here::here("Data/Script_outputs","site_surv_avg_Sint_param_sets.RData"))
+
 ##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
 # Load generated parameter sets
 load(file = here::here("Data/Script_outputs", "param_set_full.RData"))
@@ -2081,18 +2152,77 @@ wider_region_plot <- wider_region_plot +
   geom_hline(yintercept = 1, color = "blue") +
   geom_vline(xintercept = region_width_km, color = "orange") 
 
-# C: wider region, 100% habitat density
-wider_region_all_hab_plot <- ggplot(data = wider_region_all_hab_plot_df %>% filter(run==1), aes(x=region_width, y=value)) +
-  geom_line(color="dark gray", alpha=0.2) +
-  xlab("region width (km)") + ylab(expression(lambda[c])) +
-  theme_bw()
-for(i in 2:n_runs) {
-  wider_region_all_hab_plot <- wider_region_all_hab_plot +
-    geom_line(data=wider_region_all_hab_plot_df %>% filter(run==i), color="dark gray", alpha=0.2)
-}
-wider_region_all_hab_plot <- wider_region_all_hab_plot +
-  geom_line(data = wider_region_all_hab_best_est_NP_df, aes(x=region_width,y=value),color="black") +
-  geom_hline(yintercept = 1, color = "blue") 
+# C: wider region, perc habitat density
+# color schemes are from ColorBrewer: https://colorbrewer2.org/#type=sequential&scheme=YlGnBu&n=5
+lambda_c_color_scheme_6 <- c("#ffffcc","#c7e9b4","#7fcdbb","#41b6c4","#2c7fb8","#253494")  # 6 colors
+lambda_c_color_scheme_5 <- c("#ffffcc","#a1dab4","#41b6c4","#2c7fb8","#253494")  # 5 colors
+lambda_c_color_scheme_4 <- c("#ffffcc","#a1dab4","#41b6c4","#225ea8")  # 4 colors
+lambda_c_color_scheme_2 <- c("#c7e9b4","#253494")  # 2 colors
+
+# Version 1 - kind of like a heat map
+wider_region_perc_hab_plot_v1 <- ggplot(wider_region_perc_hab_plot_df, aes(x=region_width, y=perc_hab, color=NP, fill=NP)) +
+  geom_point(size=4, shape=15) +
+  scale_color_gradient(labels = c(0.2, 0.4, 0.6, 0.8, 1.0)) +
+  scale_fill_gradient(labels = c(0.2, 0.4, 0.6, 0.8, 1.0)) +
+  geom_hline(yintercept = Ps, color = "orange") +
+  geom_vline(xintercept = region_width_km, color = "orange") +
+  xlab("region width (km)") + ylab("percent habitat") + labs(fill = expression(lambda[c]), color = expression(lambda[c])) +
+  theme_bw() 
+
+# Version 2 - kind of like a heat map but categories instead of continuous
+wider_region_perc_hab_plot_v2 <- ggplot(wider_region_perc_hab_plot_df_categories, aes(x=region_width, y=perc_hab, color=reorder(NP_category,order_6), fill=reorder(NP_category,order_6))) +
+  geom_point(size=4, shape=15) +
+  scale_color_manual(values = lambda_c_color_scheme_6) +
+  scale_fill_manual(values = lambda_c_color_scheme_6) +
+  geom_hline(yintercept = Ps, color = "orange") +
+  geom_vline(xintercept = region_width_km, color = "orange") +
+  xlab("region width (km)") + ylab("percent habitat") + labs(fill = expression(lambda[c]), color = expression(lambda[c])) +
+  theme_bw() 
+
+# Version 3 - only 5 categories
+wider_region_perc_hab_plot_v3 <- ggplot(wider_region_perc_hab_plot_df_categories, aes(x=region_width, y=perc_hab, color=reorder(NP_categories,order_5), fill=reorder(NP_categories,order_5))) +
+  geom_point(size=4, shape=15) +
+  scale_color_manual(values = lambda_c_color_scheme_5) +
+  scale_fill_manual(values = lambda_c_color_scheme_5) +
+  geom_hline(yintercept = Ps, color = "orange") +
+  geom_vline(xintercept = region_width_km, color = "orange") +
+  xlab("region width (km)") + ylab("percent habitat") + labs(fill = expression(lambda[c]), color = expression(lambda[c])) +
+  theme_bw() 
+
+# Version 4 - only 2 categories
+wider_region_perc_hab_plot_v4 <- ggplot(wider_region_perc_hab_plot_df_categories, aes(x=region_width, y=perc_hab, color=reorder(NP_two_category,order_2), fill=reorder(NP_two_category,order_2))) +
+  geom_point(size=4, shape=15) +
+  scale_color_manual(values = lambda_c_color_scheme_2) +
+  scale_fill_manual(values = lambda_c_color_scheme_2) +
+  geom_hline(yintercept = Ps, color = "orange") +
+  geom_vline(xintercept = region_width_km, color = "orange") +
+  xlab("region width (km)") + ylab("percent habitat") + labs(fill = expression(lambda[c]), color = expression(lambda[c])) +
+  theme_bw() 
+
+# Version 5 - 3D - with plotly
+wider_region_perc_hab_plot_3D <- plot_ly(y=wider_region_perc_hab_plot_df$region_width, x=wider_region_perc_hab_plot_df$perc_hab, z=wider_region_perc_hab_plot_df$NP, type="scatter3d", mode="markers",color=wider_region_perc_hab_plot_df$NP)
+
+# With gg3d
+# wider_region_perc_hab_plot_3D <- ggplot(wider_region_perc_hab_plot_df, aes(x=region_width, y=NP, z=perc_hab, color=NP, fill=NP)) +
+#   theme_void() +
+#   axes_3D() +
+#   stat_3D() +
+#   xlab("region width (km)") + ylab(expression(lambda[c])) 
+
+plot_ly(x=temp, y=pressure, z=dtime, type="scatter3d", mode="markers", color=temp)
+                                    
+# # C: wider region, 100% habitat density (original plot C)
+# wider_region_all_hab_plot <- ggplot(data = wider_region_all_hab_plot_df %>% filter(run==1), aes(x=region_width, y=value)) +
+#   geom_line(color="dark gray", alpha=0.2) +
+#   xlab("region width (km)") + ylab(expression(lambda[c])) +
+#   theme_bw()
+# for(i in 2:n_runs) {
+#   wider_region_all_hab_plot <- wider_region_all_hab_plot +
+#     geom_line(data=wider_region_all_hab_plot_df %>% filter(run==i), color="dark gray", alpha=0.2)
+# }
+# wider_region_all_hab_plot <- wider_region_all_hab_plot +
+#   geom_line(data = wider_region_all_hab_best_est_NP_df, aes(x=region_width,y=value),color="black") +
+#   geom_hline(yintercept = 1, color = "blue") 
 
 # D: larval navigation
 larv_nav_plot <- ggplot(data = larv_nav_plot_df %>% filter(run==1), aes(x=larv_nav, y=value)) +
@@ -2112,6 +2242,19 @@ pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels.pdf"), width=6, heigh
 plot_grid(perc_hab_plot, wider_region_plot, wider_region_all_hab_plot, larv_nav_plot, 
           nrow=2, labels=c("a","b","c","d"))
 dev.off()
+
+# All together with a sample 3d plot
+pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels_3D.pdf"), width=6, height=6)
+plot_grid(perc_hab_plot, wider_region_plot, wider_region_perc_hab_plot_v3, larv_nav_plot, 
+          nrow=2, labels=c("a","b","c","d"))
+dev.off()
+
+# Different 3D plot options
+pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels_3D_options.pdf"), width=6, height=6)
+plot_grid(wider_region_perc_hab_plot_v1, wider_region_perc_hab_plot_v3, wider_region_perc_hab_plot_v4, NULL,
+          nrow=2, labels=c("a","b","c",NULL))
+dev.off()
+
 
 #### Also, save them individually...
 # Larval navigation
