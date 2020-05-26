@@ -2849,6 +2849,21 @@ ggplot(data = LEP_test_max_size , aes(x=max_size, y=LEP)) +
   theme_bw()
 dev.off()
 
+##### Comparing min/max of grid search k and theta parameters to KC's 95% confidence calculated using Ben Bolker method
+disp_95CI_surface_plot <- ggplot(data = k_theta_allyear_95CI_values, aes(x = k_eval, y = theta_eval, fill = log_like, color = log_like)) +
+  geom_point(size = 4, shape = 15) +
+  geom_hline(data = kernel_summary %>% filter(Year == "2012-18"), aes(yintercept = theta_CI95_upper), color = "black") +
+  geom_hline(data = kernel_summary %>% filter(Year == "2012-18"), aes(yintercept = theta_CI95_lower), color = "black") +
+  geom_vline(data = kernel_summary %>% filter(Year == "2012-18"), aes(xintercept = k_CI95_upper), color = "black") +
+  geom_vline(data = kernel_summary %>% filter(Year == "2012-18"), aes(xintercept = k_CI95_lower), color = "black")
+
+disp_95CI_surface_plot <- disp_95CI_surface_plot +
+  geom_point(data = kernel_summary %>% filter(Year == "2012-18"), aes(x = best_k, y = best_theta), color = "white", fill = "white") +
+  xlab("k") + ylab("theta")
+  
+pdf(file = here::here("Plots/FigureDrafts", "disp_95CI_surface_and_CI_limits.pdf"))
+disp_95CI_surface_plot
+dev.off()
 
 ########## Plots for WSN talk #########
 ### LRP (LEP_R) with DD
