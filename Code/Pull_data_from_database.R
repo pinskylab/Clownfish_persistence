@@ -67,4 +67,19 @@ save(all_offspring, file = here::here("Data/From_other_analyses", "all_offspring
 save(k_theta_allyear_95CI_values, file = here::here("Data/From_other_analyses", "k_theta_allyear_95CI_values.RData"))  # 95% CI values for k and theta fits
 save(length_count8llEA, file= here::here("Data/From_other_analyses", "length_count8llEA.RData"))  # size-fecundity model from Adam
 
+######### Finding the 3 fish-indivs that got added to new parent file but aren't included in the colony parentage analysis so need to be pulled out (for analysis after 6/3/20 change to the new file)
+# Assign updated version of parents file to new variable name (since both old and new versions are called all_parents)
+new_parent_file <- all_parents
 
+# Load previous version of parent file, downloaded from previous git commit
+load(here::here("Data/From_other_analyses","all_parents_old.RData"))  
+old_parent_file <- all_parents  # assign to a new name
+
+# Find the differences - hmm, this is pulling out way more differences than I would have expected
+parents_added <- anti_join(new_parent_file, old_parent_file, by = "fish_indiv")  # 161 differences
+parents_added <- setdiff(new_parent_file, old_parent_file)  # 1006 differences
+parents_added <- anti_join(new_parent_file, old_parent_file, by = "sample_id")
+parents_added <- anti_join(old_parent_file, new_parent_file, by = "sample_id")
+
+# Save old parent file so can compare site-matching to new one - maybe I can just keep using the old parent file?
+save(old_parent_file, file=here::here("Data/From_other_analyses","old_parent_file.RData"))
