@@ -29,8 +29,6 @@ load(file = here::here("Data/From_other_analyses", "all_offspring.RData"))  # al
 load(file = here::here("Data/From_other_analyses", "k_theta_allyear_95CI_values.RData"))  # 95% k and theta fits (https://github.com/katcatalano/parentage/blob/master/kernel_fitting/1340_loci/final_results/likelihood_profiles_grid_search/profile95CI_AllYears.csv)
 load(file = here::here("Data/From_other_analyses", "length_count8llEA.RData"))  # size-fecundity model (from Adam Yawdoszyn work)
 
-load(file = here::here("Data/From_other_analyses", "old_parent_file.RData"))  # loading old parent file to see if can just keep using it
-
 #################### Set constants and parameters: ####################
 
 ##### Sampling information
@@ -371,20 +369,6 @@ all_parents_edited <- all_parents %>%
 all_parents_by_site <- left_join(all_parents_edited %>% dplyr::rename(fish_indiv_parent = fish_indiv, gen_id_parent = gen_id), 
                                  allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "sample_id") %>%
   distinct(fish_indiv, .keep_all = TRUE)  # this doesn't actually remove any for now, think about whether it should be included
-
-# Now do it with old version of parents file too so can compare
-# Make fish_indiv a character so can mesh with allfish_caught
-all_parents_edited_old <- old_parent_file %>%
-  mutate(fish_indiv = as.character(fish_indiv))
-
-# Then join the two so parents have site assigned to them
-all_parents_by_site_old <- left_join(all_parents_edited_old %>% dplyr::rename(fish_indiv_parent = fish_indiv, gen_id_parent = gen_id), 
-                                 allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "sample_id") %>%
-  distinct(fish_indiv, .keep_all = TRUE)  # this doesn't actually remove any for now, think about whether it should be included
-
-# Compare number of parents by site
-old_parents_by_site <- data.frame(table(all_parents_by_site_old$site))
-new_parents_by_site <- data.frame(table(all_parents_by_site$site))
 
 #################### Save files processed in this script ####################
 save(site_vec_order, file = here::here("Data/Script_outputs", "site_vec_order.RData"))
