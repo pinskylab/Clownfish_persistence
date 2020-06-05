@@ -1,19 +1,17 @@
 # Calculate total number of anemones at each site and proportion of habitat sampled each year based on anemone numbers
 
-#### LOOKS LIKE PLOTS DON'T QUITE MATCH PREVIOUS ESTIMATES - WHY NOT? (some anem ids might have changed b/c Michelle was using QGIS to update them?)
-## Anems have changed again since the above message, I think, with updates in anem_obs and totals, proportion habs changed again a bit when I re-ran this Oct. 2019.
-
 #################### Set-up: ####################
-# Load packages
-library(stringr)
-library(ggplot2)
 
 # Pull data, functions, constants 
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
+# Load packages
+library(stringr)
+library(ggplot2)
+
 #################### Functions: ####################
 # Find the number of tagged anemones visited by each site, each year 
-pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, survey_months, dive_types) {  # anemsdf is processed anems (anems_Processed), allanems are anems associated with APCL - regardless if tagged, divesdf is all dives, year_i is year of interest, site_i is site, survey_months is list of months when clownfish were sampled
+pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, survey_months, dive_types) {  # anemsdf is to find tagged anemones (use anems_Processed); allanems is to find sampled anemones in 2012, before anems were tagged (use all_APCL_anems - anems associated with APCL, regardless if tagge); divesdf is all dives; year_i is year of interest; site_i is site; survey_months is list of months when clownfish were sampled
   
   # Pull out dives relevant to year and site
   dives <- divesdf %>%
@@ -38,7 +36,7 @@ pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, surve
     anems_visited = as.integer(tagged_anems_from_dives)
   } else if (year_i == 2012) {
     
-    # If it is 2012, use anems sampled without specifying that they are tagged (do I need to worry about dive types?)
+    # If it is 2012, use anems sampled without specifying that they are tagged (didn't consider dive types)
     anems_visited = as.integer(sampled_anems_from_dives)
   }
 
@@ -49,7 +47,7 @@ pull_anems_by_year <- function(anemsdf, allanems, divesdf, year_i, site_i, surve
 }
 
 #################### Running things: ####################
-##### Pull out anems associated with fish from clownfish table
+##### Pull out anems associated with fish from clownfish table (to use to find visited anems in 2012, before anems were tagged)
 # Pull out fish
 APCL_caught <- fish_db %>%
   select(fish_table_id, anem_table_id, fish_spp, sample_id, anem_table_id, recap, tag_id, color, size) %>%
@@ -71,20 +69,20 @@ all_APCL_anems <- left_join(APCL_anems, APCL_dives, by="dive_table_id")  # this 
 # Remove intermediate data frames for neatness
 rm(APCL_caught, APCL_anems, APCL_dives)
 
-##### Find total habitat at each site, as indicated by anemones, via four methods
+##### Find total habitat at each site, as indicated by anemones, via four methods of estimating total anemones at a site (metal tags, all types of tags, anemones seen in at least two years, anemones seen in the 2015 anemone survey)
 # Create data frames to store the output for various methods of assessing total anemones
 methods = c("metal tags", "all tags", "seen twice", "2015 survey")
 
-total_anems_by_site_metal <- data.frame(site = site_vec_order$site_name) %>%
+total_anems_by_site_metal <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
   mutate(method = "metal tags",
          n_total_anems = NA)
-total_anems_by_site_alltags <- data.frame(site = site_vec_order$site_name) %>%
+total_anems_by_site_alltags <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
   mutate(method = "all tags",
          n_total_anems = NA)
-total_anems_by_site_seen2x <- data.frame(site = site_vec_order$site_name) %>%
+total_anems_by_site_seen2x <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
   mutate(method = "seen twice",
          n_total_anems = NA)
-total_anems_by_site_2015W <- data.frame(site = site_vec_order$site_name) %>%
+total_anems_by_site_2015W <- data.frame(site = site_vec_order$site_name, stringsAsFactors = FALSE) %>%
   mutate(method = "2015 survey",
          n_total_anems = NA)
 
@@ -136,6 +134,11 @@ total_anems_by_site <- rbind(total_anems_by_site_metal, total_anems_by_site_allt
 # Remove the individual method data frames, for neatness
 rm(total_anems_by_site_metal, total_anems_by_site_alltags, total_anems_by_site_seen2x, total_anems_by_site_2015W)
 
+
+##### Should I be using the APCL anems or just regular anems? Doesn't using APCL anems cut out anems that didn't happen to have fish on them that year (or fish caught on them?)
+test_anems_Processed_2016 <- pull_anems_by_year(anems_Processed, anems_Processed, dives_db_processed, 2016, "Palanas", spring_months, clown_sample_dive_types)
+test_APCL_anems_2016 <- pull_anems_by_year(anems_Processed, all_APCL_anems, dives_db_processed, 2016, "Palanas", spring_months, clown_sample_dive_types)
+
 ##### Find the amount of the site visited, as estimated by number of anems visited each year in each site
 # Cycle through years and sites to find the number of anems visited
 anems_visited_dfs <- list()  # set up list to hold output dataframes
@@ -166,6 +169,18 @@ for(i in 2:length(years_sampled)) {
 # Add in total anems per site
 anems_visited_by_year <- left_join(anems_visited_by_year, total_anems_by_site, by = "site")
 
+######################## Trouble-shooting code - confirming method for choosing anems sampled #############################
+## Test whether it matters if I used all_APCL_anems or anems_Processed as anems visited - anems_Processed might include anems that were just seen on the anem survey (vs. sampled for clownfish) but all_APCL_anems might omit anems that were visited but where no clownfish were present or caught that year
+anems_visited_by_year_APCL <- anems_visited_by_year  # run with code above as normal
+# Now, re-assign value of all_APCL_anems so can re-run code above 
+all_APCL_anems <- anems_Processed_all
+anems_visited_by_year_all <- anems_visited_by_year
+# Now try with anems_Processed_all, includes anems without anem_ids... but maybe that's not a great idea b/c just looking at random anems...
+
+# Filter out just the metal anems method of total anems
+anems_visited_by_year_APCL <- anems_visited_by_year_APCL %>% filter(method == "metal tags")
+anems_visited_by_year_all <- anems_visited_by_year_all %>% filter(method == "metal tags")
+
 ##### Calculate proportion habitat sampled and create a tidied version where NaN, Inf, and values >1 are edited
 anems_visited_by_year <- anems_visited_by_year %>%
   mutate(prop_hab_sampled = n_anems/n_total_anems) %>%  # for all methods of determining total number of tags, calculate prop_hab_sampled
@@ -174,72 +189,7 @@ anems_visited_by_year <- anems_visited_by_year %>%
   mutate(prop_hab_sampled_tidied = case_when(n_anems_tidied/n_total_anems <= 1 ~ n_anems_tidied/n_total_anems,  
                                               n_anems_tidied/n_total_anems == Inf | is.na(n_anems_tidied/n_total_anems) ~ 0))  # make a tidier version of prop_hab_sampled (no Inf, NaN, > 1 values), using n_anems_tidied
 
-# # How I was doing this tidying before - moved to tidying anems so it carries over into the cumulative counts (anems over the total at a site don't count in the total sampled at all sites across years)
-# mutate(prop_hab_sampled_tidied = case_when(prop_hab_sampled <= 1 ~ prop_hab_sampled,  # if it's a real number and less than one, stick with original prop_hab_sampled
-#                                            prop_hab_sampled == Inf | is.na(prop_hab_sampled) ~ 0,  # if it's infinite or otherwise not a number (b/c total anems is 0), use 0
-#                                            prop_hab_sampled > 1 ~ 1)) %>%  # if it's bigger than 1, round down to 1 
-
-# COMMENTING THIS OUT BC THINKING I STOPPED DOING THIS BY AREA AND INSTEAD USED PROP HAB SAMPLED VIA ANEM NUMBERS (couldn't find site_areas loaded when tried to run this)
-# ##### Calculate the total amount of habitat visited over time (used in estimating egg-recruit survival)
-# # Sum up total site area (all site areas times all years sampled) - total possible sampling area 
-# site_areas_modified <- site_areas %>% filter(site %in% sites_for_total_areas)  # Pull just the area from those sites
-# 
-# # Find amount of habitat sampled overall - sum of area sampled in each year
-# sampled_area_each_year <- left_join(site_areas_modified, anems_visited_by_year, by = 'site') %>%  # join with total area
-#   mutate(area_sampled = prop_hab_sampled_tidied*kmsq_area)  # for each method, site, and year, find area sampled in kmsq, using tidied-up prop hab sampled
-# 
-# time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
-# 
-# # Set up a data frame for collecting total area sampled across different time frames
-# time_frame_list <- rep(time_frames[1], length(methods))
-# for (i in 2:length(time_frames)) {
-#   time_frame_list <- c(time_frame_list, rep(time_frames[i], length(methods)))
-# }
-# 
-# total_area_sampled_through_time <- data.frame(method = rep(methods, length(time_frames)),
-#                                               time_frame = time_frame_list, stringsAsFactors = FALSE) %>%
-#   mutate(total_possible_sample_area_km2 = NA,
-#          total_area_sampled_km2 = NA,
-#          total_prop_hab_sampled_area = NA,
-#          end_year = str_sub(time_frame, -4, -1),
-#          total_possible_sample_anems = NA,  # total number of anems that would have been possible to sample in the time frame (sum of total at all sites X number of years of sampling)
-#          total_anems_sampled = NA,  # sum of total number of anems sampled at all sites in that time period
-#          total_anems_sampled_tidied = NA,  # sum of total number of anems sampled at all sites in that time period but not including anems that exceed the total at a site (so if 15 sampled recorded at a site with 10 estimated total, this number sums using 10)
-#          total_prop_hab_sampled_anems = NA,
-#          total_prop_hab_sampled_anems_tidied = NA)  # doesn't include anems sampled at a site that exceed the total anems at that site estimated by each method
-# 
-# # total_area_sampled <- data.frame(method = methods) %>%
-# #   mutate(total_area_sampled = NA,
-# #          total_prop_hab_sampled = NA,
-# #          total_area_sampled_2012to2015 = NA,
-# #          total_prop_hab_sampled_2012to2015 = NA)
-# 
-# # Find total area that could have been sampled, adding a sample year each time (for parentage)
-# for (i in 1:length(total_area_sampled_through_time$method)) {
-#   end_year <- as.integer(total_area_sampled_through_time$end_year[i])
-#   years_to_include <- seq(2012, end_year, by=1)
-#   
-#   # Find possible area to sample, area sampled, and prop_hab sampled using area
-#   total_area_sampled_through_time$total_possible_sample_area_km2[i] = sum(site_areas_modified$kmsq_area*(length(years_to_include)))
-#   total_area_sampled_through_time$total_area_sampled_km2[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$area_sampled)
-#   #total_area_sampled_through_time$total_area_sampled[i] = sum((sampled_area_each_year %>% filter(method == total_area_sampled_through_time$methods[i], year %in% years_to_include))$area_sampled)
-#   total_area_sampled_through_time$total_prop_hab_sampled_area[i] = total_area_sampled_through_time$total_area_sampled_km2[i]/total_area_sampled_through_time$total_possible_sample_area_km2[i]
-# 
-#   # Find possible area to sample, area sampled, and prob_hab sampled using anems and proportion of anems, rather than converting to area (like do for within-year proportion hab sampled)
-#   total_area_sampled_through_time$total_possible_sample_anems[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_total_anems)
-#   total_area_sampled_through_time$total_anems_sampled[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems)
-#   total_area_sampled_through_time$total_anems_sampled_tidied[i] = sum((sampled_area_each_year %>% filter(year %in% years_to_include & method == total_area_sampled_through_time$method[i]))$n_anems_tidied)
-#   total_area_sampled_through_time$total_prop_hab_sampled_anems[i] = total_area_sampled_through_time$total_anems_sampled[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
-#   total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied[i] = total_area_sampled_through_time$total_anems_sampled_tidied[i]/total_area_sampled_through_time$total_possible_sample_anems[i]
-# }
-# 
-# # Make into a data frame for easier comparison plotting
-# total_sampling_across_years <- data.frame(total_anems_method = rep(total_area_sampled_through_time$method, 3),
-#                                           time_frame = rep(total_area_sampled_through_time$time_frame, 3),
-#                                           total_prop_hab_sampled = c(total_area_sampled_through_time$total_prop_hab_sampled_area, total_area_sampled_through_time$total_prop_hab_sampled_anems, total_area_sampled_through_time$total_prop_hab_sampled_anems_tidied),
-#                                           total_area_method = c(rep("area", length(total_area_sampled_through_time$method)), rep("anems", length(total_area_sampled_through_time$method)), rep("anems tidied", length(total_area_sampled_through_time$method))))
-# 
-
+# STOPPED EDITING HERE!!
 ##### Do a similar thing by site, finding cumulative proportion habitat sampled by site
 time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
 
