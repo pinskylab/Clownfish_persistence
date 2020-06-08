@@ -33,6 +33,7 @@ Repository contents and explanation:
 * *Script_outputs*
   * anems_visited_by_year.RData - number of anemones visited at each site each year and total anems at each site (produced by Total_anems_proportion_hab_sampled.R)
   * cumulative_prop_hab_sampled_by_site.RData - cumulative proportion habitat sampled at each site through time (produced by Total_anems_proportion_hab_sampled.R)
+  * prop_hab_appendix_table.RData - has total anemones and proportion sampled each year for each site and overall region info for appendix table in paper (produced by Total_anems_proportion_hab_sampled.R)
   * site_edge_anems.RData - anem_ids for anemones at the northern edge, southern edge, and middle of each site (eyeballed from QGIS) (produced by Constants_database_common_functions.R)
   * site_visits.RData - gives a 1 or NA for each site and year, indicating whether it was visited during the clownfish sampling field season (produced by Constants_database_common_functions.R)
   * site_width_info.RData - width of each site and distance to northern and southern edges of sampling area (produced by Site_widths_and_distances.R)
