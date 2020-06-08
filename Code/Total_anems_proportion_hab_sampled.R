@@ -172,6 +172,25 @@ anems_visited_by_year <- anems_visited_by_year %>%
   mutate(prop_hab_sampled_tidied = case_when(n_anems_tidied/n_total_anems <= 1 ~ n_anems_tidied/n_total_anems,  
                                               n_anems_tidied/n_total_anems == Inf | is.na(n_anems_tidied/n_total_anems) ~ 0))  # make a tidier version of prop_hab_sampled (no Inf, NaN, > 1 values), using n_anems_tidied
 
+###### Find overall proportion habitat across all sites sampled in each year
+anems_visited_by_year_all_sites <-anems_visited_by_year %>%
+  group_by(method, year) %>%
+  summarize(region_total_anems = sum(n_total_anems), region_total_sampled = sum(n_anems_tidied)) %>%
+  mutate(prop_hab_sampled_tidied_region = region_total_sampled/region_total_anems) %>%
+  ungroup()
+
+# Make appendix table with prop hab sampled by site and year and overall, using metal tags as total anems method
+prop_hab_appendix_table <- rbind(anems_visited_by_year %>% 
+                                   filter(method == "metal tags") %>%
+                                   select(site, year, n_total_anems, method, n_anems_tidied, prop_hab_sampled_tidied),
+                                 anems_visited_by_year_all_sites %>%
+                                   filter(method == "metal tags") %>%
+                                   mutate(site = "overall",
+                                          n_total_anems = region_total_anems, 
+                                          n_anems_tidied = region_total_sampled,
+                                          prop_hab_sampled_tidied = prop_hab_sampled_tidied_region) %>%
+                                   select(site, year, n_total_anems, method, n_anems_tidied, prop_hab_sampled_tidied))
+
 ##### Do a similar thing by site, finding cumulative proportion habitat sampled by site
 time_frames <- c("2012", "2012-2013", "2012-2014", "2012-2015", "2012-2016", "2012-2017", "2012-2018")
 
@@ -347,4 +366,4 @@ dev.off()
 #################### Saving output: ####################
 save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
 save(cumulative_prop_hab_sampled_by_site, file=here::here("Data/Script_outputs", "cumulative_prop_hab_sampled_by_site.RData"))  # summary of prop hab sampled cumulatively through time by site, method is "metal tags"
-
+save(prop_hab_appendix_table, file=here::here("Data/Script_outputs", "prop_hab_appendix_table.RData"))  # numbers for appendix table with total anems and prop habitat sampled by year and site
