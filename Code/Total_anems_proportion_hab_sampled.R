@@ -247,6 +247,34 @@ cumulative_prop_hab_sampled_by_site <- cumulative_prop_hab_sampled_by_site %>%
   mutate(total_prop_hab_sampled_anems = total_anems_sampled/total_possible_sample_anems,
          total_prop_hab_sampled_anems_tidied = total_anems_sampled_tidied/total_possible_sample_anems)
 
+##### Do another version of cumulative proportion habitat sampled through time where Caridad Proper, Sitio Tugas and Sitio Lonas's non-metal-tagged anemones are included
+# Set up data frame, just using metal tags tidied method for the sites that have metal tags (most) and all tagged anems for those that don't (Caridad Proper, Sitio Tugas, and Sitio Lonas)
+cumulative_prop_hab_sampled_by_site_v2 <- data.frame(site = rep(site_vec_order$site_name, length(time_frames)), stringsAsFactors = FALSE) %>%
+  mutate(time_frame = time_frame_list_site,
+         end_year = str_sub(time_frame, -4, -1),
+         total_possible_sample_anems = NA,  # total number of anems that would have been possible to sample in the time frame (sum of total at this site x number of years of sampling)
+         total_anems_sampled_tidied = NA,  # sum of total anems sampled at that site in that time period not including anems that exceed the total at the site
+         total_prop_hab_sampled_anems_tidied = NA)
+
+# Find total anems that could have been sampled, adding a sample year each time (to be used by Katrina in parentage analysis work)
+for(i in 1:length(cumulative_prop_hab_sampled_by_site_v2$site)) {
+  end_year <- as.integer(cumulative_prop_hab_sampled_by_site_v2$end_year[i])
+  years_to_include <- seq(2012, end_year, by=1)
+  site_i = cumulative_prop_hab_sampled_by_site_v2$site[i]
+  
+  # Total number of anems that could have been sampled (total at site x number of years) 
+  cumulative_prop_hab_sampled_by_site_v2$total_possible_sample_anems[i] = ((prop_hab_appendix_table %>% filter(site == site_i, year == 2012))$n_total_anems)*length(years_to_include)
+  
+  # Total number sampled, tidied (so doesn't exceed total at this site)
+  cumulative_prop_hab_sampled_by_site_v2$total_anems_sampled_tidied[i] = sum(prop_hab_appendix_table %>% 
+                                                                            filter(site == site_i, year %in% years_to_include) %>% 
+                                                                            select(n_anems_tidied))
+}
+
+# Find cumulative proportion habitat sampled for each site
+cumulative_prop_hab_sampled_by_site_v2 <- cumulative_prop_hab_sampled_by_site_v2 %>%
+  mutate(total_prop_hab_sampled_anems_tidied = total_anems_sampled_tidied/total_possible_sample_anems)
+
 #################### Plots: #################### (already have versions of these in this folder from the other script but now can compare)
 # Look at proportion sampled, using metal tags as total anemones
 pdf(file = here::here("Plots/TotalAnemsandPropHabSampled", "Metal_TA_prop_hab_sampled.pdf"))
@@ -377,4 +405,5 @@ dev.off()
 #################### Saving output: ####################
 save(anems_visited_by_year, file=here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # file with total number of anems and prop hab sampled by method
 save(cumulative_prop_hab_sampled_by_site, file=here::here("Data/Script_outputs", "cumulative_prop_hab_sampled_by_site.RData"))  # summary of prop hab sampled cumulatively through time by site, method is "metal tags"
+save(cumulative_prop_hab_sampled_by_site_v2, file=here::here("Data/Script_outputs","cumulative_prop_hab_sampled_by_site_v2.RData"))  # same as above but using all tagged anems for Caridad Proper, Sitio Tugas, and Sitio Lonas b/c they don't have metal-tagged anems
 save(prop_hab_appendix_table, file=here::here("Data/Script_outputs", "prop_hab_appendix_table.RData"))  # numbers for appendix table with total anems and prop habitat sampled by year and site
