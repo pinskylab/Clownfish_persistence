@@ -10,23 +10,23 @@ source(here::here('Code', 'Constants_database_common_functions.R'))
 
 #################### Functions: ####################
 # Find the maximum buffer distance to the north and south of each side without overlapping the next site's shadow
-findBufferDistance <- function(org_site, site_buffer_df, northern_most_site_pos, southern_most_site_pos){
+findBufferDistance <- function(org_site, site_buffer_df, northern_most_site_pos, southern_most_site_pos, max_buffer){  # org_site is focal site, site_buffer_df is data frame with site names and geographic position numbers and lat/lon for N and S-most anemones, nothern_most_site_pos is the geographic position number of the northern-most site sampled (1 = Palanas), southern_most_site_pos is the geographic position number of the southern-most site sampled (19 = Sitio Baybayon), max_buffer is max larval buffer distance considered
   org_site_pos <- (site_buffer_df %>% filter(site == org_site))$geo_order  # find geographic position (site order) of origin site
   # distances and buffer to the north
   if(org_site_pos == northern_most_site_pos) {  # if this is the northern-most site, no limits to the buffer to the north
-    dist_to_N_m = max_larval_nav_buffer
-    max_buffer_N_m = max_larval_nav_buffer
+    dist_to_N_m = max_buffer  
+    max_buffer_N_m = max_buffer  # so assign the max larval buffer as the possible distance to the north
   } else {
     dest_site_N_pos <- org_site_pos - 1  # find the geo order of the site one to the north
     dist_to_N_m <- distHaversine(c((site_buffer_df %>% filter(site == org_site))$N_lon, (site_buffer_df %>% filter(site == org_site))$N_lat),  # find the distance between the northern edge of the origin site and the southern edge of the next site north
                                  c((site_buffer_df %>% filter(geo_order == dest_site_N_pos))$S_lon, (site_buffer_df %>% filter(geo_order == dest_site_N_pos))$S_lat))
-    max_buffer_N_m = dist_to_N_m/2 
+    max_buffer_N_m = dist_to_N_m/2  # otherwise, assign the maximum buffer as half of the distance between the northern edge of this site and the southern edge of the next site north
   }
   
   # distances and buffer to the south
   if(org_site_pos == southern_most_site_pos) {  # if this is the northern-most site, no limits to the buffer to the north
-    dist_to_S_m = max_larval_nav_buffer
-    max_buffer_S_m = max_larval_nav_buffer
+    dist_to_S_m = max_buffer
+    max_buffer_S_m = max_buffer
   } 
   else {
     dest_site_S_pos <- org_site_pos + 1  # find the geo order of the site one to the south
@@ -52,9 +52,9 @@ site_edges_info <- site_edge_anems %>% filter(anem_loc %in% c("north", "south"))
 # Pull out info on those anems so can use anem_table_ids in function to get lat/lon
 site_width_anems <- anems_Processed %>%
   filter(anem_id %in% site_edges_info$anem_id) %>%
-  distinct(anem_id, .keep_all = TRUE)
+  distinct(anem_id, .keep_all = TRUE)  # just choose one visit to each anem (rather than trying to average GPS positions from multiple visits)
 
-# Match those anem_table_ids to the anem_ids in site_width_info
+# Match those anem_table_ids to the anem_ids in site_edges_info
 site_edges_info <- left_join(site_edges_info, site_width_anems %>% select(anem_table_id, anem_id), by = "anem_id")
 
 # Find lat/lon for each of those anems
@@ -138,6 +138,7 @@ site_width_info <- site_width_info %>%
 #   site_distances_to_edge$dist_to_S_edge_km[i] = site_distances_to_edge$dist_to_S_edge_m[i]/1000
 # }
 
+##### STOPPED EDITING!
 ##### Find distances between sites (RIGHT NOW DOING N-N, SHOULD DO MID-MID but not all sites have a mid anem or one that has both lat/lon coordinates, at least for the observation of the anem I chose)
 # Set up data frame 
 org_site_list <- rep(site_vec_order$site_name[1], length(site_vec_order$site_name))  # need a list of each site repeated 19 times so can get all sites as origins and destinations for each other site
@@ -226,12 +227,12 @@ for(i in 1:length(site_dist_info$org_site)) {
 # Remove temporary values from for loop for neatness
 rm(site_org, N_lat_org, N_lon_org, S_lat_org, S_lon_org, site_dest, N_lat_dest, N_lon_dest, S_lat_dest, S_lon_dest)
 
-# For self-self distance, use 0 as min and site width as max (not the only way I could do this) - now doing 1/2 site width as max because changed kernel normalization
+# For self-self distance, use 0 as min and 1/2 site width as max #### (not the only way I could do this) - now doing 1/2 site width as max because changed kernel normalization
 site_dist_info <- site_dist_info %>%
   mutate(d1_km = case_when(org_site != dest_site ~ d1_km,
                            org_site == dest_site ~ 0),  # min distance is 0 for self-self distances
          d2_km = case_when(org_site != dest_site ~ d2_km,
-                           org_site == dest_site ~ dest_width/2))  # max distance is site width for self-self distances
+                           org_site == dest_site ~ dest_width/2))  # max distance is 1/2 site width for self-self distances
   
 # # How to do self-self distance? Sum of mid to each edge? (more like what doing above but would prob need to renormalize disp kernel?) Or edge to edge?
 # # Correct d1 and d2 for selfs? The difference between them is the width of the site but should I be doing integral of 0 to close edge + 0 to far edge or (what I've been doing) integral of 0 to width of site
@@ -280,7 +281,7 @@ site_buffer_info <- site_buffer_info %>%
          max_buffer_S_m = NA)  # maximum buffer to the south (half of the distance to nearest site to the south))
 
 for(i in 1:length(site_buffer_info$site)) {
-  buffer_out <- findBufferDistance(site_buffer_info$site[i], site_buffer_info, northern_site_pos, southern_site_pos)
+  buffer_out <- findBufferDistance(site_buffer_info$site[i], site_buffer_info, northern_site_pos, southern_site_pos, max_larval_nav_buffer)
   site_buffer_info$dist_to_N_m[i] <- buffer_out$dist_to_N_m
   site_buffer_info$max_buffer_N_m[i] <- buffer_out$max_buffer_N_m
   site_buffer_info$dist_to_S_m[i] <- buffer_out$dist_to_S_m
