@@ -31,7 +31,14 @@ Repository contents and explanation:
   * all_parents.RData - info on all parents included in parentage analysis 
   * fish-obs.RData - info on individual fish, tying their genetic and tag ids together 
 * *Script_outputs*
+  * site_vec_order.RData - vector of site names and their alphabetical order and geographic order (north to south) (produced by Constants_database_common_functions.R)
+  * allfish_caught.RData - all APCL caught, with dive and anemone info appended (produced by Constants_database_common_functions.R)
+  * dives_processed.RData - number of dives at each site in each year (produced by Constants_database_common_functions.R)
+  * dives_processed_clownfish.RData - number of dives during clownfish sampling season (produced by Constants_database_common_functions.R)
   * site_visits.RData - gives a 1 or NA for each site and year, indicating whether it was visited during the clownfish sampling field season (produced by Constants_database_common_functions.R)
+  * anems_Processed.RData - anems with anem_ids, dive info and times processed and such so can link to gps (produced by Constants_database_common_functions.R)
+  * anems_Processed_all.RData - times processed for all anems, even without ids (produced by Constants_database_common_functions.R)
+  * all_parents_by_site.RData - number of parents by site (produced by Constants_database_common_functions.R)
   * site_edge_anems.RData - anem_ids for anemones at the northern edge, southern edge, and middle of each site (eyeballed from QGIS) (produced by Constants_database_common_functions.R)
   * anems_visited_by_year.RData - number of anemones visited at each site each year and total anems at each site (produced by Total_anems_proportion_hab_sampled.R)
   * cumulative_prop_hab_sampled_by_site.RData - cumulative proportion habitat sampled at each site through time (produced by Total_anems_proportion_hab_sampled.R), just considering metal-tagged anemones as anemones sampled and total anemones at a site
