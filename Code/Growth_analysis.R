@@ -95,15 +95,15 @@ marked_fish <- allfish_caught %>%
 marked_fish <- marked_fish %>%
   dplyr::rename(fish_id = fish_indiv)
 
-# Remove any observations where size is not recorded - goes from XX (3321 distinct fish) to 4012 obs  (old info: goes from 4001 observation to 3994 observations (pre-2016-2018 genetic data numbers: goes from 3596 observations to 3592)
-marked_fish <- marked_fish %>%  # 3053 individual fish on 10/15/19, 3812 on 6/12/20
+# Remove any observations where size is not recorded - 
+marked_fish <- marked_fish %>%  # 3812 fish
   filter(size != "NA" & !is.na(size))
 
 # Remove any observations where the date is not recorded (doesn't remove any)
 marked_fish <- marked_fish %>% filter(!is.na(date))
 
 ##### Pull out recaptured fish, create recapture pairs
-# Pull out fish captured more than once - 503 obs (old: 464 obs), still 503 on 6/12/20
+# Pull out fish captured more than once - 503 obs 
 recap_fish <- marked_fish %>%
   group_by(fish_id) %>%
   summarize(ncaps = n(),
@@ -152,7 +152,7 @@ recaps_8X_pair5 = findRecapPair(recaps_8X, marked_fish, 5, 6) #fifth and sixth e
 recaps_8X_pair6 = findRecapPair(recaps_8X, marked_fish, 6, 7) #sixth and seventh encounters for fish caught 8X
 recaps_8X_pair7 = findRecapPair(recaps_8X, marked_fish, 7, 8) #seventh and eighth encounters for fish caught 8X
 
-# Join pairs together into one data frame - 697 pairs (earlier was 772 pairs? - maybe PIT typos were fixed?) (was 545 pairs before addition of 2016-2018 genetic data), 763 pairs on 6/12/20
+# Join pairs together into one data frame - 763 pairs 
 recap_pairs <- rbind(recaps_2X_pair1, recaps_3X_pair1, recaps_3X_pair2,
                      recaps_4X_pair1, recaps_4X_pair2, recaps_4X_pair3,
                      recaps_5X_pair1, recaps_5X_pair2, recaps_5X_pair3, recaps_5X_pair4,
@@ -162,7 +162,7 @@ recap_pairs <- rbind(recaps_2X_pair1, recaps_3X_pair1, recaps_3X_pair2,
                      recaps_8X_pair1, recaps_8X_pair2, recaps_8X_pair3,
                      recaps_8X_pair4, recaps_8X_pair5, recaps_8X_pair6, recaps_8X_pair7)
 
-# Filter out those captured on the same day
+# Filter out those captured on the same day - becomes 751 pairs
 recap_pairs <- recap_pairs %>%
   filter(tal != 0)
 
@@ -179,7 +179,7 @@ recap_pairs <- recap_pairs %>%
          growth_per_year = growth/tal,
          L2_one_year_later = round(L1 + growth_per_year, digits = 1))  # projected growth one year later, based on growth-per-year
 
-# Filter out just those recaptured about a year later - 244, 265 on 6/12/20
+# Filter out just those recaptured about a year later - 265
 recap_pairs_year <- recap_pairs %>%
   filter(tal_days > year_lower_limit & tal_days <= year_upper_limit) 
 
@@ -199,8 +199,8 @@ size_range_sequence <- data.frame(L1 = seq(1, max_size, length = max_size*10))
 ### Regular linear model regression, no random effects or anything, using all fish recaptures within the time frame (including the 23 fish that have 2-3 recaptures that fit that)
 model_1 <- lm(L2 ~ L1, data =  (recap_pairs_year))
 
-model_1_k <- as.numeric(-log(model_1$coefficients[2]))  # (0.848 on 6/12/20) 0.919 if use all fish captured about a year later (even multiple pairs per fish) --  0.881 one time, 0.938 another, pretty similar to fishmethods lowest AIC estimate of 0.867
-model_1_Linf <- as.numeric(model_1$coefficients[1]/(1 - model_1$coefficients[2]))  # (10.763 on 6/12/20) 10.61 if use all fish captured about a year later (even multiple pairs per fish) --  10.69 one time, 10.58 another, pretty similar to fishmethods lowest AIC estimate of 10.64
+model_1_k <- as.numeric(-log(model_1$coefficients[2]))  # 0.848 if use all fish captured about a year later (even multiple pairs per fish) 
+model_1_Linf <- as.numeric(model_1$coefficients[1]/(1 - model_1$coefficients[2]))  # 10.763 if use all fish captured about a year later (even multiple pairs per fish) 
 
 model_1_predictions <- predict.lm(model_1, newdata = size_range_sequence, se.fit = TRUE)
 
@@ -212,11 +212,6 @@ model_1_runs <- model_1_runs %>%
          Linf_est = intercept_est/(1 - slope_est))
 
 ### Also tried a gam, with random effects by fish_id but really don't have that many fish with multiple long recaptures, didn't fit well
-# If come across a way to use varying time intervals, random effects by fish_id, measurement error at all measurement points, and uncertainty in Linf and k, would be great but maybe something to do down the road...
-
-##### Comparing growth rates of fish alone on an anemone to those with larger fish
-
-##### Bump up best estimate of K
 
 #################### Plots: ####################
 
@@ -242,8 +237,6 @@ pdf(file = here::here("Plots/Growth", "Data_L1_L2_with_fit_line_range_all_one_ye
 ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
   geom_point(shape = 1) +
   geom_abline(aes(intercept = mean(model_1_runs$intercept_est), slope = mean(model_1_runs$slope_est)), color = "black") +
-  #geom_abline(aes(intercept = min(model_1_runs$intercept_est), slope = min(model_1_runs$slope_est)), color = "gray") +
-  #geom_abline(aes(intercept = max(model_1_runs$intercept_est), slope = max(model_1_runs$slope_est)), color = "gray") +
   geom_ribbon(aes(x=seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
                   ymin = (min(model_1_runs$intercept_est) + min(model_1_runs$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
                   ymax = (max(model_1_runs$intercept_est) + max(model_1_runs$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "light gray", alpha = 0.5) +
@@ -256,374 +249,4 @@ dev.off()
 growth_info_estimate = model_1_runs  # saving it with different name in case change input later...
 save(recap_pairs_year, file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # saving all recapture pairs caught about a year apart, for plotting purposes
 save(growth_info_estimate, file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
-
-#################### Old code: ####################
-# 
-# # Choose just one pair for fish caught multiple times
-# pair_3X = chooseRecapPair_3X(recaps_3X_pair1, recaps_3X_pair2)
-# pair_4X = chooseRecapPair_4X(recaps_4X_pair1, recaps_4X_pair2, recaps_4X_pair3)
-# pair_5X = chooseRecapPair_5X(recaps_5X_pair1, recaps_5X_pair2, recaps_5X_pair3, recaps_5X_pair4)
-# pair_6X = chooseRecapPair_6X(recaps_6X_pair1, recaps_6X_pair2, recaps_6X_pair3, recaps_6X_pair4, recaps_6X_pair5)
-# pair_7X = chooseRecapPair_7X(recaps_7X_pair1, recaps_7X_pair2, recaps_7X_pair3, recaps_7X_pair4, recaps_7X_pair5, recaps_7X_pair6)
-# pair_8X = chooseRecapPair_8X(recaps_8X_pair1, recaps_8X_pair2, recaps_8X_pair3, recaps_8X_pair4, recaps_8X_pair5, recaps_8X_pair6, recaps_8X_pair7)
-# 
-# # Join pairs together into one data frame where each fish has only one pair (even if caught multiple times) - 464 fish (was 507 fish earlier)
-# recap_pairs_1perfish <- rbind(recaps_2X_pair1, pair_3X, pair_4X, pair_5X, pair_6X, pair_7X, pair_8X)
-# 
-# # Pull out any pairs where the fish was caught twice on the same day - cuts pairs down from 772 to 761 (pre-addition of 2016-2018 data, cut pairs down from 545 to 534)
-# recap_pairs <- recap_pairs %>%
-#   filter(tal != 0)
-# 
-# recap_pairs_1perfish <- recap_pairs_1perfish %>%
-#   filter(tal != 0)
-# 
-# # Add in percentage-of-year column for time 
-# recap_pairs <- recap_pairs %>%
-#   dplyr::rename(tal_days = tal) %>%
-#   mutate(tal = as.numeric(tal_days/365))
-# 
-# recap_pairs_1perfish <- recap_pairs_1perfish %>%
-#   dplyr::rename(tal_days = tal) %>%
-#   mutate(tal = as.numeric(tal_days/365))
-# 
-# # Add in column for growth, growth per year, make size columns numeric, add in projected growth 1 year later
-# recap_pairs <- recap_pairs %>%
-#   mutate(L1 = as.numeric(L1),
-#          L2 = as.numeric(L2),
-#          growth = L2-L1,
-#          growth_per_year = growth/tal,
-#          L2_one_year_later = round(L1 + growth_per_year, digits = 1))  # projected growth one year later, based on growth-per-year
-# 
-# recap_pairs_1perfish <- recap_pairs_1perfish %>%
-#   mutate(L1 = as.numeric(L1),
-#          L2 = as.numeric(L2),
-#          growth = L2-L1,
-#          growth_per_year = growth/tal,
-#          L2_one_year_later = round(L1 + growth_per_year, digits = 1))
-# 
-# # ##### Pull out fish captured about a year later first, then choose among the pairs
-# # recap_pairs_year <- recap_pairs %>%
-# #   filter(tal_days > year_lower_limit & tal_days <= year_upper_limit) %>%
-# #   group_by(fish_id) %>%
-# #   summarize(ncaps_about1year = n(),
-# #             year1_about1year = min(year)) %>%
-# #   filter(ncaps_about1year > 1)
-
-
-
-# # Just use recaptures more than one month apart
-# recap_pairs_1monthplus <- recap_pairs %>%  # cuts pairs down from xx to 540 (old: 761 to 618)
-#   filter(tal_days > 30)
-# 
-# recap_pairs_1perfish_1monthplus <- recap_pairs_1perfish %>% # cuts down to 374 (old: 412 pairs (from 502))
-#   filter(tal_days > 30)
-# 
-# # Pull out a set where fish were captured about a year apart
-# year_lower_limit = 345
-# year_upper_limit = 385
-# 
-# recap_pairs_yearrecap <- recap_pairs %>% filter(tal_days > year_lower_limit & tal_days <= year_upper_limit)  # 244 pairs
-
-# # Check out outlier growth rates... maybe think about some extreme outliers from the analysis and seeing if/how results change?
-# recap_pairs %>% filter(growth_per_year < -10)
-# recap_pairs %>% filter(growth_per_year > 10)
-# recap_pairs_1perfish_1monthplus %>% filter(growth_per_year <= -10 | growth_per_year > 10)  # none 
-
-# 
-# Quite generally you want the vcov function which provides the complete parameter covariance matrix. To get the regular asymptotic standard errors reported by summary you can use
-# 
-# se <- sqrt(diag(vcov(model)))
-# 
-# # Testing standard error:
-# k_test = length(model_1$coefficients) - 1
-# SSE = sum(model_1$residuals**2)
-# 
-# # Try including random effects
-# # filter out for at least 2 sets of recaps - only 50 pairs
-# recaps_model_1a <- recap_pairs_yearrecap %>% 
-#   group_by(fish_id) %>%
-#   mutate(n_pairs = n()) %>%
-#   filter(n_pairs >= 2) %>%
-#   ungroup()
-# 
-# model_1a <- lmer(L2 ~ L1 + (L1 | fish_id), data = recap_pairs_yearrecap)
-# ggplot(data = model_1_runs) +
-#   geom_abline(aes(intercept = intercept_est[1], slope = slope_est[1])) 
-# 
-# 
-# 
-# geom_abline(aes(
-#   intercept = b0, 
-#   slope = b1,
-#   linetype = if_else(metric == "pred", "", "dashed")),
-# ) +
-#   
-#   # Plot the estimated gam for fish caught at least a month apart, only one recapture pair per fish
-#   
-#   
-# # COULD DEFINITELY DO THIS IN A MORE STREAMLINED WAY!!
-# # Function to choose one of the recap pairs for a fish caught 3 times 
-# chooseRecapPair_3X <- function(pair1, pair2) {
-#   # Set up output data frame
-#   out <- data.frame(fish_id = pair1$fish_id)
-#   out <- out %>%
-#     mutate(L1 = rep(NA), L2 = rep(NA), tal = rep(NA))
-#   
-#   for(i in 1:length(out$fish_id)) {
-#     pair <- base::sample(1:2, 1)
-#     
-#     if(pair == 1) {
-#       pair_choice <- pair1
-#     } else if (pair == 2) {
-#       pair_choice <- pair2
-#     }
-#     
-#     out$L1[i] <- pair_choice$L1[i]
-#     out$L2[i] <- pair_choice$L2[i]
-#     out$tal[i] <- pair_choice$tal[i]
-#   }
-#   return(out)
-# }
-# 
-# chooseRecapPair_4X <- function(pair1, pair2, pair3) {
-#   # Set up output data frame
-#   out <- data.frame(fish_id = pair1$fish_id)
-#   out <- out %>%
-#     mutate(L1 = rep(NA), L2 = rep(NA), tal = rep(NA))
-#   
-#   for(i in 1:length(out$fish_id)) {
-#     pair <- base::sample(1:3, 1)
-#     
-#     if(pair == 1) {
-#       pair_choice <- pair1
-#     } else if (pair == 2) {
-#       pair_choice <- pair2
-#     } else if (pair == 3) {
-#       pair_choice <- pair3
-#     }
-#     
-#     out$L1[i] <- pair_choice$L1[i]
-#     out$L2[i] <- pair_choice$L2[i]
-#     out$tal[i] <- pair_choice$tal[i]
-#   }
-#   return(out)
-# }
-# 
-# chooseRecapPair_5X <- function(pair1, pair2, pair3, pair4) {
-#   # Set up output data frame
-#   out <- data.frame(fish_id = pair1$fish_id)
-#   out <- out %>%
-#     mutate(L1 = rep(NA), L2 = rep(NA), tal = rep(NA))
-#   
-#   for(i in 1:length(out$fish_id)) {
-#     pair <- base::sample(1:4, 1)
-#     
-#     if(pair == 1) {
-#       pair_choice <- pair1
-#     } else if (pair == 2) {
-#       pair_choice <- pair2
-#     } else if (pair == 3) {
-#       pair_choice <- pair3
-#     } else if (pair == 4) {
-#       pair_choice <- pair4
-#     }
-#     
-#     out$L1[i] <- pair_choice$L1[i]
-#     out$L2[i] <- pair_choice$L2[i]
-#     out$tal[i] <- pair_choice$tal[i]
-#   }
-#   return(out)
-# }
-# 
-# chooseRecapPair_6X <- function(pair1, pair2, pair3, pair4, pair5) {
-#   # Set up output data frame
-#   out <- data.frame(fish_id = pair1$fish_id)
-#   out <- out %>%
-#     mutate(L1 = rep(NA), L2 = rep(NA), tal = rep(NA))
-#   
-#   for(i in 1:length(out$fish_id)) {
-#     pair <- base::sample(1:5, 1)
-#     
-#     if(pair == 1) {
-#       pair_choice <- pair1
-#     } else if (pair == 2) {
-#       pair_choice <- pair2
-#     } else if (pair == 3) {
-#       pair_choice <- pair3
-#     } else if (pair == 4) {
-#       pair_choice <- pair4
-#     } else if (pair == 5) {
-#       pair_choice <- pair5
-#     }
-#     
-#     out$L1[i] <- pair_choice$L1[i]
-#     out$L2[i] <- pair_choice$L2[i]
-#     out$tal[i] <- pair_choice$tal[i]
-#   }
-#   return(out)
-# }
-# 
-# chooseRecapPair_7X <- function(pair1, pair2, pair3, pair4, pair5, pair6) {
-#   # Set up output data frame
-#   out <- data.frame(fish_id = pair1$fish_id)
-#   out <- out %>%
-#     mutate(L1 = rep(NA), L2 = rep(NA), tal = rep(NA))
-#   
-#   for(i in 1:length(out$fish_id)) {
-#     pair <- base::sample(1:6, 1)
-#     
-#     if(pair == 1) {
-#       pair_choice <- pair1
-#     } else if (pair == 2) {
-#       pair_choice <- pair2
-#     } else if (pair == 3) {
-#       pair_choice <- pair3
-#     } else if (pair == 4) {
-#       pair_choice <- pair4
-#     } else if (pair == 5) {
-#       pair_choice <- pair5
-#     } else if (pair == 6) {
-#       pair_choice <- pair6
-#     }
-#     
-#     out$L1[i] <- pair_choice$L1[i]
-#     out$L2[i] <- pair_choice$L2[i]
-#     out$tal[i] <- pair_choice$tal[i]
-#   }
-#   return(out)
-# }
-# 
-# chooseRecapPair_8X <- function(pair1, pair2, pair3, pair4, pair5, pair6, pair7) {
-#   # Set up output data frame
-#   out <- data.frame(fish_id = pair1$fish_id)
-#   out <- out %>%
-#     mutate(L1 = rep(NA), L2 = rep(NA), tal = rep(NA))
-#   
-#   for(i in 1:length(out$fish_id)) {
-#     pair <- base::sample(1:7, 1)
-#     
-#     if(pair == 1) {
-#       pair_choice <- pair1
-#     } else if (pair == 2) {
-#       pair_choice <- pair2
-#     } else if (pair == 3) {
-#       pair_choice <- pair3
-#     } else if (pair == 4) {
-#       pair_choice <- pair4
-#     } else if (pair == 5) {
-#       pair_choice <- pair5
-#     } else if (pair == 6) {
-#       pair_choice <- pair6
-#     } else if (pair == 7) {
-#       pair_choice <- pair7
-#     }
-#     
-#     out$L1[i] <- pair_choice$L1[i]
-#     out$L2[i] <- pair_choice$L2[i]
-#     out$tal[i] <- pair_choice$tal[i]
-#   }
-#   return(out)
-# }
-# 
-# # Choose one recap pair per fish, run lm, save coefficients
-# chooseRecapFitModel <- function(n_runs, recap_pairs_list, time_lower_limit, time_upper_limit) {
-#   
-#   # Set up an output data frame
-#   out = data.frame(run = seq(from=1, to=n_runs, by=1),
-#                    intercept_est = NA,
-#                    slope_est = NA,
-#                    intercept_se = NA,
-#                    slope_se = NA)
-#   
-#   for(i in 1:n_runs) {
-#     # Choose a pair for fish caught mulitple times
-#     pair_3X_func = chooseRecapPair_3X(recap_pairs_list$recaps_3X_pair1, recap_pairs_list$recaps_3X_pair2)
-#     pair_4X_func = chooseRecapPair_4X(recap_pairs_list$recaps_4X_pair1, recap_pairs_list$recaps_4X_pair2, recap_pairs_list$recaps_4X_pair3)
-#     pair_5X_func = chooseRecapPair_5X(recap_pairs_list$recaps_5X_pair1, recap_pairs_list$recaps_5X_pair2, recap_pairs_list$recaps_5X_pair3, recap_pairs_list$recaps_5X_pair4)
-#     pair_6X_func = chooseRecapPair_6X(recap_pairs_list$recaps_6X_pair1, recap_pairs_list$recaps_6X_pair2, recap_pairs_list$recaps_6X_pair3, recap_pairs_list$recaps_6X_pair4, recap_pairs_list$recaps_6X_pair5)
-#     pair_7X_func = chooseRecapPair_7X(recap_pairs_list$recaps_7X_pair1, recap_pairs_list$recaps_7X_pair2, recap_pairs_list$recaps_7X_pair3, recap_pairs_list$recaps_7X_pair4, recap_pairs_list$recaps_7X_pair5, recap_pairs_list$recaps_7X_pair6)
-#     pair_8X_func = chooseRecapPair_8X(recap_pairs_list$recaps_8X_pair1, recap_pairs_list$recaps_8X_pair2, recap_pairs_list$recaps_8X_pair3, recap_pairs_list$recaps_8X_pair4, 
-#                                       recap_pairs_list$recaps_8X_pair5, recap_pairs_list$recaps_8X_pair6, recap_pairs_list$recaps_8X_pair7)
-#     
-#     # Bind together
-#     recap_pairs_func <- rbind(recap_pairs_list$recaps_2X_pair1, pair_3X_func, pair_4X_func, pair_5X_func, pair_6X_func, pair_7X_func, pair_8X_func)
-#     
-#     # Filter and process 
-#     recap_pairs_func <- recap_pairs_func %>%
-#       #filter(tal != 0) %>%  # filter out any recaps caught on the same day
-#       filter(tal < time_lower_limit & tal >= time_upper_limit) %>%  # only use ones recaught within about a year
-#       dplyr::rename(tal_days= tal) %>%
-#       mutate(tal = as.numeric(tal_days/365)) %>%  # add percentage-of-year column
-#       mutate(L1 = as.numeric(L1),
-#              L2 = as.numeric(L2),
-#              growth = L2 - L1,
-#              growth_per_year = growth/tal)
-#     
-#     # Fit model 
-#     model_out <- lm(L2 ~ L1, data = recap_pairs_func)
-#     
-#     out$intercept_est[i] = coef(summary(model_out))["(Intercept)", "Estimate"]
-#     out$slope_est[i] = coef(summary(model_out))["L1", "Estimate"]
-#     out$intercept_se[i] = coef(summary(model_out))["(Intercept)", "Std. Error"]
-#     out$slope_se[i] = coef(summary(model_out))["L1", "Std. Error"]
-#   }
-#   
-#   return(out)
-# }
-# # List of pairs, for feeding into function
-# recap_pairs_list <- list(recaps_2X_pair1, recaps_3X_pair1 = recaps_3X_pair1, recaps_3X_pair2 = recaps_3X_pair2,
-#                          recaps_4X_pair1 = recaps_4X_pair1, recaps_4X_pair2 = recaps_4X_pair2, recaps_4X_pair3 = recaps_4X_pair3,
-#                          recaps_5X_pair1 = recaps_5X_pair1, recaps_5X_pair2 = recaps_5X_pair2, recaps_5X_pair3 = recaps_5X_pair3, recaps_5X_pair4 = recaps_5X_pair4,
-#                          recaps_6X_pair1 = recaps_6X_pair1, recaps_6X_pair2 = recaps_6X_pair2, recaps_6X_pair3 = recaps_6X_pair3,
-#                          recaps_6X_pair4 = recaps_6X_pair4, recaps_6X_pair5 = recaps_6X_pair5,
-#                          recaps_7X_pair1 = recaps_7X_pair1, recaps_7X_pair2 = recaps_7X_pair2, recaps_7X_pair3 = recaps_7X_pair3,
-#                          recaps_7X_pair4 = recaps_7X_pair4, recaps_7X_pair5 = recaps_7X_pair5, recaps_7X_pair6 = recaps_7X_pair6,
-#                          recaps_8X_pair1 = recaps_8X_pair1, recaps_8X_pair2 = recaps_8X_pair2, recaps_8X_pair3 = recaps_8X_pair3,
-#                          recaps_8X_pair4 = recaps_8X_pair4, recaps_8X_pair5 = recaps_8X_pair5, recaps_8X_pair6 = recaps_8X_pair6,
-#                          recaps_8X_pair7 = recaps_8X_pair7)
-# 
-# 
-# 
-# plot(recap_pairs_1perfish_yearrecap$L1, recap_pairs_1perfish_yearrecap$L2, xlab = "length in year 1", ylab = "length in year 2")
-# points(size_range_sequence$L1, model_1_predictions$fit, type = "l", col = "black", lty = 2, lwd = 3)
-# #points(size_range_sequence$L1, model_1_predictions$fit + model_1_predictions$se.fit, type = "l", col = "blue", lty = 2, lwd = 3)
-# #points(size_range_sequence$L1, model_1_predictions$fit - model_1_predictions$se.fit, type = "l", col = "blue", lty = 2, lwd = 3)
-# 
-# #points(size_range_sequence$L1, test_grow_predictions_2, type = "l", col = "red", lty = 2, lwd = 3)
-# 
-# ##### Run with all recaps (1 per fish), using growth per year to estimate length after a year
-# model_2 <- lm(L2_one_year_later ~ L1, data = recap_pairs_1perfish)
-# model_2_k <- as.numeric(-log(model_2$coefficients[2])) # (fishmethods lowest AIC estimate of 0.867)
-# model_2_Linf <- as.numeric(model_2$coefficients[1]/(1 - model_2$coefficients[2]))  # (fishmethods lowest AIC estimate of 10.64)
-# 
-
-# ##### Rees et al 2014 gam method
-# 
-# # Fitting the data with a spline, from Rees et al. 2014 IPM paper, code modified from their supplementary script gamExample.R
-# # Note from Rees script: Note: m=3 specifies 3rd derivative penalty so the fit can have
-# # nonzero curvature at the endpoints of the data range.
-# # With the default (m=2), curvature -> 0 at the endpoints.
-# 
-# # Just pull out fish recaptured within about a year 
-# recap_pairs_1perfish_yearrecap <- recap_pairs_1perfish %>% filter(tal_days > 345 & tal_days <= 385)  # 180 fish
-# test_grow <- gam(L2~s(L1, m=3), data = recap_pairs_1perfish_yearrecap)
-# test_grow_2 <- gam(L2~s(L1, m=2), data = recap_pairs_1perfish_yearrecap)
-# 
-# # Predict new data
-# size_range_sequence <- data.frame(L1 = seq(1, max_size, length = max_size*10))
-# test_grow_predictions <- predict(test_grow, newdata = size_range_sequence, type = "response")
-# test_grow_predictions_2 <- predict(test_grow_2, newdata = size_range_sequence, type = "response")
-# 
-# sse_test_grow_1 <- sum(test_grow$residuals^2)
-# sd_predictions_1 <- sqrt(sse_test_grow_1/test_grow$df.residual)	
-# sse_test_grow_2 <- sum(test_grow_2$residuals^2)
-# sd_predictions_2 <- sqrt(sse_test_grow_2/test_grow_2$df.residual)	
-# 
-# #X <- data.frame(z=z,z1=z1)
-# #gamGrow <- gam(z1~s(z,m=3),data=X);
-# 
-# plot(recap_pairs_1perfish_yearrecap$L1, recap_pairs_1perfish_yearrecap$L2, xlab = "length in year 1", ylab = "length in year 2")
-# points(size_range_sequence$L1, test_grow_predictions, type = "l", col = "black", lty = 2, lwd = 3)
-# points(size_range_sequence$L1, test_grow_predictions_2, type = "l", col = "red", lty = 2, lwd = 3)
-
 
