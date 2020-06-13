@@ -15,9 +15,10 @@ Repository contents and explanation:
 * *Density_dependence_scaling.R*: finds the number of anemones occupied by APCL, occupied by other clownfish, and unoccupied during the two seasons when anemones were reasonably comprehensively surveyed, 2015 winter and 2017, for use in scaling up recruits to account for effects of density-dependence in settlement
 * *Growth_analysis*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
 * *Clownfish_encounters*: makes encounter histories for all fish marked, fills in missing sizes by projecting using growth curve (and adding mean size or 0 for years pre-capture)
+* *AnemDistFromDiveTrack.R*: finds the lat and lon coordinates of the first capture anemone for each marked fish and the minimum distance from that anemone to the sampling dive tracks each year, in preparation for mark-recapture analyses in ClownfishMarkRecap.R
+
 
 * *TimeSeriesPersistence*: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
-* *AnemDistFromDiveTrack.R*: finds the lat and lon coordinates of the first capture anemone for each marked fish and the minimum distance from that anemone to the sampling dive tracks each year, in preparation for mark-recapture analyses in ClownfishMarkRecap.R
 * *ClownfishMarkRecap.R*: runs mark-recapture analysis using MARK (via RMark) to estimate survival and recapture probabilities
 * Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
 
@@ -52,18 +53,26 @@ Repository contents and explanation:
   * site_buffer_info.RData - provides maximum buffer to N and S of each site without overlapping shadows of other sites, for use in accounting for larval navigation in distances for kernel integration (produced by Site_widths_and_distances.R)
   * anems_APCL_and_not.RData - gives proportion anemones occupied by APCL and unoccupied by any clownfish averaged between 2015 and 2017 (produced by Density_dependent_scaling.R)
   * anems_APCL_and_not_by_year.RData - gives numbers and proportion of anemones occupied by APCL, other clownfish, and unoccupied in 2015 and 2017 (produced by Density_dependent_scaling.R)
-   * growth_info_estimate - parameter estimates for von Bertalanffy growth curve (produced by Growth_analysis.R)
-  * recap_pairs_year - pairs of sizes for fish recaptured after about a year (produced by Growth_analysis.R)
-  * marked_fish - all fish that have been marked either via PIT tag or genotype (so have a fish_indiv) with their anem, dive, etc. info (produced by Clownfish_encounters.R)
-  * encounters_list - marked fish re-organized into encounter histories for MARK (produced by Clownfish_encounters.R)
-  * encounters_size_means_by_year - encounter histories with missing sizes filled in via growth curve projection or mean for pre-capture years (produced by Clownfish_encounters.R)
-  * encounters_size_0s - same as encounter_size_means_by_year but 0 instead of mean size in a year for the pre-capture years (produced by Clownfish_encounters.R)
+   * growth_info_estimate.RData - parameter estimates for von Bertalanffy growth curve (produced by Growth_analysis.R)
+  * recap_pairs_year.RData - pairs of sizes for fish recaptured after about a year (produced by Growth_analysis.R)
+  * marked_fish.RData - all fish that have been marked either via PIT tag or genotype (so have a fish_indiv) with their anem, dive, etc. info (produced by Clownfish_encounters.R)
+  * encounters_list.RData - marked fish re-organized into encounter histories for MARK (produced by Clownfish_encounters.R)
+  * encounters_size_means_by_year.RData - encounter histories with missing sizes filled in via growth curve projection or mean for pre-capture years (produced by Clownfish_encounters.R)
+  * encounters_size_0s.RData - same as encounter_size_means_by_year but 0 instead of mean size in a year for the pre-capture years (produced by Clownfish_encounters.R)
+  * min_survey_dist_to_anems.RData - minimum distance from dive GPS tracks each year to capture anems for tagged fish (produced by AnemDistFromDiveTrack.R)
+  * encounters_dist.RData - encounter histories with distances to dive tracks (produced by AnemDistFromDiveTrack.R)
+  * encounters_dist_mean.RData - same as encounter_dist but with overall mean distance filled in for NAs (produced by AnemDistFromDiveTrack.R)
+  * encounters_dist_mean_by_year.RData - same as encounter_dist but with mean distance by year filled in for NAs (produced by AnemDistFromDiveTrack.R)
   
   * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
   * best_fit_model_dfs - best fit model from mark-recapture analysis and data frames for plotting (produced by ClownfishMarkRecap.R)
   * model_comp_meanYsize_meanYdist - model comparison for mark-recapture models (produced by ClownfishMarkRecap.R)
 
 **Plots** - holds plots
+Plots that are actually produced by scripts that are tidied:
+Plots/DistFromTrackToAnems/Distance_to_marked_fish_capture_anems_allyears.pdf - histograms by year of minimum distance from divers to capture anems for marked fish
+
+
 * *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
 * *Growth* - plots that show sizes of fish recaptured after a year with the von Bertalanffy growth curve fit and distributions of von Bertalanffy parameters (produced by Growth_analysis.R)
 * *PhiandpEstimates* - plots showing survival and recapture probabilities (ones starting with surv_ or recap_ are most recent) (produced by ClownfishMarkRecap.R)
