@@ -4,11 +4,11 @@
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
-# Load data frame with individual fish encounter histories and the one of marked fish with anemone + dive info
+# Load data frame with individual fish encounter histories and the one of marked fish with anemone + dive info (both from Clownfish_encounters.R)
 load(file = here::here("Data/Script_outputs", "encounters_list.RData"))
 load(file = here::here("Data/Script_outputs", "marked_fish.RData"))
 
-# Load libraries
+# Load additional libraries
 library(geosphere)
 library(ggplot2)
 library(cowplot)
@@ -31,7 +31,7 @@ findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampley
         if(visited == 1) {  # if the sample site was visited that year, pull the dives from that site (for the spring months)
           relevantdives <- divedf %>%
             filter(site == testsite, as.numeric(year) == sampleyear, month %in% spring_months)
-        } else {  # if not, pull dives from sites 1 to the north and south
+        } else {  # if not, pull dives from sites one position to the north and south
           site_N <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) - 1]  # site to the north
           site_S <- site_visits$site[which(site_visits$site == testsite & site_visits$year == sampleyear) + 1]  # site to the south
           
@@ -39,16 +39,17 @@ findDist <- function(sitevec, latvec, lonvec, capyearvec, gpxdf, divedf, sampley
             filter(site %in% c(site_N, site_S), as.numeric(year) == sampleyear, month %in% spring_months)
         }
         
+        # Pull out gps points from the date(s) of those dives
         relevantgps <- gpxdf %>%
           filter(gps_date %in% relevantdives$dive_date)
         
         distvec <- rep(NA, length(relevantgps$lat))  # set a place to store distances
         
-        for(j in 1:length(distvec)) {  # go through the list of coordinates
+        for(j in 1:length(distvec)) {  # go through the list of coordinates and find the distance 
            #distvec2[j] = distGeo(c(testlon, testlat), c(relevantgps$lon[j], relevantgps$lat[j]))
           distvec[j] = distHaversine(c(testlon,testlat), c(as.numeric(relevantgps$lon[j]), as.numeric(relevantgps$lat[j])))
         }
-        out[i] = min(distvec)
+        out[i] = min(distvec)  # select the minimum distance (closest a diver got to that anemone that year)
       }
     } else {
       out[i] = NA
