@@ -1,16 +1,15 @@
-# Prep for mark-recap analysis - creating set of encountered fish, projecting their growth
-# Code taken from ClownfishMarkRecap.R and modified
+# Prep for mark-recap analysis - create set of encountered fish, projects their growth to fill in years where fish was un-caught
 
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))
 
-# Load files from new, simple growth analysis (Growth_analysis.R)
+# Load files from growth analysis (Growth_analysis.R)
 load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))
 load(file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
 
 # Find mean Linf and K from those runs
-Linf_mean <- mean(growth_info_estimate$Linf_est)  # 10.71 (old: 10.58)
-k_mean <- mean(growth_info_estimate$k_est)  # 0.864 (old: 0.928)
+Linf_mean <- mean(growth_info_estimate$Linf_est)  # 10.70 
+k_mean <- mean(growth_info_estimate$k_est)  # 0.864 
 
 #################### Functions: ####################
 
@@ -27,26 +26,26 @@ growthIncrementVBL <- function(Linf, L_release, K) {
   return(length_out)
 }
 
-# Creates the summarized encounter history by fish_id: output is a data frame with 2 columns - fish_id (either capXX or tagXXXXX or sampleXXX) and summarized encounter history (i.e. 0010)
-CreateEncounterSummary <- function(start.year, end.year, tagged.fish) { #start.year is first year a fish could have been tagged (either PIT or genetically), end.year is last year of sampling, tagged.fish is dataframe with all fish with cap_ids or tag_ids
+# Creates the summarized encounter history by fish_id: output is a data frame with 2 columns - fis_indiv and summarized encounter history (i.e. 0010)
+CreateEncounterSummary <- function(start.year, end.year, tagged.fish) {  # start.year is first year a fish could have been tagged (either PIT or genetically), end.year is last year of sampling, tagged.fish is dataframe with all fish with fish_indivs
   
-  sample.years <- seq(start.year, end.year, 1) #make a vector of years the fish could have been seen
-  encounters <- list(); #initialize an empty list to store the various encounter data frames by year
+  sample.years <- seq(start.year, end.year, 1)  # make a vector of years the fish could have been seen
+  encounters <- list();  # initialize an empty list to store the various encounter data frames by year
   
-  for (i in 1:length(sample.years)) { #pull out encounter vector by tag for each year, store each as a data frame of tag ids and binary encounters in the encounter list
-    year.name <- sample.years[i] #get year 
-    var.name <- paste("sighted", as.character(sample.years[i]), sep=".") #create dynamic column names for encounters - sighted.[samplingyear]
+  for (i in 1:length(sample.years)) {  # pull out encounter vector by fish_indiv for each year, store each as a data frame of fish_indiv ids and binary encounters in the encounter list
+    year.name <- sample.years[i]  # get year 
+    var.name <- paste("sighted", as.character(sample.years[i]), sep=".")  # create dynamic column names for encounters - sighted.[samplingyear]
     
-    encounters[[i]] <- tagged.fish %>% #create data frames for each year that have a vector of fish_ids and a vector of encountered (1) or didn't (0) in 
+    encounters[[i]] <- tagged.fish %>%  # create data frames for each year that have a vector of fish_indivs and a vector of encountered (1) or didn't (0) in 
       group_by(fish_indiv) %>% 
-      summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0)) #encounter history
+      summarise(!!var.name := ifelse(sum(year == sample.years[i])>0, 1, 0))  # encounter history
   }
   
-  encounters.out <- as.data.frame(encounters[[1]]) #seed summary data frame with list of tag ids and encounter in 1st year
-  colnames(encounters.out)<- c("fish_indiv","encounter.hist") #rename the columns so the encounter.hist column can be pasted to iteratively in next step
+  encounters.out <- as.data.frame(encounters[[1]])  # seed summary data frame with list of tag ids and encounter in 1st year
+  colnames(encounters.out)<- c("fish_indiv","encounter.hist")  #r ename the columns so the encounter.hist column can be pasted to iteratively in next step
   
   for (i in 2:length(sample.years)) {
-    encounters.out$encounter.hist <- paste(encounters.out$encounter.hist, encounters[[i]][[2]], sep="") #paste on the other encounter 1/0s so get overall encounter histories as strings
+    encounters.out$encounter.hist <- paste(encounters.out$encounter.hist, encounters[[i]][[2]], sep="")  # paste on the other encounter 1/0s so get overall encounter histories as strings
   }
   
   return(encounters.out)
@@ -76,18 +75,17 @@ projectSize <- function(year, size_year_vec, first_cap_vec, prev_size_vec, mean_
 # Pull out all fish marked in some way, either by PIT tag or by gen_id 
 marked_fish <- allfish_caught %>%
   filter(!is.na(fish_indiv)) 
-#saveRDS(marked_fish, file = here::here("Data/Script_outputs", "marked_fish.RData"))
 
 # Prep data for MARK by making encounter histories
-encounters_list <- CreateEncounterSummary(2012, 2018, marked_fish)  # 3053 fish on 10/16/19 - same as distinct fish_indivs in current fish-obs table so that's good
+encounters_list <- CreateEncounterSummary(2012, 2018, marked_fish)  # 3053 fish 
 
 # Find fish traits: site, tail color, size, life stage (all at first time captured), join with encounter histories 
 trait_info <- marked_fish %>% 
   group_by(fish_indiv) %>%
   arrange(year) %>%
   summarize(site = site[1],
-            first_capture_year = min(year), #year this fish was first captured
-            cap_size = size[1], #earlier did min(size) and didn't arrange by year, could go either way
+            first_capture_year = min(year),  # year this fish was first captured
+            cap_size = size[1],  # earlier did min(size) and didn't arrange by year, could go either way - chose this because rarely a fish is marked as a smaller size on a later capture
             cap_color = color[1],
             cap_stage = sex[1])
 
@@ -103,7 +101,6 @@ for(i in 1:length(years_sampled)) {
   
   # Find mean size in year i for each fish
   size_df <- marked_fish %>% 
-    #filter(fish_indiv %in% encounters_all$fish_indiv) %>%  # don't think this should pull out any fish, right? hold over from when I was doing tags and genetics separately
     filter(year == years_sampled[i]) %>%
     filter(!is.na(size)) %>% 
     group_by(fish_indiv) %>%
@@ -117,9 +114,6 @@ for(i in 1:length(years_sampled)) {
   
   encounters_size <- left_join(encounters_size, size_df, by = "fish_indiv")
 }
-
-# Mean size across years
-#mean_size_overall <- mean(c(encounters_size$size2012, encounters_size$size2013, encounters_size$size2014, encounters_
 
 # Fill in missing sizes with either projected sizes or mean size from each year if pre- first capture year
 encounters_size_means_by_year <- encounters_size %>% mutate(size2012 = if_else(is.na(size2012), mean_size[1], size2012))  # replace 2012 size NAs
@@ -139,9 +133,8 @@ encounters_size_0$size2016 <- projectSize(2016, encounters_size$size2016, encoun
 encounters_size_0$size2017 <- projectSize(2017, encounters_size$size2017, encounters_size$first_capture_year, encounters_size_0$size2016, 0, Linf_mean, k_mean)
 encounters_size_0$size2018 <- projectSize(2018, encounters_size$size2018, encounters_size$first_capture_year, encounters_size_0$size2017, 0, Linf_mean, k_mean)
 
-
 #################### Saving output: ####################
 save(marked_fish, file = here::here("Data/Script_outputs", "marked_fish.RData"))  # all obs of fish with a fish_indiv, plus dive, anem, etc. info
 save(encounters_list, file = here::here("Data/Script_outputs", "encounters_list.RData"))  # list of encounter histories
-save(encounters_size_means, file = here::here("Data/Script_outputs", "encounters_size_means.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
+save(encounters_size_means_by_year, file = here::here("Data/Script_outputs", "encounters_size_means_by_year.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
 save(encounters_size_0, file = here::here("Data/Script_outputs", "encounters_size_0.RData"))  # encounter histories with sizes and missing ones filled in with projections or 0s
