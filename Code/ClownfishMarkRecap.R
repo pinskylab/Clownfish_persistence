@@ -26,6 +26,9 @@ max_dist = 200
 #                encounters_dist_mean$dist2016, encounters_dist_mean$dist2017, encounters_dist_mean$dist2018, na.rm=TRUE)  # this is very large (766, recap prob goes essentially to zero at < 100)
 dist_values = min_dist+(0:n_dist_steps)*(max_dist-min_dist)/n_dist_steps
 
+# Start year
+start_year = 2012
+
 # Sites we didn't revisit
 one_time_sites <- c("Sitio Lonas", "Sitio Tugas", "Caridad Proper")
 
@@ -70,8 +73,8 @@ eall_meanYsize_meanYdist <- eall_meanYsize_meanYdist %>%
 
 ##### Prep for MARK runs
 # Process data (both with and without site as a group)
-eall_meanYsize_meanYdist.processed = process.data(eall_meanYsize_meanYdist, model='CJS', begin.time=2012)
-eall_meanYsize_meanYdist.processed_site = process.data(eall_meanYsize_meanYdist, model="CJS", begin.time=2012, groups="site")
+eall_meanYsize_meanYdist.processed = process.data(eall_meanYsize_meanYdist, model='CJS', begin.time=start_year)
+eall_meanYsize_meanYdist.processed_site = process.data(eall_meanYsize_meanYdist, model="CJS", begin.time=start_year, groups="site")
 
 # Make ddl
 eall_meanYsize_meanYdist.ddl = make.design.data(eall_meanYsize_meanYdist.processed)
@@ -131,6 +134,7 @@ model_comp_meanYsize_meanYdist <- model_comp_meanYsize_meanYdist %>%
 results_df_1 <- as.data.frame(eall_meanYsize_meanYdist.Phi.site.plus.size.p.size.plus.dist$results$beta)
 
 # Set indices for effects within results data frame
+surv_intercept_index = 1
 surv_size_effect_index = 17
 recap_intercept_index = 18
 recap_size_effect_index = 19
@@ -229,6 +233,15 @@ recap_by_dist <- data.frame(dist = dist_values) %>%
 # Put best-fit model and data frames together into a list to save
 best_fit_model_dfs <- list("model" = eall_meanYsize_meanYdist.Phi.site.plus.size.p.size.plus.dist, "results" = results_df_1, 
                            "surv_site_size" = df_size_by_site, "recap_size" = recap_by_size, "recap_dist" = recap_by_dist)
+
+
+#################### Pull out model where site isn't in survival, in case want to use: ####################
+# Phi.size.p.size.plus.dist, 4th best-fit
+
+# Pull out results to save
+results_df_4 <- as.data.frame(eall_meanYsize_meanYdist.Phi.size.p.size.plus.dist$results$beta)
+
+best_fit_no_site_in_surv_model_dfs <- list("model" = eall_meanYsize_meanYdist.Phi.size.p.size.plus.dist, "results" = results_df_4)
 
 #################### Check a few other models to see how they compare: ####################
 ###### 2nd best: survival by site, recapture by both size and distance (eall_meanYsize_meanYdist.Phi.site.p.size.plus.dist)
@@ -373,6 +386,7 @@ dev.off()
 #################### Saving output: ####################
 save(model_comp_meanYsize_meanYdist, file=here::here("Data/Script_outputs", "model_comp_meanYsize_meanYdist.RData"))
 save(best_fit_model_dfs, file=here::here("Data/Script_outputs", "best_fit_model_dfs.RData"))
+save(best_fit_no_site_in_surv_model_dfs, file=here::here("Data/Script_outputs", "best_fit_no_site_in_surv_model_dfs.RData"))
 
 #################### Sensitivity to how fill in missing values tests: ####################
 ##### Do some sensitivity to test that the same models get picked when fill in missing values in other ways
