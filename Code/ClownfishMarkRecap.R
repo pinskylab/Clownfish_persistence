@@ -11,8 +11,9 @@ library(cowplot)
 # Read in encounter history data frames for marked fish with sizes (from Clownfish_encounters.R) and distances to capture anemone (from AnemDistFromDiveTrack.R)
 load(file = here::here("Data/Script_outputs", "encounters_dist_mean.RData"))  # encounter histories with overall mean dist filled in for NAs (pre-capture years, plus about 5 missing coords)
 load(file = here::here("Data/Script_outputs", "encounters_dist_mean_by_year.RData"))  # encounter histories with mean dist by year filled in for NAs
-load(file = here::here("Data/Script_outputs", "encounters_size_means.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
+#load(file = here::here("Data/Script_outputs", "encounters_size_means.RData"))  # encounter histories with sizes and missing ones filled in with projections or means
 load(file = here::here("Data/Script_outputs", "encounters_size_0.RData"))  # encounter histories with sizes and missing ones filled in with projections or 0s
+load(file = here::here("Data/Script_outputs", "encounters_size_means_by_year.RData"))
 
 # Size vector for plotting
 n_size_steps <- 30
@@ -39,14 +40,17 @@ one_time_sites <- c("Sitio Lonas", "Sitio Tugas", "Caridad Proper")
 encounters_dist_mean <- encounters_dist_mean %>% filter(!site %in% one_time_sites)
 encounters_dist_mean_by_year <- encounters_dist_mean_by_year %>% filter(!site %in% one_time_sites)
 encounters_size_0 <- encounters_size_0 %>% filter(!site %in% one_time_sites)
-encounters_size_means <- encounters_size_means %>% filter(!site %in% one_time_sites)
+#encounters_size_means <- encounters_size_means %>% filter(!site %in% one_time_sites)
+encounters_size_means_by_year <- encounters_size_means_by_year %>% filter(!site %in% one_time_sites)
 
 ##### Create data frames for analysis, joining trait info and distance info
 # Mean size (by year), mean distance (by year)
-eall_meanYsize_meanYdist <- left_join(encounters_size_means, encounters_dist_mean_by_year %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
+eall_meanYsize_meanYdist <- left_join(encounters_size_means_by_year, encounters_dist_mean_by_year %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
                                       by = "fish_indiv") %>%
-  mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
-  dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
+  mutate(site = as.factor(site), cap_color = as.factor(cap_color), cap_stage = as.factor(cap_stage)) %>%
+  dplyr::rename(ch = encounter.hist)
+  #mutate(site = as.factor(site), capture_color = as.factor(cap_color), capture_stage = as.factor(capture_stage)) %>%
+  #dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
 
 eall_meanYsize_meanYdist <- eall_meanYsize_meanYdist[complete.cases(eall_meanYsize_meanYdist),]
 
@@ -392,10 +396,13 @@ save(best_fit_no_site_in_surv_model_dfs, file=here::here("Data/Script_outputs", 
 ##### Do some sensitivity to test that the same models get picked when fill in missing values in other ways
 ### Mean size (by year), mean distance (overall)
 # Set data frames
-eall_meanYsize_meanOdist <- left_join(encounters_size_means, encounters_dist_mean %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
+eall_meanYsize_meanOdist <- left_join(encounters_size_means_by_year, encounters_dist_mean %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
                                       by = "fish_indiv") %>%
-  mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
-  dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
+  mutate(site = as.factor(site), cap_color = as.factor(cap_color), cap_stage = as.factor(cap_stage)) %>%
+  dplyr::rename(ch = encounter.hist)
+
+  #mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
+  #dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
 
 eall_meanYsize_meanOdist <- eall_meanYsize_meanOdist[complete.cases(eall_meanYsize_meanOdist),]
 
@@ -463,8 +470,11 @@ model_comp_meanYsize_meanOdist <- model_comp_meanYsize_meanOdist %>%
 # Make data frames
 eall_0size_meanOdist <- left_join(encounters_size_0, encounters_dist_mean %>% select(fish_indiv, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018),
                                   by = "fish_indiv") %>%
-  mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
-  dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
+  mutate(site = as.factor(site), cap_color = as.factor(cap_color), cap_stage = as.factor(cap_stage)) %>%
+  dplyr::rename(ch = encounter.hist)
+           
+  #mutate(site = as.factor(site), capture_color = as.factor(capture_color), capture_stage = as.factor(capture_stage)) %>%
+  #dplyr::rename(ch = encounter.hist, cap_color = capture_color, cap_stage = capture_stage)
 
 eall_0size_meanOdist <- eall_0size_meanOdist[complete.cases(eall_0size_meanOdist),]
 
