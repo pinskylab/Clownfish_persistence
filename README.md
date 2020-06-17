@@ -68,10 +68,7 @@ Repository contents and explanation:
   * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
   
 **Plots** - holds plots
-Plots that are actually produced by scripts that are tidied:
-Plots/DistFromTrackToAnems/Distance_to_marked_fish_capture_anems_allyears.pdf - histograms by year of minimum distance from divers to capture anems for marked fish
-
-
+* *DistFromTrackToAnems/Distance_to_marked_fish_capture_anems_allyears.pdf* - histograms by year of minimum distance from divers to capture anems for marked fish (produced by AnemDistFromDiveTrack.R)
 * *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
 * *Growth* - plots that show sizes of fish recaptured after a year with the von Bertalanffy growth curve fit and distributions of von Bertalanffy parameters (produced by Growth_analysis.R)
 * *PhiandpEstimates* - plots showing survival and recapture probabilities (ones starting with surv_ or recap_ are most recent) (produced by ClownfishMarkRecap.R)
