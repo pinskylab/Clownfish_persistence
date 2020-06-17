@@ -16,10 +16,9 @@ Repository contents and explanation:
 * *Growth_analysis*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
 * *Clownfish_encounters*: makes encounter histories for all fish marked, fills in missing sizes by projecting using growth curve (and adding mean size or 0 for years pre-capture)
 * *AnemDistFromDiveTrack.R*: finds the lat and lon coordinates of the first capture anemone for each marked fish and the minimum distance from that anemone to the sampling dive tracks each year, in preparation for mark-recapture analyses in ClownfishMarkRecap.R
-
+* *ClownfishMarkRecap.R*: runs mark-recapture analysis using MARK (via RMark) to estimate survival and recapture probabilities
 
 * *TimeSeriesPersistence*: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
-* *ClownfishMarkRecap.R*: runs mark-recapture analysis using MARK (via RMark) to estimate survival and recapture probabilities
 * Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
 
 **Data** - holds raw and processed data files and outputs of analyses
@@ -63,11 +62,11 @@ Repository contents and explanation:
   * encounters_dist.RData - encounter histories with distances to dive tracks (produced by AnemDistFromDiveTrack.R)
   * encounters_dist_mean.RData - same as encounter_dist but with overall mean distance filled in for NAs (produced by AnemDistFromDiveTrack.R)
   * encounters_dist_mean_by_year.RData - same as encounter_dist but with mean distance by year filled in for NAs (produced by AnemDistFromDiveTrack.R)
-  
-  * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
   * best_fit_model_dfs - best fit model from mark-recapture analysis and data frames for plotting (produced by ClownfishMarkRecap.R)
   * model_comp_meanYsize_meanYdist - model comparison for mark-recapture models (produced by ClownfishMarkRecap.R)
 
+  * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
+  
 **Plots** - holds plots
 Plots that are actually produced by scripts that are tidied:
 Plots/DistFromTrackToAnems/Distance_to_marked_fish_capture_anems_allyears.pdf - histograms by year of minimum distance from divers to capture anems for marked fish
