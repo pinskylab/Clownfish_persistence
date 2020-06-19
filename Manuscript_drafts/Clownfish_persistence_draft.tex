@@ -173,7 +173,7 @@ From 2012-2018, we annually sampled fish and habitat at most patches (Table \ref
 \paragraph*{Parentage analysis and dispersal kernel}  % Check with Katrina/Michelle that this captures the highlights and includes the right references
 
 Over seven years of sampling, we genotyped 1719 potential parents and 785 juveniles and found 62 parent-offspring matches \citep{catalanoInPrepconnectivity}.
-We used a distance-based dispersal kernel fit from the parent-offspring matches \citep{catalanoInPrepconnectivity, bode2018estimating}, where the relative dispersal $p(d)$ is a function of distance $d$ in kilometers and parameters $\theta = 1.19$ and $z = e^{k_d = -2.33}$ that control the shape and scale of the kernel (Table \ref{APP_TAB_Params}): $p(d) = ze^{-(zd)^\theta}$. The dispersal kernel estimates the relative dispersal by distance for fish that have survived and recruited so does not separately estimate pre-settlement mortality. To find the probability of fish dispersing among our patches, we numerically integrated the dispersal kernel using the distance from the middle of the origin patch ($i$) to the closest ($d_1$) and farthest ($d_2$) edges of the destination patch ($j$):
+We used a distance-based dispersal kernel fit from the parent-offspring matches \citep{catalanoInPrepconnectivity, bode2018estimating}, where the relative dispersal $p(d)$ is a function of distance $d$ in kilometers and parameters $\theta = 1.19$ and $z = e^{k_d = -2.33}$ that control the shape and scale of the kernel (Table \ref{APP_TAB_Params}): $p(d) = ze^{-(zd)^\theta}$. The dispersal kernel estimates the relative dispersal by distance for fish that have survived and recruited so does not separately estimate pre-settlement mortality. To find the probability of fish dispersing among our patches, we numerically integrated the dispersal kernel using the distance from the middle of the origin patch ($i$) to the closest ($d_1$) and farthest ($d_2$) edges of the destination patch ($j$), with distances calculated using the \texttt{geosphere} package in R \citep{geosphere2017R}:
 
 \begin{equation} % might not need this equation...
 %p_{A, B}(d) = \int_{d_1}^{d_2} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integratingDK}
@@ -430,6 +430,8 @@ Understanding persistence is critical for the management of spatial populations,
 
 When assessing persistence, we must consider mortality and reproduction that occurs across the entire life cycle to determine whether an individual is replacing itself with an individual that reaches the same life stage \citep{burgess2014beyond}. We defined a recruit to be a juvenile individual that has settled on the reef within the previous year, which also encompasses the size we were first able to sample (3.5-6.0 cm for parentage studies) (Fig.\ \ref{FIG_Schematic}). In theory, it does not matter how we defined recruit as long as we used that definition in our calculations of both egg-recruit survival and LEP. In our system, however, while it is straightforward to calculate LEP from any size, we did not have enough tagged recruits to reliably estimate survival to different recruit sizes. Instead, we chose the mean size of offspring matched in the parentage study as our best estimate of the size of a recruit ($\text{size}_\text{recruit}$) and tested sensitivity to different recruit sizes by sampling from a uniform distribution over the sizes the recruit stage covers (3.5-6 cm, Table \ref{APP_TAB_Params}).
 
+\subsection*{Dispersal kernel} \label{APP_SEC_METHODS_Dispersal}
+
 \subsection{Fecundity} \label{APP_SEC_METHODS_Fecundity}
 
 We used a size-dependent fecundity relationship determined using photos of egg clutches and females \citep{yawdoszynInPrepfecundity}, where the number of eggs per clutch ($E_c$) is exponentially related to the length in cm of the female ($L$) with size effect $\beta_l = 2.388$, intercept $b = 1.174$, and egg age effect $\beta_e = -0.608$ dependent on if the eggs were old enough to have visible eyes. We multiplied the number of eyed eggs per clutch by the number of clutches per year $c_e = 11.9$ \citep[estimate from][]{holtswarth2017fecundity} to get total annual fecundity $f$ for a female of length $L$:
@@ -626,6 +628,32 @@ $p_A$ & proportion of anemones occupied by \textit{A. clarkii} & 0.38 & used to 
 \end{longtable}
 \end{landscape}
 \endgroup
+
+\begin{table}[!htbp]
+\begin{centering}
+\caption{Table with site-specific survival ($\phi_i$) values, where the intercept is for adult survival at 0cm.} \label{APP_TAB_SiteSurvivals}
+\begin{tabular}{|p{1.1in}|p{1.5in}|p{1.5in}|p{1.8in}|}
+\hline 
+\textbf{Site} & \textbf{Intercept} & \textbf{Standard Error} & \textbf{Notes} \\ \hline
+Cabatoan & & -1.78 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline 
+$i_{\phi_{Cardidad Cemetery}}$ & addition to intercept for survival at Caridad Cemetery & -19.61 $\pm$ 2994 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Elementary School}}$ & addition to intercept for survival at Elementary School & -0.11 $\pm$ 0.41 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Gabas}}$ & addition to intercept for survival at Gabas & -0.42 $\pm$ 0.58 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Haina}}$ & addition to intercept for survival at Haina & 0.12 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Hicgop South}}$ & addition to intercept for survival at Hicgop South & -0.06 $\pm$ 0.46 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{N. Magbangon}}$ & addition to intercept for survival at N. Magbangon & -1.31 $\pm$ 0.38 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Palanas}}$ & addition to intercept for survival at Palanas & 0.24 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Poroc Rose}}$ & addition to intercept for survival at Poroc Rose & -0.19 $\pm$ 0.44 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Poroc San Flower}}$ & addition to intercept for survival at Poroc San Flower & -0.52 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{San Agustin}}$ & addition to intercept for survival at San Agustin & -0.47 $\pm$ 0.50 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Sitio Baybayon}}$ & addition to intercept for survival at Sitio Baybayon & 0.02 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{S. Magbangon}}$ & addition to intercept for survival at S. Magbangon & -1.08 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Tomakin Dako}}$ & addition to intercept for survival at Tomakin Dako & 0.39 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Visca}}$ & addition to intercept for survival at Visca & 0.33 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+$i_{\phi_{Wangag}}$ & addition to intercept for survival at Wangag & 0.35 $\pm$ 0.25 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+\end{tabular}
+\end{centering}
+\end{table}
 
 \begin{table}[!htbp]
 \begin{centering}
