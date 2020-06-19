@@ -47,7 +47,7 @@ kmlen = 1/111.12  # length of a km, in °N
 xlims = c(124.64, 124.80) # site areas
 ylims = c(10.63, 10.87)
 xlims_Palanas = c(124.709, 124.7143)
-ylims_Palanas = c(10.871, 10.875)
+ylims_Palanas = c(10.872, 10.875)
 xlims_Alb = c(124.708, 124.7174) # Albuera patch 
 ylims_Alb = c(10.867, 10.875)
 xlims_PHL = c(118,127)  # extent of Philippines map
@@ -195,7 +195,8 @@ Palanas_patch <- 7
 Wangag_patch <- 16
 
 Albuera_patch <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
-  coord_fixed(xlim = xlims_Alb, ylim = ylims_Alb, 1.3) +
+  #coord_fixed(xlim = xlims_Alb, ylim = ylims_Alb, 1.3) +
+  coord_fixed(xlim = xlims_Palanas, ylim = ylims_Palanas, 1.3) +
   geom_polygon(color = land_color, fill = land_color) +
   geom_polygon(data = patches[[Palanas_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Palanas
   #geom_polygon(data = patches[[Wangag_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Wangag
@@ -203,6 +204,7 @@ Albuera_patch <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   geom_point(data = anems_to_plot, aes(x = lon, y = lat, group = group, color = species), alpha=0.7, size=1) +
   scale_color_manual(values = colslist[1:3]) +
   theme(legend.position = c(0.1, 0.25)) + 
+  theme(legend.position = "none") +
   guides(colour = guide_legend(override.aes = list(size=2, alpha=1))) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   xlab("") + ylab("") 
