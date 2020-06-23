@@ -1,4 +1,4 @@
-# Make a site map
+# Make a site map figure and figure with life cycle schematic and metric schematic
 
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))
@@ -270,6 +270,35 @@ ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   geom_polygon(data = patches[[16]], aes(x = long, y = lat, group = group), fill = colslist[3], colour = colslist[3]) +
   theme_nothing()
 dev.off()
+
+
+########## Figure with with life cycle and metrics schematics
+
+# Life cycle schematic
+life_cycle_plot <- ggdraw() +
+  draw_image(here::here("Plots/LifeCycleSchematic", "lifecycle2.png"))
+
+# Metrics schematic parts
+LRP_schematic_plot <- ggdraw() +
+  draw_image(here::here("Plots/LifeCycleSchematic", "metapopulation_diagram_LRP.png"))
+SP_schematic_plot <- ggdraw() +
+  draw_image(here::here("Plots/LifeCycleSchematic", "metapopulation_diagram_SP.png"))
+NP_schematic_plot <- ggdraw() +
+  draw_image(here::here("Plots/LifeCycleSchematic", "metapopulation_diagram_NP.png"))
+LR_schematic_plot <- ggdraw() +
+  draw_image(here::here("Plots/LifeCycleSchematic", "metapopulation_diagram_LR.png"))
+
+metrics_schematic <- plot_grid(LRP_schematic_plot, NULL, SP_schematic_plot, NULL,
+                               NP_schematic_plot, NULL, LR_schematic_plot,
+                               rel_heights = c(1, 0.1, 1, 0.1, 1, 0.1, 1),
+                               labels = c("a","","b","","c","","d"), nrow=7)
+
+
+# Put them together
+pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height=6)
+plot_grid(metrics_schematic, NULL, life_cycle_plot, labels=c("","","e"), ncol=3, rel_widths = c(1,0.02,1))
+dev.off()
+
 
 # Put example patch and photo together - right side of figure
 #right_column <- plot_grid(Albuera_patch, photo_plot, labels = c("b", "c"), ncol = 1, align = "v", rel_heights = c(1.5, 1))
