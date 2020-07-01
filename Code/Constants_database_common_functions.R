@@ -237,13 +237,13 @@ site_centers$site[which(site_centers$site == "S.Magbangon")] = "S. Magbangon"
 #################### Pull out relevant values: ####################
 
 # Pull out number of parents, number of offspring genotyped, number of offspring matched
-n_offspring_genotyped <- (kernel_summary %>% filter(Year == "2012-2018"))$NumOffsSampled  # number of potential offspring genotyped (whether or not they were matched to parents)
-n_offspring_matched <- (kernel_summary %>% filter(Year == "2012-2018"))$NumParentageMatches  # number of offspring matched to parents
+n_offspring_genotyped <- (kernel_summary %>% filter(Year == "2012-18"))$NumOffsSampled  # number of potential offspring genotyped (whether or not they were matched to parents)
+n_offspring_matched <- (kernel_summary %>% filter(Year == "2012-18"))$NumParentageMatches  # number of offspring matched to parents
 n_parents_genotyped <- length((all_parents %>% distinct(fish_indiv))$fish_indiv)  # number of potential parents genotyped (whether or not they were matched to offspring)
 
 # Pull out kernel fits (from 2D fitting where both k and theta fit simultaneously)
-theta_allyears <- (kernel_summary %>% filter(Year == "2012-2018"))$best_theta
-k_allyears <- (kernel_summary %>% filter(Year == "2012-2018"))$best_k
+theta_allyears <- (kernel_summary %>% filter(Year == "2012-18"))$best_theta
+k_allyears <- (kernel_summary %>% filter(Year == "2012-18"))$best_k
 
 # Mean eggs per clutch from photo counts
 mean_eggs_per_clutch_from_counts <- mean(egg_counts_AY_data)
