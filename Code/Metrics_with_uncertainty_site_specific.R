@@ -1,29 +1,16 @@
-# Estimating persistence metrics, characterizing uncertainty in LEP, recruit survival, dispersal estimates
-
-# Could also produce an example vbl from the K and Linf we calculate (L = Linf(1- exp(-k(t-t0))))
-
-# TO-DOs:
-# fix uncertainty in growth and uncertainty in annual survival
-# uncertainty in prop_hab_sampled?
+# Estimating persistence metrics 
 
 #################### Set-up: ####################
-source(here::here('Code', 'Constants_database_common_functions.R')) # Just running manually for the day so can load saved allfish_caught file while data base getting reconfigured with gen_id
+source(here::here('Code', 'Constants_database_common_functions.R'))  # Pull in common constants, functions, saved data files, and processed data files 
 
 ##### Load libraries
 library(ggplot2)
 library(grid)
 library(gridExtra)
-library(plotly)  # for 3-D plot in Fig5C
-#devtools::install_github("AckerDWM/gg3D")  # install gg3D for 3-D plot in Fig5C
-library(gg3D)
 library(cowplot)
 
-##### JUST FOR NOW, LOAD 1-D THETA AND K FIT AND UNCERTAINTY!
-#k_allyears = -2.11
-#theta_allyears = 1
-##### Load files from other scripts within this repository or source those scripts (below, commented out)
+##### Load files from other scripts within this repository or source those scripts (below, commented out to show where each analysis comes from)
 
-## NEED TO THINK OF A BETTER WAY THAN HAVING ALL OF THESE FILES SOURCE THE Common constants one - IF THEY EDIT OUTPUT FROM THERE, COULD GET OVERWRITTEN EACH TIME ONE OF THESE OUTPUTS IS SOURCED!
 # Load file with proportion habitat sampled estimates (from Total_anems_proportion_hab_sampled.R)
 load(file = here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # has total anems at each site and proportion habitat sampled at each site in each year
 load(file = here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))  # has total area sampled across time (for egg-recruit survival estimate)
@@ -37,7 +24,7 @@ load(file = here::here("Data/Script_outputs", "site_buffer_info.RData"))
 # source(here::here("Code", "Site_widths_and_distances.R"))
 
 # Load density dependence estimates (from Density_dependence_scaling.R)
-anems_APCL_and_not = readRDS(file=here::here("Data/Script_outputs", "anems_APCL_and_not.RData"))
+load(file=here::here("Data/Script_outputs", "anems_APCL_and_not.RData"))
 perc_APCL_val = (anems_APCL_and_not %>% filter(perc_hab == "APCL"))$value
 perc_UNOC_val = (anems_APCL_and_not %>% filter(perc_hab == "UNOC"))$value
 
@@ -59,9 +46,11 @@ p_dist_pos = 20  # placement of distance effect for recap prob
 # p_size_pos = 4  # placement of size effect for recap prob
 # p_dist_pos = 5  # placement of distance effect for recap prob
 
+##### NEED TO CHECK THE TimeSeriesPersistence SCRIPT #####
 # Load output from abundance trend (for plotting)
 load(file = here::here("Data/Script_outputs", "site_trends_all.RData"))
 load(file = here::here("Data/Script_outputs", "site_trends_time.RData"))
+########################################################## 
 
 # # Figure out where these outputs came from so can source those scripts too!
 # # Should have two options: source the files that create these outputs or load them from Data folder
@@ -90,7 +79,7 @@ Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # from Growth_analysis g
 
 # estimating s - sd of size in a year from a starting size in year 1 (using mean size of L1)
 mean_L1_size <- mean(recap_pairs_year$L1)
-size_around_mean_L1_size = 0.1
+size_around_mean_L1_size = 0.1  # how much buffer to give for finding fish of that size (so searching for the sd of L2 of fish within 0.2 cm range)
 s <- sd((recap_pairs_year %>% filter(mean_L1_size - size_around_mean_L1_size <= L1 & L1 <= mean_L1_size + size_around_mean_L1_size))$L2)
 
 #k_growth_mean = 0.9447194  # lowest AIC model
@@ -103,12 +92,16 @@ eggs_intercept_log = size_fecundity_model$coefficients[1]  # on log-scale
 eggs_slope_log = size_fecundity_model$coefficients[2]
 eyed_effect = size_fecundity_model$coefficients[3]
 
-##### Parameters for what-ifs
-perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
-n_sites = length(site_vec_order$site_name)
+# Parent size (for "tagged" eggs produced by parents)
+parent_size = 6.0
 
 ##### Find total number of metal-tagged anemones
 n_total_metal_anems <- anems_visited_by_year %>% filter(method == "metal tags") %>% filter(year == "2018") %>% summarize(n_total_anems_all_sites = sum(n_total_anems))
+
+##### Parameters for what-ifs
+n_sites = length(site_vec_order$site_name)  # number of sites for habitat, region width, and larval navigation simulations
+perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
+
 
 #################### Functions: ####################
 # # Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
@@ -126,7 +119,7 @@ n_total_metal_anems <- anems_visited_by_year %>% filter(method == "metal tags") 
 # }
 
 
-# For flexible theta and k
+# For flexible theta and k, function of d, k, and theta
 disp_kernel_all_years <- function(d, k, theta) {  # generalization of equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k)
   z_front = (z*theta)/gamma(1/theta)
@@ -134,7 +127,7 @@ disp_kernel_all_years <- function(d, k, theta) {  # generalization of equation f
   return(disp)
 }
 
-# For flexible theta and k
+# For flexible theta and k, function of just d (takes k_d and theta from the environment)
 disp_allyears_d <- function(d) {  # generalization of equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k_allyears)
   z_front = (z*theta_allyears)/gamma(1/theta_allyears)
@@ -297,7 +290,7 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
     disp = (z_front/2)*exp(-(z*d)^(param_set$theta_connectivity))
     return(disp)
   }
-
+  
   # Create connectivity matrix
   Cmat <- sites_and_dists %>% select(org_site, dest_site, d1_km, d2_km, org_alpha_order, org_geo_order, dest_alpha_order, dest_geo_order)
   for(i in 1:length(Cmat$org_site)) {
@@ -316,7 +309,7 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
                                  param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
     LEP_by_site$LEP_parents[i] = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, Sint_set, Sl_set,
                                                  param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year,
-                                                 param_set$breeding_size, 6.0, param_set$start_recruit_sd,
+                                                 param_set$breeding_size, parent_size, param_set$start_recruit_sd,
                                                  param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
   }
 
@@ -615,19 +608,33 @@ mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  # might b
 start_recruit_size = mean_sampled_offspring_size
 
 ### Best-estimate survival parameters by site
-site_surv_best_est <- data.frame(site = no_space_sites_revisited, Sint = NA, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+site_surv_best_est <- data.frame(site = no_space_sites_revisited, Sint = NA, 
+                                 lcl = NA, ucl = NA,
+                                 Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], 
+                                 stringsAsFactors = FALSE)
 
 # Cabatoan
 site_surv_best_est$Sint[1] = best_fit_model_dfs$results$estimate[1]
+site_surv_best_est$lcl[1] = best_fit_model_dfs$results$lcl[1]
+site_surv_best_est$ucl[1] = best_fit_model_dfs$results$ucl[1]
+
 # fill in rest of sites
 for(i in 2:length(no_space_sites_revisited)) {
   site_surv_best_est$Sint[i] = best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[i]
+  site_surv_best_est$lcl[i] = best_fit_model_dfs$results$lcl[i]
+  site_surv_best_est$ucl[i] = best_fit_model_dfs$results$ucl[i]
 }
 
-# Fill in average of other sites for sites not revisited and estimated (Sitio Lonas, Sitio Tugas, Caridad Proper)
-avg_Sint = sum(best_fit_model_dfs$results$estimate[1]*16, best_fit_model_dfs$results$estimate[2:16])/16  
-avg_Sint_withoutCC = sum(best_fit_model_dfs$results$estimate[1]*15, best_fit_model_dfs$results$estimate[3:16])/15  # avg Sint of all sites except Caridad Cemetery  
-site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = avg_Sint, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+# Fill in median of estimated sites for sites not revisited
+median_site_pos = 3
+site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = (best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[median_site_pos]),
+                                    lcl = best_fit_model_dfs$results$lcl[median_site_pos], ucl = best_fit_model_dfs$results$ucl[median_site_pos],
+                                    Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+
+# # Fill in average of other sites for sites not revisited and estimated (Sitio Lonas, Sitio Tugas, Caridad Proper)
+# avg_Sint = sum(best_fit_model_dfs$results$estimate[1]*16, best_fit_model_dfs$results$estimate[2:16])/16  
+# avg_Sint_withoutCC = sum(best_fit_model_dfs$results$estimate[1]*15, best_fit_model_dfs$results$estimate[3:16])/15  # avg Sint of all sites except Caridad Cemetery  
+# site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = avg_Sint, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
 
 # Bind them together
 site_surv_best_est <- rbind(site_surv_best_est, site_surv_notrevisited)
@@ -687,8 +694,10 @@ all_parents_site <- all_parents_by_site %>%
   summarize(nparents = n()) %>%
   mutate(prop_parents = nparents/sum(nparents))
 
-# Total dispersal kernel area (total parents*2 - total area dispersing north of site is 1 and south is 1 for each parent)
-total_parent_kernel_area = n_parents_genotyped*2
+# #### CONFIRM THAT PARENTS DON'T NEED TO BE MULTIPLIED BY 2 ANYMORE!! Yes, looks like that based on written methods in SI.
+# # Total dispersal kernel area (total parents*2 - total area dispersing north of site is 1 and south is 1 for each parent) - think this isn't true with the new normalization...
+# # total_parent_kernel_area = n_parents_genotyped*2
+# total_parent_kernel_area = n_parents_genotyped
 
 # Add in site info
 all_parents_site <- left_join(all_parents_site, site_width_info %>% select(site, site_geo_order, dist_to_N_edge_km, dist_to_S_edge_km), by = "site")
@@ -703,7 +712,8 @@ for(i in 1:length(all_parents_site$site)) {
   all_parents_site$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_S_edge_km[i])$value
 }
 
-# Find proportion of total area under dispersal kernel (where total area to INF is 2 (1 for each side)) covered within sample sites
+# Find proportion of total area under dispersal kernel
+### OLD COMMENT - now total area to Inf is 1 (where total area to INF is 2 (1 for each side)) covered within sample sites
 all_parents_site <- all_parents_site %>%
   mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
          prop_disp_area_within_sites = total_disp_area_within_sites,  # now, dispersal kernel normalized to 0.5 so total to N and S combined is 1
@@ -731,8 +741,8 @@ tagged_eggs_3.5cm <- n_parents_genotyped*mean(LEP_different_sizes$LEP_3.5cm)
 # # tagged_eggs_3.5cm <- n_parents_genotyped*LEP_3.5cm
 
 # Scale up the number of "tagged offspring" by the probability of catching a fish (prob_r), proportion of site area we sampled (Ph), proportion of dispersal kernel area we sampled (Pd), and proportion of sample area that is habitat (Ps)
-recruited_tagged_offspring_scaled <- n_offspring_matched/(mean(prob_r)*Ps*Pd*Ph)
-recruited_tagged_offspring_oursites <- n_offspring_matched/(mean(prob_r)*Ph)  # just scaling up to recruits arriving back to our sites
+recruited_tagged_offspring_scaled <- n_offspring_matched/(prob_r_mean*Ps*Pd*Ph)
+recruited_tagged_offspring_oursites <- n_offspring_matched/(prob_r_mean*Ph)  # just scaling up to recruits arriving back to our sites
 
 # Scale up by DD
 recruited_tagged_offspring_scaled_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_scaled, perc_UNOC_val, perc_APCL_val)
@@ -797,14 +807,34 @@ LEP_R_oursites <- recruits_per_egg_oursites*LEP_best_est
 LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
 
 #################### Generate sets of parameters for uncertainty: ####################
+## Growth
 Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
 k_growth_set = growth_info_estimate$k_est  # growth (k)
+
 #Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
 #Sl_set = rnorm(n_runs, mean = Sl_mean, sd = Sl_se)  # adult size-survival relationship
 #k_connectivity_set = k_connectivity_values$V1
-k_theta_indices = sample(1:length(k_theta_allyear_95CI_values$k_eval), size=n_runs, replace=FALSE)
-k_connectivity_set = k_theta_allyear_95CI_values$k_eval[k_theta_indices]
-theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
+
+## Dispersal
+# Select values from the 95% CI, weighted by log-likelihood
+min_LL <- min(k_theta_allyear_95CI_values$log_like)
+dispersal_sample_set <- k_theta_allyear_95CI_values %>%
+  mutate(deviation = min_LL/log_like) %>%
+  sample_n(size = n_runs, weight = deviation, replacement = T) 
+k_connectivity_set <- dispersal_sample_set$k_eval
+theta_connectivity_set <- dispersal_sample_set$theta_eval
+
+# # KC weighting code
+# minall <- min(mddall_df$log_like)
+# mddall_weighted <- mddall_df %>%
+#   mutate(deviation=minall/log_like) %>%
+#   sample_n(size=1000, weight=deviation, replacement=T) %>%
+#   mutate(Year="2012-18")
+# 
+# # Old method
+# k_theta_indices = sample(1:length(k_theta_allyear_95CI_values$k_eval), size=n_runs, replace=FALSE)
+# k_connectivity_set = k_theta_allyear_95CI_values$k_eval[k_theta_indices]
+# theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
 
 ### Create better growth estimate parameter sets
 growth_set_intercept_est_mean <- mean(growth_info_estimate$intercept_est)  # mean of the intercept estimates from the fits with different growth pairs for fish with multiple
@@ -821,6 +851,7 @@ growth_set_params <- growth_set_params %>%
 
 # mutate(k_est = -log(slope_est),
 #        Linf_est = intercept_est/(1 - slope_est))
+
 ### Create survival parameter sets 
 site_surv_param_sets <- list()
 
@@ -841,26 +872,47 @@ for(i in 2:length(no_space_sites_revisited)) {
 }
 
 # then for the three that use average (Caridad Proper, Sitio Lonas, Sitio Tugas)
-avg_Sint_lcl = sum(best_fit_model_dfs$results$lcl[1]*16, best_fit_model_dfs$results$lcl[2:16])/16  # avg Sint lcl, all sites included
-avg_Sint_ucl = sum(best_fit_model_dfs$results$ucl[1]*16, best_fit_model_dfs$results$ucl[2:16])/16  # avg Sint ucl, all sites included
-avg_Sint_lcl_withoutCC = sum(best_fit_model_dfs$results$lcl[1]*15, best_fit_model_dfs$results$lcl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
-avg_Sint_ucl_withoutCC = sum(best_fit_model_dfs$results$ucl[1]*15, best_fit_model_dfs$results$ucl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
+median_site_Sint_lcl = best_fit_model_dfs$results$lcl[median_site_pos]
+median_site_Sint_ucl = best_fit_model_dfs$results$ucl[median_site_pos]
 
 for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
-  site_surv_df <- data.frame(Sint_C = NA, 
-                             Sint_site = NA, 
-                             Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC),
-                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
+  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[median_site_pos], max=best_fit_model_dfs$results$ucl[median_site_pos]), 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+    mutate(Sint = Sint_C + Sint_site)
   site_surv_param_sets[[i]] <- site_surv_df
 }
 
-# Make one with average Sint (without CC) for all sites
+# avg_Sint_lcl = sum(best_fit_model_dfs$results$lcl[1]*16, best_fit_model_dfs$results$lcl[2:16])/16  # avg Sint lcl, all sites included
+# avg_Sint_ucl = sum(best_fit_model_dfs$results$ucl[1]*16, best_fit_model_dfs$results$ucl[2:16])/16  # avg Sint ucl, all sites included
+# avg_Sint_lcl_withoutCC = sum(best_fit_model_dfs$results$lcl[1]*15, best_fit_model_dfs$results$lcl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
+# avg_Sint_ucl_withoutCC = sum(best_fit_model_dfs$results$ucl[1]*15, best_fit_model_dfs$results$ucl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
+# 
+# for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
+#   site_surv_df <- data.frame(Sint_C = NA, 
+#                              Sint_site = NA, 
+#                              Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC),
+#                              Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
+#   site_surv_param_sets[[i]] <- site_surv_df
+# }
+
+# Make one with median Sint for all sites
 site_surv_avg_Sint_param_sets <- list()
 for(i in 1:length(site_vec_order$site_name)) {
-  site_surv_df <- data.frame(Sint_C = NA, Sint_site = NA, Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos]),
-                             Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC))
-  site_surv_avg_Sint_param_sets[[i]] <- site_surv_df
+  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[median_site_pos], max=best_fit_model_dfs$results$ucl[median_site_pos]), 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_param_sets[[i]] <- site_surv_df
 }
+
+# # Make one with average Sint (without CC) for all sites
+# site_surv_avg_Sint_param_sets <- list()
+# for(i in 1:length(site_vec_order$site_name)) {
+#   site_surv_df <- data.frame(Sint_C = NA, Sint_site = NA, Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos]),
+#                              Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC))
+#   site_surv_avg_Sint_param_sets[[i]] <- site_surv_df
+# }
 
 # Make one for best ests too so can use same code
 site_surv_best_est_sets <- list()
@@ -880,12 +932,37 @@ for(i in 2:length(no_space_sites_revisited)) {
 }
 # then three that use average
 for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
-  site_surv_df <- data.frame(Sint_C = NA, 
-                             Sint_site = NA, 
-                             Sint = rep(avg_Sint, n_runs),
-                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs))
+  site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+                             Sint_site = rep(best_fit_model_dfs$results$estimate[median_site_pos], n_runs), 
+                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+    mutate(Sint = Sint_C + Sint_site)
   site_surv_best_est_sets[[i]] <- site_surv_df
 }
+
+# # Make one for best ests too so can use same code
+# site_surv_best_est_sets <- list()
+# # Cabatoan first
+# site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+#                            Sint_site = rep(0, n_runs), 
+#                            Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+#   mutate(Sint = Sint_C + Sint_site)
+# site_surv_best_est_sets[[1]] <- site_surv_df
+# # then rest of sites that are revisited
+# for(i in 2:length(no_space_sites_revisited)) {
+#   site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+#                              Sint_site = rep(best_fit_model_dfs$results$estimate[i], n_runs), 
+#                              Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+#     mutate(Sint = Sint_C + Sint_site)
+#   site_surv_best_est_sets[[i]] <- site_surv_df
+# }
+# # then three that use average
+# for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
+#   site_surv_df <- data.frame(Sint_C = NA, 
+#                              Sint_site = NA, 
+#                              Sint = rep(avg_Sint, n_runs),
+#                              Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs))
+#   site_surv_best_est_sets[[i]] <- site_surv_df
+# }
 
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
@@ -1308,8 +1385,11 @@ for(i in 1:length(perc_hab_vals)) {
 }
 
 # Make site-survs use numbers as names to match
+median_site_Sint <- (site_surv_best_est %>% filter(site == "Elementary School"))$Sint
 site_surv_best_est_avg_Sint <- site_surv_best_est %>%
-  mutate(Sint = avg_Sint_withoutCC)
+  mutate(Sint = median_site_Sint)
+# site_surv_best_est_avg_Sint <- site_surv_best_est %>%
+#   mutate(Sint = avg_Sint_withoutCC)
 #site_surv_best_est_hab_sens$site <- c(5,6,10,15,18,8,3,1,14,13,12,19,4,17,15,2,7,11,9)  # geographical order no. of sites, in the order they are in site_surv_best_est listing
 
 # Find best estimate and uncertainty metrics for those habitat configurations with real site-specific survs (and including compensation for density-dependence)
@@ -1900,7 +1980,177 @@ save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert
 # Summary of parameters and metrics, for easy reference while writing
 save(metrics_params_summary, file=here::here("Data/Script_outputs","metrics_params_summary.RData"))
 
+###################################### STUFF TO RUN OVERNIGHT!
+### Run metrics for a bunch of different types of uncertainty - No DD
+output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
+output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", FALSE)
+output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
+output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
+output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
+#output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
+output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
+output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
 
+# output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+# output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+# output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+
+
+# Join them together for plotting purposes
+LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
+                    output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
+                    output_uncert_offspring_assigned$LEP_out_df,output_uncert_prob_r$LEP_out_df,
+                    #output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
+                    output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
+
+LEP_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_by_site_out_df, output_uncert_growth$LEP_by_site_out_df,
+                            output_uncert_survival$LEP_by_site_out_df, output_uncert_breeding_size$LEP_by_site_out_df,
+                            output_uncert_offspring_assigned$LEP_by_site_out_df, output_uncert_prob_r$LEP_by_site_out_df,
+                            output_uncert_dispersal$LEP_by_site_out_df, output_uncert_all$LEP_by_site_out_df)
+
+LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
+                      output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
+                      output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
+                      #output_uncert_prob_r_and_offspring_assigned$LEP_R,
+                      output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
+
+LEP_R_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_R_by_site_out_df, output_uncert_growth$LEP_R_by_site_out_df,
+                              output_uncert_survival$LEP_R_by_site_out_df, output_uncert_breeding_size$LEP_R_by_site_out_df,
+                              output_uncert_offspring_assigned$LEP_R_by_site_out_df, output_uncert_prob_r$LEP_R_by_site_out_df,
+                              output_uncert_dispersal$LEP_R_by_site_out_df, output_uncert_all$LEP_R_by_site_out_df)
+
+RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
+                      output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
+                      output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
+                      #output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
+                      output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
+
+NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
+                   output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
+                   output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
+                   #output_uncert_prob_r_and_offspring_assigned$NP_out_df,
+                   output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
+
+###### Now run with DD
+### Run metrics for a bunch of different types of uncertainty
+output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
+output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", TRUE)
+output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
+output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
+output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
+#output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
+output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
+output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+
+# Join them together for plotting purposes
+LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
+                       output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
+                       output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
+                       #output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
+                       output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
+
+LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
+                               output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
+                               output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
+                               output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
+
+LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
+                         output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
+                         output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
+                         #output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
+                         output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
+
+LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
+                                 output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
+                                 output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
+                                 output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
+
+RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
+                         output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
+                         output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
+                         #output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
+                         output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
+
+NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
+                      output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
+                      output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
+                      #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
+                      output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
+
+output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
+output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
+
+perc_hab_best_ests_avgSurvs <- list()
+perc_hab_uncertainty_avgSurvs <- list()
+for(i in 1:length(perc_hab_vals)) {
+  perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[i]], site_vec_order, TRUE)
+  perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
+}
+
+wider_region_best_ests_avgSurvs <- list()
+wider_region_uncertainty_avgSurvs <- list()
+for(i in 1:length(region_width_list)) {
+  wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
+  wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
+}
+
+wider_region_all_hab_best_ests_avgSurvs <- list()
+wider_region_all_hab_uncertainty_avgSurvs <- list()
+for(i in 1:length(region_width_list)) {
+  wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
+  wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
+}
+
+wider_region_perc_hab_best_ests_avgSurvs <- list()
+#wider_region_perc_hab_uncertainty_avgSurvs <- list()
+for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
+  wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
+  #  wider_region_perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, "all: region sens, perc hab sens, avg surv", TRUE)
+  print(i)
+}
+# Runs without DD compensation
+save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
+save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
+save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
+save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
+save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
+save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
+save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
+save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
+save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
+#save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
+save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
+save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
+
+# Runs with DD compensation
+save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
+save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
+save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
+save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_uncert_survival_DD.RData"))
+save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
+save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
+save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
+#save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
+save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
+save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
+
+# Params
+save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
+
+# What-ifs
+save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
+save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
+save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_avgSurvs.RData"))
+save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
+
+save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))
+save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))
+save(wider_region_all_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_best_ests_avgSurvs.RData"))
+save(wider_region_all_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_uncertainty_avgSurvs.RData"))
+
+save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgsSurvs.RData"))
 #################### Plots: ####################
 
 ########## Main text figures ##########
