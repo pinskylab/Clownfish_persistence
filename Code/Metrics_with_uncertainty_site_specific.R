@@ -1357,6 +1357,44 @@ NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_gr
                    #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
                    output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
 
+##### Find 95% range
+
+
+##### Find best estimates
+LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # mean LEP across sites
+LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
+LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local_mean
+NP_best_est <- best_est_metrics_mean_offspring$NP
+SP_best_est <- best_est_metrics_mean_offspring$SP
+
+LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_mean  # mean LRP across sites
+LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local_mean
+NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
+SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
+
+# # Do I need any of these? maybe not...
+# LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # how to deal with site variation?
+# LEP_best_est_min <- min(best_est_metrics_mean_offspring$LEP_by_site$LEP)
+# LEP_best_est_max <- max(best_est_metrics_mean_offspring$LEP_by_site$LEP)
+# LEP_R_best_est_min <- min(best_est_metrics_mean_offspring$LEP_by_site$LEP_R)
+# LEP_R_best_est_max <- max(best_est_metrics_mean_offspring$LEP_by_site$LEP_R)
+# LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
+# NP_best_est <- best_est_metrics_mean_offspring$NP
+# SP_best_est <- best_est_metrics_mean_offspring$SP
+# LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local_mean
+# 
+# LEP_best_est_DD <- mean(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)  # how to deal with, show site variation?
+# LEP_best_est_min_DD <- min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)
+# LEP_best_est_max_DD <- max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)
+# LEP_R_best_est_min_DD <- min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R)
+# LEP_R_best_est_max_DD <- max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R)
+# LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_mean
+# NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
+# SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
+# LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local_mean
+# 
+# LEP_R_oursites <- recruits_per_egg_oursites*LEP_best_est
+# LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
 
 # ##### Find range of uncertainty for LEP average and LRP average (with DD)
 # LRP_best_est_avg_DD_min <- min(output_uncert_all_DD$LEP_R_out_df$value)
@@ -2128,177 +2166,179 @@ save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert
 # Summary of parameters and metrics, for easy reference while writing
 save(metrics_params_summary, file=here::here("Data/Script_outputs","metrics_params_summary.RData"))
 
-###################################### STUFF TO RUN OVERNIGHT!
-### Run metrics for a bunch of different types of uncertainty - No DD
-output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
-output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
-output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", FALSE)
-output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
-output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
-output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
-#output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
-output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
-output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
-
+# ###################################### STUFF TO RUN OVERNIGHT!
+# ### Run metrics for a bunch of different types of uncertainty - No DD
+# output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
 # output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+# output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", FALSE)
+# output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
+# output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
+# output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
+# #output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
+# output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
+# output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
+# 
+# # output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+# # output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+# # output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+# 
+# 
+# # Join them together for plotting purposes
+# LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
+#                     output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
+#                     output_uncert_offspring_assigned$LEP_out_df,output_uncert_prob_r$LEP_out_df,
+#                     #output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
+#                     output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
+# 
+# LEP_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_by_site_out_df, output_uncert_growth$LEP_by_site_out_df,
+#                             output_uncert_survival$LEP_by_site_out_df, output_uncert_breeding_size$LEP_by_site_out_df,
+#                             output_uncert_offspring_assigned$LEP_by_site_out_df, output_uncert_prob_r$LEP_by_site_out_df,
+#                             output_uncert_dispersal$LEP_by_site_out_df, output_uncert_all$LEP_by_site_out_df)
+# 
+# LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
+#                       output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
+#                       output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
+#                       #output_uncert_prob_r_and_offspring_assigned$LEP_R,
+#                       output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
+# 
+# LEP_R_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_R_by_site_out_df, output_uncert_growth$LEP_R_by_site_out_df,
+#                               output_uncert_survival$LEP_R_by_site_out_df, output_uncert_breeding_size$LEP_R_by_site_out_df,
+#                               output_uncert_offspring_assigned$LEP_R_by_site_out_df, output_uncert_prob_r$LEP_R_by_site_out_df,
+#                               output_uncert_dispersal$LEP_R_by_site_out_df, output_uncert_all$LEP_R_by_site_out_df)
+# 
+# RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
+#                       output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
+#                       output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
+#                       #output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
+#                       output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
+# 
+# NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
+#                    output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
+#                    output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
+#                    #output_uncert_prob_r_and_offspring_assigned$NP_out_df,
+#                    output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
+# 
+# ###### Now run with DD
+# ### Run metrics for a bunch of different types of uncertainty
+# output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
 # output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+# output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", TRUE)
+# output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
+# output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
+# output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
+# #output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
+# output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
 # output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+# 
+# # Join them together for plotting purposes
+# LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
+#                        output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
+#                        output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
+#                        #output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
+#                        output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
+# 
+# LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
+#                                output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
+#                                output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
+#                                output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
+# 
+# LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
+#                          output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
+#                          output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
+#                          #output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
+#                          output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
+# 
+# LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
+#                                  output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
+#                                  output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
+#                                  output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
+# 
+# RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
+#                          output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
+#                          output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
+#                          #output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
+#                          output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
+# 
+# NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
+#                       output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
+#                       output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
+#                       #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
+#                       output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
+# 
+# output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
+# output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
+# 
+# perc_hab_best_ests_avgSurvs <- list()
+# perc_hab_uncertainty_avgSurvs <- list()
+# for(i in 1:length(perc_hab_vals)) {
+#   perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[i]], site_vec_order, TRUE)
+#   perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
+# }
+# 
+# wider_region_best_ests_avgSurvs <- list()
+# wider_region_uncertainty_avgSurvs <- list()
+# for(i in 1:length(region_width_list)) {
+#   wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
+#   wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
+# }
+# 
+# wider_region_all_hab_best_ests_avgSurvs <- list()
+# wider_region_all_hab_uncertainty_avgSurvs <- list()
+# for(i in 1:length(region_width_list)) {
+#   wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
+#   wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
+# }
+# 
+# wider_region_perc_hab_best_ests_avgSurvs <- list()
+# #wider_region_perc_hab_uncertainty_avgSurvs <- list()
+# for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
+#   wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
+#   #  wider_region_perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, "all: region sens, perc hab sens, avg surv", TRUE)
+#   print(i)
+# }
+# # Runs without DD compensation
+# save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
+# save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
+# save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
+# save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
+# save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
+# save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
+# save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
+# save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
+# save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
+# #save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
+# save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
+# save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
+# 
+# # Runs with DD compensation
+# save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
+# save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
+# save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
+# save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_uncert_survival_DD.RData"))
+# save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
+# save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
+# save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
+# #save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
+# save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
+# save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
+# 
+# # Params
+# save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
+# 
+# # What-ifs
+# save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
+# save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
+# save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_avgSurvs.RData"))
+# save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
+# 
+# save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))
+# save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))
+# save(wider_region_all_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_best_ests_avgSurvs.RData"))
+# save(wider_region_all_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_uncertainty_avgSurvs.RData"))
+# 
+# save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgsSurvs.RData"))
 
 
-# Join them together for plotting purposes
-LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
-                    output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
-                    output_uncert_offspring_assigned$LEP_out_df,output_uncert_prob_r$LEP_out_df,
-                    #output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
-                    output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
-
-LEP_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_by_site_out_df, output_uncert_growth$LEP_by_site_out_df,
-                            output_uncert_survival$LEP_by_site_out_df, output_uncert_breeding_size$LEP_by_site_out_df,
-                            output_uncert_offspring_assigned$LEP_by_site_out_df, output_uncert_prob_r$LEP_by_site_out_df,
-                            output_uncert_dispersal$LEP_by_site_out_df, output_uncert_all$LEP_by_site_out_df)
-
-LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
-                      output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
-                      output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
-                      #output_uncert_prob_r_and_offspring_assigned$LEP_R,
-                      output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
-
-LEP_R_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_R_by_site_out_df, output_uncert_growth$LEP_R_by_site_out_df,
-                              output_uncert_survival$LEP_R_by_site_out_df, output_uncert_breeding_size$LEP_R_by_site_out_df,
-                              output_uncert_offspring_assigned$LEP_R_by_site_out_df, output_uncert_prob_r$LEP_R_by_site_out_df,
-                              output_uncert_dispersal$LEP_R_by_site_out_df, output_uncert_all$LEP_R_by_site_out_df)
-
-RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
-                      output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
-                      output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
-                      #output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
-                      output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
-
-NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
-                   output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
-                   output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
-                   #output_uncert_prob_r_and_offspring_assigned$NP_out_df,
-                   output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
-
-###### Now run with DD
-### Run metrics for a bunch of different types of uncertainty
-output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
-output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
-output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", TRUE)
-output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
-output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
-output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
-#output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
-output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
-output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
-
-# Join them together for plotting purposes
-LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
-                       output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
-                       output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
-                       #output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
-                       output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
-
-LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
-                               output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
-                               output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
-                               output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
-
-LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
-                         output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
-                         output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
-                         #output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
-                         output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
-
-LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
-                                 output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
-                                 output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
-                                 output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
-
-RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
-                         output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
-                         output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
-                         #output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
-                         output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
-
-NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
-                      output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
-                      output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
-                      #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
-                      output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
-
-output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
-output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
-
-perc_hab_best_ests_avgSurvs <- list()
-perc_hab_uncertainty_avgSurvs <- list()
-for(i in 1:length(perc_hab_vals)) {
-  perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[i]], site_vec_order, TRUE)
-  perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
-}
-
-wider_region_best_ests_avgSurvs <- list()
-wider_region_uncertainty_avgSurvs <- list()
-for(i in 1:length(region_width_list)) {
-  wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
-  wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
-}
-
-wider_region_all_hab_best_ests_avgSurvs <- list()
-wider_region_all_hab_uncertainty_avgSurvs <- list()
-for(i in 1:length(region_width_list)) {
-  wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
-  wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
-}
-
-wider_region_perc_hab_best_ests_avgSurvs <- list()
-#wider_region_perc_hab_uncertainty_avgSurvs <- list()
-for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
-  wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
-  #  wider_region_perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, "all: region sens, perc hab sens, avg surv", TRUE)
-  print(i)
-}
-# Runs without DD compensation
-save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
-save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
-save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
-save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
-save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
-save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
-save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
-save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
-save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
-#save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
-save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
-save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
-
-# Runs with DD compensation
-save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
-save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
-save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
-save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_uncert_survival_DD.RData"))
-save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
-save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
-save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
-#save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
-save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
-save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
-
-# Params
-save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
-
-# What-ifs
-save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
-save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
-save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_avgSurvs.RData"))
-save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
-
-save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))
-save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))
-save(wider_region_all_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_best_ests_avgSurvs.RData"))
-save(wider_region_all_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_uncertainty_avgSurvs.RData"))
-
-save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgsSurvs.RData"))
 #################### Plots: ####################
 
 ########## Main text figures ##########
@@ -2327,12 +2367,13 @@ dispersal_kernel_plot <- ggplot(data=dispersal_df, aes(x=distance, y=kernel_best
 
 # Growth curve - plot the data and linear model for fish caught about a year apart, models for only one recapture pair per fish, pairs selected randomly and models fit 1000x
 growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
-  geom_point(shape = 1) +
-  geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black") +
-  geom_abline(aes(intercept = 0, slope = 1), color = "black", lwd = 1.5) +  #  1:1 line
+  geom_point(shape = 1, color = "dark gray") +
+  #geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black", lwd = 1.5) +
+  geom_abline(aes(intercept = 0, slope = 1), color = "black", lwd = 1.5, linetype = "dashed") +  #  1:1 line
   geom_ribbon(aes(x=seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
                   ymin = (min(growth_info_estimate$intercept_est) + min(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
-                  ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "light gray", alpha = 0.5) +
+                  ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "dark gray", alpha = 0.75) +
+  geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black", lwd = 1.5) +
   xlab("length (cm)") + ylab("length (cm) next year") + #ggtitle('Growth') +
   theme_bw()
 
@@ -2353,13 +2394,13 @@ breeding_size_plot <- ggplot(data = recap_first_female, aes(x=size)) +
   xlab('transition size (cm)') + #ggtitle('Female transition size') +
   theme_bw()
 
-# Survival plot (for now doing an example site - Palanas, but could change that...)
-survival_output_to_plot <- best_fit_model_dfs$surv_site_size %>% filter(site == "Palanas")
+# Survival plot (for now doing an example site - Palanas, but could change that...) - now doing Elementary School, which has median survival
+survival_output_to_plot <- best_fit_model_dfs$surv_site_size %>% filter(site == "Elementary School")
 
 survival_plot <- ggplot(data = survival_output_to_plot, aes(size, estimate_prob)) +
   geom_ribbon(aes(ymin=lcl_prob,ymax=ucl_prob),color="gray",fill="gray") +
   geom_line(color="black") +
-  xlab("size (cm)") + ylab("probability of survival \n (ex. site: Palanas)") + #ggtitle("Annual survival (ex. Palanas)") +
+  xlab("size (cm)") + ylab("probability of survival \n (ex. site: Elementary School)") + #ggtitle("Annual survival (ex. Palanas)") +
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 
@@ -2378,7 +2419,7 @@ LEP_plot <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %
   xlab("lifetime egg production (LEP)") + #ggtitle('LEP') +
   theme_bw()
 
-LEP_plot_freq <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,4,5,6,7,8,9,10,11,12,13,14,17,18,19)), aes(x=value)) +
+LEP_plot_freq <- ggplot(data = output_uncert_all$LEP_by_site_out_df %>% filter(site %in% c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)), aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=100, color = 'gray', fill = 'gray') +
   #geom_freqpoly() +
   #geom_vline(data = LEP_best_est, aes(xintercept = LEP, color = recruit_size)) +
@@ -2478,7 +2519,7 @@ SP_best_est_DD$site <- replace(SP_best_est_DD$site, SP_best_est_DD$site=="Tamaki
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est_DD, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab(bquote("self persistence (SP)")) + #ggtitle("Self-persistence") +
+  xlab("\npatch") + ylab(bquote("self persistence (SP)")) + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
@@ -2982,7 +3023,7 @@ SP_best_est$site <- replace(SP_best_est$site, SP_best_est$site=="Tamakin Dacot",
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = SP_best_est, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nsite") + ylab(expression("self persistence (SP"[DD]~")")) + #ggtitle("Self-persistence") +
+  xlab("\npatch") + ylab(expression("self persistence (SP"[DD]~")")) + #ggtitle("Self-persistence") +
   #ylim(c(0,0.65)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
@@ -3054,7 +3095,7 @@ dev.off()
 ##### Uncertainty exploration for LEP
 # All together
 pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"), width=6, height=4)
-ggplot(data = LEP_uncert %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+ggplot(data = LEP_uncert_DD %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "growth", "survival", "all"),
                                value = LEP_best_est), color = "black") +
@@ -3127,7 +3168,7 @@ pdf(file = here::here("Plots/FigureDrafts", "RperE_uncertainty_by_param.pdf"), w
 ggplot(data = RperE_uncert_DD_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
   geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all"),
-                               value = recruits_per_egg_best_est_DD), color = "black") +
+                               value = best_est_metrics_mean_offspring_DD$recruits_per_egg), color = "black") +
   xlab("uncertainty type") + ylab("recruits-per-egg") + #ggtitle("Uncertainty in egg-recruit survival") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
