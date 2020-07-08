@@ -2625,6 +2625,8 @@ wider_region_perc_hab_plot_v3 <- ggplot(wider_region_perc_hab_plot_df_categories
   scale_fill_manual(values = lambda_c_color_scheme_5) +
   geom_hline(yintercept = Ps, color = "orange") +
   geom_vline(xintercept = region_width_km, color = "orange") +
+  theme(legend.title = element_text( size=2), legend.text=element_text(size=2)) +
+  theme(legend.key.size = unit(1, "cm")) +
   xlab("region width (km)") + ylab("percent habitat") + labs(fill = expression(lambda[c]), color = expression(lambda[c])) +
   theme_bw() 
 
@@ -2688,6 +2690,34 @@ plot_grid(perc_hab_plot, wider_region_plot, wider_region_perc_hab_plot_v3, larv_
           nrow=2, labels=c("a","b","c","d"))
 dev.off()
 
+# Pull out legend from 3D plot
+legend_3D <- get_legend(wider_region_perc_hab_plot_v3)
+wider_region_perc_hab_plot_v3 <- wider_region_perc_hab_plot_v3 + theme(legend.position = "none")
+wider_region_perc_hab_plot_v3_with_legend <- plot_grid(wider_region_perc_hab_plot_v3, legend_3D, nrow=1, rel_widths = c(0.68, 0.32))
+pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels_3D.pdf"), width=6, height=6)
+plot_grid(perc_hab_plot, wider_region_plot, wider_region_perc_hab_plot_v3_with_legend, larv_nav_plot, 
+          nrow=2, labels=c("a","b","c","d"))
+dev.off()
+
+                                                       
+                                                       
+top_row_what_ifs_plot <- plot_grid(perc_hab_plot, wider_region_plot, nrow=1, labels=c("a","b"))
+bottom_row_what_ifs_plot <- plot_grid(wider_region_perc_hab_plot_v3, legend_3D, larv_nav_plot, nrow=1, 
+                        rel_widths = c(0.70,0.3,1), labels = c("c",NULL,"d"))
+pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels_3D.pdf"), width=6, height=6)
+plot_grid(top_row_what_ifs_plot, bottom_row_what_ifs_plot,
+          nrow=2)
+dev.off()
+                        
+legend <- get_legend(plot.mpg)
+
+# and replot suppressing the legend
+plot.mpg <- plot.mpg + theme(legend.position='none')
+
+# Now plots are aligned vertically with the legend to the right
+ggdraw(plot_grid(plot_grid(p1, plot.mpg, ncol=1, align='v'),
+                 plot_grid(NULL, legend, ncol=1),
+                 rel_widths=c(1, 0.2)))
 # Different 3D plot options
 pdf(file=here::here("Plots/FigureDrafts","What_if_4_panels_3D_options.pdf"), width=6, height=6)
 plot_grid(wider_region_perc_hab_plot_v1, wider_region_perc_hab_plot_v3, wider_region_perc_hab_plot_v4, NULL,
