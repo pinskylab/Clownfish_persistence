@@ -36,23 +36,12 @@ Phi_size_pos = 17  # placement of size effect for survival
 p_int_pos = 18  # placement of intercept for recap prob
 p_size_pos = 19  # placement of size effect for recap prob
 p_dist_pos = 20  # placement of distance effect for recap prob
-# survival_output = readRDS(file=here::here("Data/Script_outputs", "eall_mean_Phi_size_p_size_plus_dist.RData"))  # MARK output (lowest AICc model)
-# Phi_int_pos = 1  # placement of intercept for survival
-# Phi_size_pos = 2  # placement of size effect for survival
-# p_int_pos = 3  # placement of intercept for recap prob
-# p_size_pos = 4  # placement of size effect for recap prob
-# p_dist_pos = 5  # placement of distance effect for recap prob
 
 ##### NEED TO CHECK THE TimeSeriesPersistence SCRIPT #####
 # Load output from abundance trend (for plotting) (from Code/TimeSeriesPersistence.R)
 load(file = here::here("Data/Script_outputs", "site_trends_all.RData"))
 load(file = here::here("Data/Script_outputs", "site_trends_time.RData"))
 ########################################################## 
-
-# # Figure out where these outputs came from so can source those scripts too!
-# # Should have two options: source the files that create these outputs or load them from Data folder
-# #load(file=here('Data', 'female_sizes.RData'))  # sizes of females from data
-# load(file=here::here('Data', 'eall_mean_Phi_size_p_size_plus_dist.RData'))  # MARK output (lowest AICc model) - not sure this has been udpated since I changed the growth in it? Should check!
 
 ##### Load input from other analyses outside this repository
 
@@ -84,46 +73,8 @@ parent_size = 6.0
 n_sites = length(site_vec_order$site_name)  # number of sites for habitat, region width, and larval navigation simulations
 perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
 
-##### Parameter info (candidates for uncertainty)
-
-# # Growth (for LEP)
-# # s = exp(-0.0148)  # what is this?? goes into dnorm for growth part... sd around the mean size? Not sure where this estimate came from... should update it with my estimates
-# k_growth_mean = mean(growth_info_estimate$k_est)  # from Growth_analysis growth work (very simple)
-# Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # from Growth_analysis growth work (very simple)
-# 
-# # estimating s - sd of size in a year from a starting size in year 1 (using mean size of L1)
-# mean_L1_size <- mean(recap_pairs_year$L1)
-# size_around_mean_L1_size = 0.1  # how much buffer to give for finding fish of that size (so searching for the sd of L2 of fish within 0.2 cm range)
-# s <- sd((recap_pairs_year %>% filter(mean_L1_size - size_around_mean_L1_size <= L1 & L1 <= mean_L1_size + size_around_mean_L1_size))$L2)
-
-#k_growth_mean = 0.9447194  # lowest AIC model
-#Linf_growth_mean = 10.50670  # lowest AIC model
-#Linf_growth_sd = sqrt(1.168163)  # from variance for Linf in lowest AIC model
-
-# ##### Find total number of metal-tagged anemones
-# n_total_metal_anems <- anems_visited_by_year %>% filter(method == "metal tags") %>% filter(year == "2018") %>% summarize(n_total_anems_all_sites = sum(n_total_anems))
-# 
-# ##### Parameters for what-ifs
-# n_sites = length(site_vec_order$site_name)  # number of sites for habitat, region width, and larval navigation simulations
-# perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
-
 
 #################### Functions: ####################
-# # Find probability of dispersing distance d with all-years fit (old version, where theta=0.5)
-# disp_kernel_all_years <- function(d, k, theta) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
-#   z = exp(k)
-#   disp = (z/2)*exp(-(z*d)^(theta))
-#   return(disp)
-# }
-#
-# # Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
-# disp_allyears_d <- function(d) {  # theta = 0.5, equation for p(d) in eqn. 6c in Bode et al. 2018
-#   z = exp(k_allyears)
-#   disp = (z/2)*exp(-(z*d)^(theta_allyears))
-#   return(disp)
-# }
-
-
 # For flexible theta and k, function of d, k, and theta
 disp_kernel_all_years <- function(d, k, theta) {  # generalization of equation for p(d) in eqn. 6c in Bode et al. 2018
   z = exp(k)
@@ -140,22 +91,7 @@ disp_allyears_d <- function(d) {  # generalization of equation for p(d) in eqn. 
   return(disp)
 }
 
-# # SHOULD FIND A WAY OF CHOOSING BASED ON THETA!
-# # Find probability of dispersing distance d with all-years fit (new version, where theta=1)
-# disp_kernel_all_years <- function(d, k, theta) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
-#   z = exp(k)
-#   disp = z*exp(-(z*d)^(theta))
-#   return(disp)
-# }
-#
-# # Dispersal kernel with best-fit params as a function of d - think about where to put this now that egg-recruit survival will depend on dispersal kernel
-# disp_allyears_d <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
-#   z = exp(k_allyears)
-#   disp = z*exp(-(z*d)^(theta_allyears))
-#   return(disp)
-# }
-
-# Find beta distribution parameters from mean and variance (mostly for prob_r uncertainty)
+# Find beta distribution parameters from mean and variance (for prob_r uncertainty)
 findBetaDistParams <- function(mu, var) {
   alpha = (((1-mu)/var) - (1/mu))*mu^2
   beta = alpha*(1/mu -1)
@@ -177,19 +113,15 @@ findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) 
   return(raw_eggs)
 }
 
-# Find scaled number of tagged recruits we would expect to have found if we sampled the whole area and caught all the fish
+# Find scaled number of tagged recruits we would expect to have found if we sampled the whole area and caught all the fish - if we caught all recruits produced by our patches
 scaleTaggedRecruits = function(offspring_assigned, total_prop_hab_sampled, prob_capture, prop_total_disp_area_sampled, prop_hab) {
   rto <- offspring_assigned/(total_prop_hab_sampled*prob_capture*prop_total_disp_area_sampled*prop_hab)
-  #recruited_tagged_offspring_total_oursites = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)  # scale by proportion of habitat in our sites we sampled and by prob of catching a fish
-  #recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/(prop_total_disp_area_sampled*prop_hab)
   return(rto)
 }
 
 # Just consider recruits at our sites
 scaleTaggedRecruits_local = function(offspring_assigned, total_prop_hab_sampled, prob_capture) {
   rto <- offspring_assigned/(total_prop_hab_sampled*prob_capture)
-  #recruited_tagged_offspring_total_oursites = offspring_assigned_to_parents/(total_prop_hab_sampled*prob_capture)  # scale by proportion of habitat in our sites we sampled and by prob of catching a fish
-  #recruited_tagged_offspring_total = recruited_tagged_offspring_oursites/(prop_total_disp_area_sampled*prop_hab)
   return(rto)
 }
 
@@ -2582,7 +2514,7 @@ dev.off()
 
 # Put them together, using frequency plots instead of histograms
 pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement_FreqPlots.pdf'), width=6, height=6)
-plot_grid(Fig4_abundance_plot, LEP_plot_freq, LEP_R_plot_DD_freq, LEP_R_local_plot_DD_freq,
+plot_grid(LEP_plot_freq, LEP_R_plot_DD_freq, LEP_R_local_plot_DD_freq, Fig4_abundance_plot,
           labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
