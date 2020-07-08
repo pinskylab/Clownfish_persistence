@@ -62,15 +62,17 @@ Malin Pinsky$^a$}
 \noindent{\textbf{Keywords}}: metapopulation dynamics, self-persistence, network persistence, \textit{Amphiprion clarkii}, connectivity (5/10)
 
 %\noindent{Current word count}: Introduction - 594, Methods - Results 
-% \subsection*{Statement of authorship}  %% FLESH THIS OUT
-% MLP, JWW, and AGD conceived of and designed the study. MLP, MRS, KAC, and AGD conducted field work and collected data. HRM facilitated field work. AGD analysed the data and wrote the first draft of the manuscript. All authors contributed substantially to revisions. 
+\noindent{Statement of authorship}: MLP, JWW, and AGD conceived of and designed the study. MLP, MRS, KAC, and AGD conducted field work and collected data. HRM facilitated field work and provided local ecosystem context and knowledge. AGD analysed the data and wrote the first draft of the manuscript. All authors contributed substantially to revisions. 
 
-% \subsection*{Data accessibility statement}
+\noindent{Data accessibility statement}
+
+\subsection*{Acknowledgements}
+We thank Visayas State University for providing logistical support and local ecosystem knowledge during our field sampling in Leyte, Philippines. We particularly thank Geralde Sucano, Jennifer Hoey, Patrick Flanagan, Joyce Ong, Apollo Lizano, Cecil Bantiles, Rodney Silvado, Beverlito Montalban, Teresita Idara, Rogello Nicanor, Liza Espinosa, Shem San Jose, Noel Alquino, Carlos Balasuna, Froilan Beñas, Danilo Marine, Tony Nahacky, and Arturo Bastasa. For financial support, we thank Rutgers School of Environmental and Biological Sciences, NSF \#OCE-1430218, and Alfred P. Sloan Research Fellowship, and an ORAU Ralph E. Powe Junior Faculty Enhancement award. This is publication number \textbf{\#} of PISCO, the Partnership for Interdiscipinary Study of Coastal Oceans, funded primarily by the David and Lucile Packard Foundation.
 
 \bigskip
 
 \section*{Abstract}
-Determining metapopulation persistence requires an understanding of both demographic parameters and connectivity among patches, which is well understood by theory but has proved challenging to test empirically. Here we assessed persistence for a network of patches along a coastline in a metapopulation of yellowtail anemonefish (\textit{Amphiprion clarkii}) using seven years of annual sampling data. We found that this metapopulation produced enough surviving offspring to replace itself but was unlikely to persist in isolation, despite stable abundances through time and replacement of recruits when we included immigration. To persist in isolation, the metapopulation would need to have higher production or different dispersal so as to retain essentially all of the recruits it produced. Increased habitat density alone did not ensure persistence. These results show that stable abundance alone is not an indicator of network persistence and emphasize the necessity of untangling demographic and connectivity processes to understand metapopulation dynamics. (148/150 words)
+Determining whether a metapopulation can persist requires an understanding of both demographic parameters and connectivity among patches. This is well understood in theory but has proved challenging to test empirically. We assessed persistence for a network of patches along a coastline in a metapopulation of yellowtail anemonefish (\textit{Amphiprion clarkii}) using seven years of annual sampling data. We found that this metapopulation produced enough surviving offspring to replace itself but that the spatial pattern of connectivity made it unlikely to persist in isolation despite stable abundances through time. To persist, the metapopulation would need higher fecundity or would need to retain essentially all of the recruits it produced. Increased habitat density alone would not ensure persistence. This first assessment of persistence in a marine metapopulation shows that stable abundance alone is not an indicator of persistence, emphasizing the necessity of untangling demographic and connectivity processes to understand metapopulation dynamics. (138/150 words)
 
 % If submit to Ecology Letters, max 5000 words, 6 figures/tables/text boxes
 
@@ -78,19 +80,19 @@ Determining metapopulation persistence requires an understanding of both demogra
 % \modulolinenumbers[3]
 
 \section*{Introduction}
-Metapopulation dynamics and persistence depend both on connectivity among patches and on demographic rates in each patch \citep{hastings_persistence_2006, hanski1998metapopulation}. Assessing levels of connectivity and demographic parameters has been particularly challenging for marine species, where much of the movement happens in larval stages when individuals are hard to track and able to travel long distances with ocean currents \citep{white2019connectivity}. Driven by both fundamental questions and applied needs \citep{botsford_dependence_2001,white_population_2010}, a large body of theory has developed to describe how marine metapopulations might persist \citep{botsford2019population}. Testing this theory, however, has been substantially more difficult.
+The dynamics and persistence of metapopulations depend both on connectivity among patches and on demographic rates within each patch \citep{hastings_persistence_2006, hanski1998metapopulation}. For marine species, connectivity among habitat patches primarily occurs during planktonic larval stages when individuals are hard to track and are able to travel long distances with ocean currents. Because larval connectivity has been perceived to be the greatest uncertainty in these systems, research has centered on quantifying that component \citep[reviewed by][]{white2019connectivity}. More recently, it has become apparent that variation in demographic rates among patches is an equally uncertain aspect of marine metapopulation dynamics \citep{hameed2016inverse, white2011oceanographic}. Given both of those uncertainties, and driven by both fundamental ecological questions and applied needs \citep{botsford_dependence_2001,white_population_2010}, a large body of theory has developed to describe how connectivity and local demography interact to determine whether marine metapopulations persist \citep{burgess2014beyond, botsford2019population}. Testing this theory, however, has proven substantially more difficult.
 
-For any population to persist, individuals must on average replace themselves during their lifetime. Assessing replacement must include the demographic processes across the life cycle, including how likely individuals are to survive to the next age or stage, their expected fecundity at each stage, and the survival to recruitment of any offspring produced. In a spatially structured population, we must also consider how the offspring are distributed across space \citep{hastings_persistence_2006}. %Marine larvae were once thought to be well-mixed and dispersed far on ocean currents \citep[e.g.][]{roughgarden_recruitment_1988}, suggesting widespread connectivity among patches and largely open populations. Recent advances in estimating connectivity through natural tags and genetics, however, suggest that dispersal may be more limited \citep[e.g.][]{daloia_self-recruitment_2013, hameed2016inverse, almany2017larval}, and local persistence of marine populations on a small spatial scale possible. % Commenting out these sentences right now per Malin's comment that they are similar to the start of the paragraph two down - might revisit and revise
+For any population to persist, individuals must on average replace themselves during their lifetime. Assessing replacement must account for demographic processes across the life cycle, including how likely individuals are to survive to the next age or stage, their expected fecundity at each stage, and the survival to recruitment of any offspring produced. In a spatially structured population, how the offspring are distributed across space is also important \citep{hastings_persistence_2006}. %Marine larvae were once thought to be well-mixed and dispersed far on ocean currents \citep[e.g.][]{roughgarden_recruitment_1988}, suggesting widespread connectivity among patches and largely open populations. Recent advances in estimating connectivity through natural tags and genetics, however, suggest that dispersal may be more limited \citep[e.g.][]{daloia_self-recruitment_2013, hameed2016inverse, almany2017larval}, and local persistence of marine populations on a small spatial scale possible. % Commenting out these sentences right now per Malin's comment that they are similar to the start of the paragraph two down - might revisit and revise
 
-A metapopulation can persist in two ways: 1) at least one patch achieves replacement in isolation, or 2) patches receive enough recruitment to achieve replacement through multi-generational loops of connectivity with other patches in the metapopulation \citep{hastings_persistence_2006, burgess2014beyond}. In the first case (termed self-persistence), enough of the reproductive output produced at one patch is retained at the patch for it to persist. In the second (network persistence), closed loops of connectivity among at least some of the patches - where individuals from one patch settle at another and eventually send offspring back to the first in a future generation - provide the patches with enough recruitment to persist within the network. Theory predicts that habitat patches that are large relative to the mean dispersal distance are likely to be self-persistent \citep{white_population_2010}. % Is this sentence relevant here? %If one patch persists, the metapopulation persists.
+A metapopulation can persist via two mechanisms: 1) at least one patch achieves replacement in isolation, or 2) multiple patches receive enough recruitment to achieve replacement through multi-generational loops of connectivity with other patches in the metapopulation \citep{hastings_persistence_2006, burgess2014beyond}. In the first case (termed self-persistence), enough of the offspring produced at one patch are retained there for it to persist. In the second case (network persistence), closed loops of connectivity among  patches - in which offspring from one patch recruit to another patch but eventually send offspring back to the first in a future generation - provide the patches with enough recruitment to persist within the network. Theory predicts that habitat patches that are large relative to the mean dispersal distance are likely to be self-persistent \citep{white_population_2010}. % Is this sentence relevant here? %If one patch persists, the metapopulation persists.
 
-New ways of identifying individuals and determining their origins now allow better measurements of connectivity \citep{almany2017larval, daloia_self-recruitment_2013}. Additionally, a better appreciation of the relevant population dynamic theory has led to measurement of the appropriate demographic factors necessary to assess persistence in real metapopulations \citep{carson2011evaluating, hameed2016inverse}. To date, research has suggested that populations on isolated islands can be self-persistent, which might be expected given that they lack nearby populations with which to exchange larvae and would go locally extinct if they did not achieve replacement \cite{salles_coral_2015}. In contrast, small habitat patches spread across a larger reef metapopulation appear to rely on outside input for persistence \citep{johnson2018integrating}. Persistence, however, has yet to be assessed in the field for an entire continuous marine metapopulation, such as all of the patches along a coastline. 
+New ways of identifying individuals and determining their origins now allow better measurements of connectivity in marine populations \citep{almany2017larval, daloia_self-recruitment_2013}. Additionally, a better appreciation of the relevant population dynamic theory has led to measurement of the appropriate demographic factors necessary to assess persistence in field metapopulations \citep{carson2011evaluating, hameed2016inverse, johnson2018integrating, salles_coral_2015}. To date, research has suggested that populations on isolated islands can be self-persistent, which might be expected given that they lack nearby populations from which to receive larvae and would go locally extinct if they did not achieve replacement \cite{salles_coral_2015}. In contrast, small habitat patches spread across a larger reef metapopulation appear to rely on input from surrounding and intervening patches for persistence \citep{johnson2018integrating}. Persistence, however, has yet to be quantified in the field for an entire continuous marine metapopulation, such as all of the patches along a coastline. 
 
 % MOVE TO DISCUSSION PER WILL'S COMMENT ON GOOGLE DOC! % The number of studies estimating demographic rates and connectivity in marine metapopulations is growing \citep{carson2011evaluating, salles_coral_2015, johnson2018integrating, garavelli2018population}, but most use data from one or a few years. Longer data sets enable better estimates of long-term average rates, rather than assuming the demographic and dispersal rates from a particular year or two are representative. Long data sets are also useful for explicitly considering uncertainty, both to assess how well we understand persistence for a population and to assess which parameters contribute most to our uncertainty. Finally, sampling over many years provides abundance trends to compare with persistence metrics.
 
 % Characterizing and understanding variability is important as it can drive dynamics, even allowing persistence when average rates would not (SEBASTIAN CITATIONS), but using data across several years to get a sense of the range of rates and an average is a first step. Having multiple years of data can provide a range of estimates, rather than one point value, and help us understand which parameters contribute most to uncertainty in persistence. 
 
-Here, we further our understanding of metapopulation dynamics in a network of patches along a coastline through a study of yellowtail anemonefish (\textit{Amphiprion clarkii}) in the Philippines. We assess persistence for all patches of habitat within a 30 km stretch of coastline, a distance greater than estimates of the mean dispersal distance for this species \citep{pinsky2010using}, suggesting the network may operate as a contained metapopulation. With seven years of annual sampling data, we estimate long-term persistence metrics and replacement and investigate abundance through time to compare with persistence metrics. We find that even large collections of populations with stable abundances through time are unlikely to persist as an isolated metapopulation and require immigration from outside patches to persist.% Work on last sentence...
+Here, we further our understanding of metapopulation dynamics in a network of patches along a coastline through a study of yellowtail anemonefish (\textit{Amphiprion clarkii}) in the Philippines. We assessed persistence for all patches of habitat within a metapopulation spread across 30 km of coastline. Based on seven years of data, we found that, despite containing multiple patches with large abundances that were stable over time, the metapopulation was not likely to be persistent and requires immigration from outside patches to persist.% Work on last sentence...
 
 \section*{Methods} 
 
@@ -98,10 +100,10 @@ Here, we further our understanding of metapopulation dynamics in a network of pa
 % For a population to persist, each individual must on average replace itself \citep[e.g.][]{hastings_persistence_2006, botsford2019population}. In non-spatially structured populations, we use criteria such as the average number of recruiting offspring each individual produces during its life (called $R_0$ when the population is age-structured and density-independent) or the growth rate of the population (such as the dominant eigenvalue $\lambda$ of an age-structured Leslie matrix) \citep{caswell_matrix_2001, burgess2014beyond}. For spatially-structured populations, we must also consider the spatial spread of offspring, often represented through a dispersal kernel or connectivity matrix \citep{burgess2014beyond}. %\citep[e.g.][]{cowen_scaling_2006, buston2011probability, hogan_local_2011, daloia2015patterns}). 
 
 %%% RE-ORDER METRICS TO MATCH ORDER OF DETAILED DESCRIPTION BELOW! MOVE LR BACK TO #4!!
-We considered four primary metrics to assess whether and how the metapopulation was persistent: 1) lifetime recruit production (LRP) to assess whether the metapopulation had enough offspring that survived anywhere to achieve replacement, 3) self-persistence (SP) to assess whether any individual patch could persist in isolation without input from other patches, 3) network persistence ($\lambda_c$) to assess whether the metapopulation was persistent as a connected unit, and 4) local replacement (LR) to assess whether a sufficient number of recruits were retained anywhere within the metapopulation to acheive replacement, without explicitly estimating dispersal. We explain each metric below in detail. To represent the uncertainty in our estimates, we calculated each metric 1000 times, sampling each input parameter from a distribution representing the uncertainty in the empirical estimate (details in \ref{APP_SEC_Uncertainty}). In our results, we show best estimates of each metric with the range of uncertainty values. % Should this have the \% Reference the section with \ref?
+We considered four primary metrics to assess whether and how the anemonefish metapopulation was persistent: 1) lifetime recruit production (LRP) to assess whether the metapopulation had enough offspring that survived anywhere to achieve replacement, 3) self-persistence (SP) to assess whether any individual patch could persist in isolation without input from other patches, 3) network persistence ($\lambda_c$) to assess whether the metapopulation was persistent as a connected unit, and 4) local replacement (LR) to assess whether a sufficient number of recruits were retained anywhere within the metapopulation to acheive replacement, without explicitly estimating dispersal. We explain each metric below in detail. To represent the uncertainty in our estimates, we calculated each metric 1000 times, sampling each input parameter from a distribution representing the uncertainty in the empirical estimate (details in \ref{APP_SEC_Uncertainty}). In our results, we show best estimates of each metric with the range of uncertainty values along with uncertainty bounds, defined as the middle 95\% of the distribution of values calculated in this Monte Carlo procedure. % Should this have the \% Reference the section with \ref?
 
 \paragraph*{Lifetime recruit production}
-$\text{LRP}_i$ is the expected number of recruits a recruit will produce in its lifetime,
+$\text{LRP}_i$ is the expected number of recruits a recruit on patch $i$ will produce in its lifetime,
 
 \begin{equation}
 \text{LRP}_i = \text{LEP}_i \times S_e, \label{EQN_LRP}
@@ -123,7 +125,7 @@ $\text{SP}_i$ is the number of offspring a recruit produces that survive to recr
 SP_i = \text{LRP}_i \times p_{i,i}, \label{EQN_SP}  % check this...
 \end{equation}
 
-where $p_{i,i}$ is the probability of dispersal.
+where $p_{i,i}$ is the probability of larval retention on patch $i$.
 
 A patch $i$ is self-persistent if $\text{SP}_i \geq 1$. If at least one patch is self-persistent, the metapopulation as a whole persists as well \citep{hastings_persistence_2006, burgess2014beyond}. 
 
@@ -134,72 +136,74 @@ A patch $i$ is self-persistent if $\text{SP}_i \geq 1$. If at least one patch is
 
 Network persistence is the largest real eigenvalue $\lambda_C$ of the realized connectivity matrix $C$,
 
-
 \begin{equation}
 C_{i,j} = \text{LRP}_i \times p_{i,j}, \label{EQN_Connectivity_matrix}
 \end{equation} 
 
-which we created by multiplying lifetime recruit production by dispersal probabilities among pairs of patches ($p_{i,j}$) \citep{burgess2014beyond}. The diagonal entries of $C$ are the self-persistence values for each individual patch.
+which we created by multiplying lifetime recruit production ($\text{LRP}_i$) by dispersal probabilities among pairs of patches ($p_{i,j}$) \citep{burgess2014beyond}. The diagonal entries of $C$ are the self-persistence values for each individual patch ($\text{SP}_i$).
 
-Network persistence explicitly considers dispersal of individuals among patches in addition to the reproduction and survival at each patch and $\lambda_C$ must be at least $1$ for the network to persist without outside input \citep{hastings_persistence_2006, white_population_2010, burgess2014beyond}.
+Network persistence explicitly considers dispersal of individuals among patches in addition to the reproduction and survival at each patch and requires $\lambda_C \geq 1$ for the network to persist without outside input \citep{hastings_persistence_2006, white_population_2010, burgess2014beyond}.
 
 \paragraph*{Local replacement}
 
-Local replacement (LR) is the number of recruits a recruit produces that return to settle within the focal metapopulation (while LRP considers recruits that settle anywhere),
+Local replacement (LR) is the number of recruits a recruit produces that return to settle within the focal metapopulation. LR is related to LRP, but LRP, in contrast also includes recruits that settle outside of the focal metapopulation. LR is define as 
 
 \begin{equation}
-\text{LR} = \text{LEP} \times R_e, \label{EQN_LR}
+\text{LR} = \text{LEP}_* \times R_e, \label{EQN_LR}
 \end{equation}
 
-where LEP is lifetime egg production averaged across sites and $R_e$ is the proportion of eggs that survived and returned to recruit at our patches. $R_e$ is a modification of egg-recruit survival ($S_e$) that implicitly includes dispersal. 
+where $\text{LEP}_*$ is lifetime egg production averaged across sites and $R_e$ is the proportion of eggs that survived and returned to recruit at the patches in our focal metapopulation (the 30 km section of coastline). $R_e$ is a modification of egg-recruit survival ($S_e$) that implicitly includes dispersal. 
 % Like network persistence, local replacement (LR) assesses whether the population is locally self-sustaining. Rather than considering dispersal explicitly as network persistence does, local replacement modifies LRP to estimate the average number of recruits produced per individual that return to settle within our sites. We estimate LR by multiplying LEP by the proportion of eggs produced that survive and return to recruit at our sites ($R_e$), a modification of egg-recruit survival that implicitly includes dispersal. If $LR \geq 1$, individuals produce enough locally-retained offspring to replace themselves and the population can persist in isolation. % One way we assess whether our population is locally self-sustaining is by estimating the number of recruits produced per individual that return to settle within our sites, local replacement (LR).
 
-If $LR \geq 1$, enough offspring were locally retained to achieve replacement if they were evenly spread among patches, but the actual dispersal patterns among the metapopulation patches may still prevent replacement. LR and $\lambda_c$ both assess the ability of our patches to persist as an isolated group but LR treats the network as one large homogenous patch while $\lambda_c$ explicitly accounts for the struture and connectivity across patches.  
+If $LR \geq 1$, enough offspring were locally retained to achieve replacement if they were evenly spread among patches, but the actual dispersal patterns among the metapopulation patches may still prevent replacement if the pattern of multigenerational replacement does not satisfy the \cite{hastings_persistence_2006} criterion. LR and $\lambda_c$ both assess the ability of our patches to persist as an isolated group but LR treats the network as one large homogenous patch while $\lambda_c$ explicitly accounts for the struture and connectivity among patches.  
 
 \subsection*{Study species}
 
-We focused on a tropical metapopulation of yellowtail anemonefish (\textit{Amphiprion clarkii}, Fig.\ \ref{FIG_Map_and_photo}c). Like many anemonefish species, yellowtail anemonefish have a mutualistic relationship with anemones that house small colonies of fish \citep{buston2003social, fautin1992field}. Yellowtail anemonefish are protandrous hermaphrodites and maintain a size-structured hierarchy; within an anemone, the largest fish is the breeding female, the next largest is the breeding male, and any smaller fish are non-breeding juveniles. The fish move up in rank to become breeders only after the larger fish have died. In the tropical patch reef habitat of the Philippines, yellowtail anemonefish primarily spawn from November to May, laying clutches of benthic eggs that the parents protect and tend \citep{ochi1989mating, holtswarth2017fecundity}. Larvae hatch after about six days and spend 7-10 days in the water column before returning to reef habitat to settle in an anemone \citep{fautin1992field}.
+We focused on a tropical metapopulation of yellowtail anemonefish (\textit{Amphiprion clarkii}, Fig.\ \ref{FIG_Map_and_photo}c). Like many anemonefish species, yellowtail anemonefish have a mutualistic relationship with anemones that house small colonies of fish \citep{buston2003social, fautin1992field}. Yellowtail anemonefish are protandrous hermaphrodites and maintain a size-structured hierarchy; within an anemone, the largest fish is the breeding female, the next largest is the breeding male, and any smaller fish are non-breeding juveniles. The fish move up in rank to become breeders only after the larger fish have died. In the tropical patch reef habitat of the Philippines, yellowtail anemonefish primarily spawn from November to May and lay clutches of benthic eggs that the parents protect and tend \citep{ochi1989mating, holtswarth2017fecundity}. Larvae hatch after about six days and spend 7-10 days in the water column before returning to reef habitat to settle in an anemone \citep{fautin1992field}.
 
-Anemonefish are well-suited to metapopulation studies because dispersal only occurs during the larval phase and adults have limited movement on discete habitat patches (anemones) \citep[e.g.][]{buston2013marine, salles_coral_2015, almany2017larval}. Yellowtail anemonefish tend to behave more like larger reef fishes, with wider-ranging territories and stronger swimming abilities \citep{hattori1991life, ochi1989mating}, than the smaller \textit{A. percula} commonly used in metapopulation studies \citep[e.g.][]{buston2011probability, salles_coral_2015}. As we show later, survival in yellowtail anemonefish is also lower than \textit{A. percula} and more similar to other damselfishes. 
+Anemonefish are well-suited to metapopulation studies because dispersal only occurs during the larval phase and adults have limited movement on discete habitat patches (anemones) \citep[e.g.,][]{buston2013marine, salles_coral_2015, almany2017larval}. Yellowtail anemonefish tend to behave more like other reef fishes, with wider-ranging territories and stronger swimming abilities \citep{hattori1991life, ochi1989mating}, than the smaller \textit{A. percula} commonly used in metapopulation studies \citep[e.g.][]{buston2011probability, salles_coral_2015}. %As we show later, survival in yellowtail anemonefish is also lower than \textit{A. percula} and more similar to other damselfishes. 
 
 \paragraph*{Field data collection}
 
-We focused on a set of nineteen reef patches spanning 30 km along the western coast of Leyte island facing the Camotes Sea in the Philippines (Fig.\ \ref{FIG_Map_and_photo}a). The habitat patches covered approximately 20\% of the sampling region and consisted of rocky patches of coral reef separated by sand flats (Fig.\ \ref{FIG_Map_and_photo}a,b). To the north, the patches were isolated from nearby habitat with no substantial reef habitat for at least 20 km. Located near a populated coastline, the region experienced anthropogenic effects including fishing, pollution, and runoff from agriculture and a nearby riverbed gravel mine as well as reef-destroying storms like Typhoon Haiyan in 2013.% Pinsky et al. 2010 paper: (4–27 km with median 11 km)
+We focused on a set of nineteen reef patches spanning 30 km along the western coast of Leyte island facing the Camotes Sea in the Philippines (Fig.\ \ref{FIG_Map_and_photo}a). The habitat patches covered approximately 20\% of the sampling region and consisted of rocky patches of coral reef separated by sand flats (Fig.\ \ref{FIG_Map_and_photo}a,b). To the north, the patches were isolated from nearby habitat with no substantial reef habitat for at least 20 km, a distance greater than the mean dispersal distance for this species \citep{pinsky2010using}. As such, we considered this to be a relatively isolated metapopulation. Located near a populated coastline, the region experiences anthropogenic effects including fishing, pollution, and runoff from agriculture and a nearby riverbed gravel mine as well as reef-destroying storms like Haiyan and other typhoons in 2013.% Pinsky et al. 2010 paper: (4–27 km with median 11 km)
 
-From 2012-2018, we annually sampled fish and habitat at most patches (Table \ref{APP_TAB_PercHabSampled}). Divers using SCUBA and tethered to GPS readers swam the extent of each patch and visited anemones inhabited by yellowtail anemonefish. We noted but did not include in analysis anemones inhabited by other anemonefish species. At each anemone, the divers caught fish 3.5 cm and larger, took a small tissue sample, measured fork length, and noted tail color as an indicator of life stage. Starting in 2015, fish 6.0 cm and larger were also tagged with a passive integrated transponder (PIT) tag unless already tagged. Divers also looked for eggs around each anemone and measured and photographed any clutches found. In total, we took fin clips from and genotyped 2407 fish and PIT-tagged 1930 fish across all years and patches combined, marking 3053 individual fish. % with an average of XX fish clipped and XX fish tagged per year.  % n_offspring_genotyped (785) + n_parents_genotyped (1719) = 2504, not 2772? CHECK!
+From 2012-2018, we sampled fish and habitat at most patches each year (Table \ref{APP_TAB_PercHabSampled}). Divers using SCUBA and tethered to GPS readers swam the extent of each patch and visited anemones inhabited by yellowtail anemonefish. At each anemone, the divers caught fish 3.5 cm and larger, took a tissue sample, measured fork length, and noted tail color as an indicator of life stage. Starting in 2015, fish 6.0 cm and larger were also tagged with a passive integrated transponder (PIT) tag unless already tagged. Divers also looked for eggs around each anemone and measured and photographed any clutches found. In total, we took fin clips from and genotyped 2407 fish and PIT-tagged 1930 fish across all years and patches combined, marking 3053 individual fish. % with an average of XX fish clipped and XX fish tagged per year.  % n_offspring_genotyped (785) + n_parents_genotyped (1719) = 2504, not 2772? CHECK!
 
 \subsection*{Estimating demographic and dispersal parameters from empirical data} 
 
 \paragraph*{Parentage analysis and dispersal kernel}  % Check with Katrina/Michelle that this captures the highlights and includes the right references
 
-Over seven years of sampling, we genotyped 1719 potential parents and 785 juveniles and found 62 parent-offspring matches \citep{catalanoInPrepconnectivity}.
-We used a distance-based dispersal kernel fit from the parent-offspring matches \citep{catalanoInPrepconnectivity, bode2018estimating}, where the relative dispersal $p(d)$ is a function of distance $d$ in kilometers and parameters $\theta = 1.19$ and $z = e^{k_d = -2.33}$ that control the shape and scale of the kernel (Table \ref{APP_TAB_Params}): $p(d) = ze^{-(zd)^\theta}$. The dispersal kernel estimates the relative dispersal by distance for fish that have survived and recruited so does not separately estimate pre-settlement mortality. To find the probability of fish dispersing among our patches, we numerically integrated the dispersal kernel using the distance from the middle of the origin patch ($i$) to the closest ($d_1$) and farthest ($d_2$) edges of the destination patch ($j$), with distances calculated using the \texttt{geosphere} package in R \citep{geosphere2017R}:
+Over seven years of sampling, we genotyped 1719 potential parents and 785 juveniles at 1340 single nucleotide polymorphisms (SNPs) and found 62 parent-offspring matches \citep{catalanoInPrepconnectivity}. We used a distance-based dispersal kernel fit from the parent-offspring matches \citep{catalanoInPrepconnectivity, bode2018estimating}, where the relative dispersal $p(d)$ is a function of distance $d$ in kilometers and parameters $\theta$ and $z = e^{K_d}$ that control the shape and scale of the kernel (Table \ref{APP_TAB_Params}, uncertainty details in SI \ref{APP_SEC_Uncertainty_Dispersal}). The dispersal kernel estimates the relative dispersal by distance for fish that have survived and recruited so does not separately estimate pre-settlement mortality. To find the probability of fish dispersing among our patches, we numerically integrated the dispersal kernel using the distance from the middle of the origin patch ($i$) to the closest ($d_1$) and farthest ($d_2$) edges of the destination patch ($j$), with distances calculated using the \texttt{geosphere} package in R \citep{geosphere2017R}:
 
 \begin{equation} % might not need this equation...
 %p_{A, B}(d) = \int_{d_1}^{d_2} e^k e^{-(e^k d)^\theta}  dd. \label{EQN_integratingDK}
-p_{i, j}(d) = \int_{d_1}^{d_2} z e^{-(zd)^\theta}  dd. \label{EQN_integratingDK}
+%p_{i, j}(d) = \int_{d_1}^{d_2} z e^{-(zd)^\theta}  dd. \label{EQN_integratingDK}
+p_{i,j} = \frac{z\theta}{2\gamma({\frac{1}{\theta})}} \int_{d_1}^{d_2} z e^{-(zd)^\theta}  dd. \label{EQN_integratingDK}
 \end{equation}
 
 \paragraph*{Growth and survival: mark-recapture analyses}
 
-Fish marked through genetic samples and PIT tags allowed us to estimate growth and survival through mark-recapture. In total, we had 3053 marked fish with size and stage data for each capture time. 
+Fish marked through geneotyping and PIT tags allowed us to estimate growth and survival through mark-recapture. In total, we had 3053 marked fish with size and stage data for each capture time. 
 
-For growth, we estimated the parameters of a von Bertalanffy growth curve in the growth increment form relating the length at first capture $L_t$ to the length at a later capture $L_{t+1}$ \citep{hart2009estimating}, where $L_\infty$ is the average asymptotic maximum size across the metapopulation and $K$ is the growth rate: %check that I actually defined those well... % in the growth increment form (according to Hart and Chute) - need to actually get a copy of the Fabens paper, doesn't seem to be available on Google Scholar
+For growth, we used a von Bertalanffy growth curve
+%estimated the parameters of a von Bertalanffy growth curve in the growth increment form relating the length at first capture $L_t$ to the length at a later capture $L_{t+1}$ \citep{hart2009estimating}, where $L_\infty$ is the average asymptotic maximum size across the metapopulation and $K$ is the growth rate: %check that I actually defined those well... % in the growth increment form (according to Hart and Chute) - need to actually get a copy of the Fabens paper, doesn't seem to be available on Google Scholar
 
 \begin{equation} \label{EQN_VBL} 
 \begin{split}
-L_{t+1} & = L_t + (L_\infty - L_t)[1 - e^{(-K)}] \\
- & = e^{(-K)}L_t + L_\infty[1 - e^{(-K)}].
+L_{t+1} & = L_t + (L_\infty - L_t)[1 - e^{(-k)}] \\
+ & = e^{(-k)}L_t + L_\infty[1 - e^{(-k)}],
 \end{split}
 \end{equation}
 
-From the slope $m = e^{(-K)}$ and y-intercept $b = L_\infty[1 - e^{(-K)}]$, we calculated the von Bertalanffy parameters, such that $K = -\ln m$ and $L_\infty = \frac{b}{(1-m)}$ \citep{hart2009estimating}. We used the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate $L_\infty$ and $K$. For fish recaptured more than once, we randomly selected only one recapture period from each to use to estimate the von Bertalanffy parameters and repeated the random selection and estimate 1000 times. We found the mean estimates ($L_\infty$ = 10.70 cm, $K = 0.864$) and mean standard error of those fits, then sampled from within that range to generate a set of von Bertalanffy growth curves to use in our LEP calculations (Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{APP_TAB_Params}, \ref{APP_SEC_METHODS_Growth_and_survival}). 
+where $L_\infty$ is the asymptotic maximum size across the metapopulation and $k$ is the growth rate. We estimated the parameters from the slope $m$ and y-intercept $b$ of the relationship between the length at first capture $L_t$ and the length at a later capture date $L_{t+1}$ for fish recaught after a year (within 345 to 385 days). The von Bertalanffy parameters are $k = -\ln m$ and $L_\infty = b(1-m)$ \citep{hart2009estimating} (Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{APP_TAB_Params}, uncertainty details in SI \ref{APP_SEC_Uncertainty_Growth}).
 
-We used the full set of marked fish to estimate annual survival $\phi$ and probability of recapture $p_r$ using the mark-recapture program MARK implemented in R through the package \texttt{RMark} \citep{RMark_Laake2013}. We fit several models with year, size, and patch effects on the probability of survival on a log-odds scale (see full list in Table \ref{APP_TAB_MARKmodels}), and the best fit had an effect of patch and a positive effect of size (Table \ref{APP_TAB_Params}, Figs.\ \ref{FIG_ParameterInputs}c, \ref{APP_FIG_SurvBySizeAndSite}, \ref{APP_SEC_METHODS_Growth_and_survival}). 
+% From the slope $m = e^{(-K)}$ and y-intercept $b = L_\infty[1 - e^{(-K)}]$, we calculated the von Bertalanffy parameters, such that $K = -\ln m$ and $L_\infty = \frac{b}{(1-m)}$ \citep{hart2009estimating}. We used the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate $L_\infty$ and $K$. For fish recaptured more than once, we randomly selected only one recapture period from each to use to estimate the von Bertalanffy parameters and repeated the random selection and estimate 1000 times. We found the mean estimates ($L_\infty$ = 10.70 cm, $K = 0.864$) and mean standard error of those fits, then sampled from within that range to generate a set of von Bertalanffy growth curves to use in our LEP calculations (Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{APP_TAB_Params}, \ref{APP_SEC_METHODS_Growth_and_survival}). 
+
+We used the full set of marked fish to estimate annual survival $\phi$ and probability of recapture $p_r$ using the mark-recapture program MARK implemented in R through the package \texttt{RMark} \citep{RMark_Laake2013}. We fit several models with year, size, and patch effects on the probability of survival on a log-odds scale (see details in SI \ref{APP_SEC_METHODS_Growth_and_survival} and full list of models in Table \ref{APP_TAB_MARKmodels}). The model chosen by $\text{AIC}_c$ indicated that survival differed among patches and increased with fish size (Tables \ref{APP_TAB_Params}, \ref{APP_TAB_SiteSurvivals}, Figs.\ \ref{FIG_ParameterInputs}c, \ref{APP_FIG_SurvBySizeAndSite}). 
 
 \paragraph*{Fecundity}
 
-Fecundity was size-dependent, based on field data, with larger females producing more eggs (eqn.\ \ref{EQN_Fec}, \ref{APP_SEC_METHODS_Fecundity}).
+From a regression of eggs per clutch on female size and egg age (determined by the presence of eyed eggs), we determined that fecundity increased with size (eqn.\ \ref{EQN_Fec}, see details in SI \ref{APP_SEC_METHODS_Fecundity}).
 
 % %% MOVE THE REST OF THE FECUNDITY SECTION TO SUPPLEMENT!
 % We used a size-dependent fecundity relationship determined using photos of egg clutches and females \citep{yawdoszynInPrepfecundity}, where the number of eggs per clutch ($E_c$) is exponentially related to the length in cm of the female ($L$) with size effect $\beta_l = 2.388$, intercept $b = 1.174$, and egg age effect $\beta_e = -0.608$ dependent on if the eggs are old enough to have visible eyes. We multiplied the number of eyed eggs per clutch by the number of clutches per year $c_e = 11.9$ \citep[estimate from][]{holtswarth2017fecundity} to get total annual fecundity $f$ of a female of length $L$:
@@ -215,9 +219,10 @@ Fecundity was size-dependent, based on field data, with larger females producing
 
 % For comparison of numbers (from Clownfish\_SP\_Notes:) Moyer (1986): the individual observed for 11 years and thought to live to at least 13 was ”estimated to have contributed about 160,000 propagules in its lifetime,” spent 3 years as a functional male, then outlived 3 mates as a female; fertilized about 45,000 eggs during 3 years as a male, then spawned about 115,000 eggs as a female; fecundity estimate at this site (Miyake-jima in Japan) is 17,500 eggs/yr/female (from Bell (1976))
 
-\paragraph*{Lifetime egg production}
+%%%%% STOPPED EDITING HERE
+\paragraph*{Lifetime egg production (LEP)}
 
-We used an integral projection model (IPM) \citep{ellner2016data} with size as the continuous structuring trait $z$ to estimate lifetime egg production (LEP). We initialized the IPM with one recruit-sized individual (recruit defined in A.1) at the initial annual time step ($t=0$), then projected forward for 100 years. We used the size-dependent survival (eqn.\ \ref{APP_EQN_Survival}) and growth (eqn.\ \ref{EQN_VBL}) functions as the probability density functions in the kernel to project the individual into the next time step. The size distribution ($v_z$) at each time step represents the probability that the individual has survived and grown into each of the possible size categories, ranging from a minimum of $L_s=0$ cm to a maximum of $U_s=15$ cm divided into 100 equal size bins. %The probability that the individual is still alive and of any size decreases as the time steps progress; by using a large number of steps, we are able to avoid arbitrarily setting a maximum age and instead let the probabilities become essentially zero. %($\text{size}_\text{recruit}$) 
+We used an integral projection model (IPM) \citep{ellner2016data} with size as the continuous structuring trait $z$ to estimate lifetime egg production on each patch $i$ ($\text{LEP}_i$). We initialized the IPM with one recruit-sized individual (recruit defined in SI \ref{APP_SEC_METHODS_Recruit_def}) at the initial annual time step ($t=0$), then projected forward for 100 years. We used the size-dependent survival (eqn.\ \ref{APP_EQN_Survival}) and growth (eqn.\ \ref{EQN_VBL}) functions as the probability density functions in the kernel to project the individual into the next time step. The size distribution ($v_z$) at each time step represents the probability that the individual has survived and grown into each of the possible size categories, ranging from a minimum of $L_s=0$ cm to a maximum of $U_s=15$ cm divided into 100 equal size bins. %The probability that the individual is still alive and of any size decreases as the time steps progress; by using a large number of steps, we are able to avoid arbitrarily setting a maximum age and instead let the probabilities become essentially zero. %($\text{size}_\text{recruit}$) 
 
 We then multiplied the size-distribution $v_z$ at each time by the size-dependent fecundity $f_z$ (eqn.\ \ref{EQN_Fec}) to get the total number of eggs produced at each time step. We only considered reproductive effort once the fish was female and used the average size of first female observation for recaptured fish as the transition size ($L_f = 9.32$ cm). Integrating across time and size gave the total number of eggs one recruit produced in its lifetime (details in \ref{APP_SEC_METHODS_LEP}):
 
@@ -366,21 +371,28 @@ Understanding persistence is critical for the management of spatial populations,
 
 \section*{Figures}
 
-% Figure 1 - map + photo
+% Figure 1 - metrics and life cycle schematics
+\begin{figure}[H] % metric schematic and life cycle schematics
+	\centering
+	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/LifeCycleSchematic/metrics_life_cycle_schematics.pdf}}
+	\caption{Schematics of the persistence metrics (a-d): a) lifetime recruit production (LRP, eqn.\ \ref{EQN_LRP}), b) self-persistence (SP, eqn.\ \ref{EQN_SP}), c) network persistence (NP, first eigenvalue of eqn.\ \ref{EQN_Connectivity_matrix}), and d) local replacement (LR, eqn.\ \ref{EQN_LR}). e) The life cycle of yellowtail clownfish, including the range of sizes considered recruits (recruit definition in SI \ref{APP_SEC_METHODS_Recruit_def}). \label{FIG_Metric_life_cycle_schematics}} 
+\end{figure}
+
+% Figure 2 - map + photo
 \begin{figure}[H] % Map + clownfish photo
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Map_and_photo_2.pdf}}
 	\caption{a) Map of the patches along the coast of Leyte in the Philippines. From north to south, the patches are: 1) Palanas, 2) Wangag, 3), North Magbangon, 4) South Magbangon, 5) Cabatoan, 6) Caridad Cemetery, 7) Caridad Proper, 8) Hicgop South, 9) Sitio Tugas, 10) Elementary School, 11) Sitio Lonas, 12) San Agustin, 13) Poroc San Flower, 14) Poroc Rose, 15) Visca, 16) Gabas, 17) Tomakin Dako, 18) Haina, and 19) Sitio Baybayon. b) Zoomed-in map of the northern-most patch, Palanas, to show anemone arrangement with anemones colored as occupied by \textit{A.\ clarkii} (green) or unoccupied by anemonefish (orange). c) An example anemone occupied by \textit{A.\ clarkii} in a typical habitat at the patches. The metal anemone tag is visible just above the anemone on the rock.  \label{FIG_Map_and_photo}} 
 \end{figure}
 
-% Figure 2 - demographic and dispersal inputs
+% Figure 3 - demographic and dispersal inputs
 \begin{figure}[H] % demographic parameters: survival curve, growth curve, dispersal kernel, transition size to female 
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Parameter_inputs.pdf}}
 	\caption{Best estimates (solid black line) and uncertainty (grey) for a) dispersal, b), growth, including the 1:1 line in thick black, c) post-recruit annual survival at Palanas as an example patch, and d) size at female transition parameters. \label{FIG_ParameterInputs}}
 \end{figure}
 
-% Figure 3 - abudance trends, LEP, LRP, local replacement metrics
+% Figure 4 - abudance trends, LEP, LRP, local replacement metrics
 \begin{figure}[H] % abudance trends and LEP, LRP LRP_local shown with uncertainty, line for best estimate (using mean offspring size as recruit size)
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/Abundance_LEP_LRP_LocalReplacement_FreqPlots.pdf}}
@@ -394,14 +406,14 @@ Understanding persistence is critical for the management of spatial populations,
 % 	\caption{Values of self-persistence at each site, showing the best estimate (black point) and range of estimates considering uncertainty in the input paramters. No site reaches the value SP $\geq$ 1 necessary to be self-persistent. The estimates in (b) attempt to compensate for density-dependence in early life stages in our data, while the estimates in (a) do not. \label{FIG_SP}}
 % \end{figure}
 
-% Figure 4 - SP, realized connectivity matrix, and NP
+% Figure 5 - SP, realized connectivity matrix, and NP
 \begin{figure}[H] % NP with line for best estimate (using mean offspring size as recruit size), realized connectivity matrix for best estimate - should re-do without Sitio Lonas, Sitio Tugas, Caridad Proper!
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/SP_NP_connMatrixR_freq.pdf}}
 	\caption{Values of a) self-persistence, b) realized connectivity among patches, and c) network persistence. All estimates include compensation for density-dependence in early life stages. For self-persistence (a) and network persistence (c), the best estimate is shown with in black (point for (a), line for (c)) and the range of estimates considering uncertainty is shown in grey. \label{FIG_SP_NP_realizedCmat}}
 \end{figure}
 
-% Figure 5 - what-ifs
+% Figure 6 - what-ifs
 \begin{figure}[H] 
 	\centering
 	\includegraphics[width = 1.0\textwidth]{\detokenize{../Plots/FigureDrafts/What_if_4_panels.pdf}}
@@ -425,12 +437,27 @@ Understanding persistence is critical for the management of spatial populations,
 \numberwithin{figure}{section}
 
 \section{Supplemental Methods} \label{APP_SUPP_METHODS}
+% Order in main text: theory (lifetime recruit production, self-persistence, network persistence, local replacement), parentage analysis/dispersal kernel, growth and survival (mark-recap), fecundity, lifetime egg production, survival from egg to recruit, density-dependence, estimated abuncance over time, exploring alternative geographies and larval navigation
 
 \subsection{Defining recruit and census stage} \label{APP_SEC_METHODS_Recruit_def}
 
 When assessing persistence, we must consider mortality and reproduction that occurs across the entire life cycle to determine whether an individual is replacing itself with an individual that reaches the same life stage \citep{burgess2014beyond}. We defined a recruit to be a juvenile individual that has settled on the reef within the previous year, which also encompasses the size we were first able to sample (3.5-6.0 cm for parentage studies) (Fig.\ \ref{FIG_Schematic}). In theory, it does not matter how we defined recruit as long as we used that definition in our calculations of both egg-recruit survival and LEP. In our system, however, while it is straightforward to calculate LEP from any size, we did not have enough tagged recruits to reliably estimate survival to different recruit sizes. Instead, we chose the mean size of offspring matched in the parentage study as our best estimate of the size of a recruit ($\text{size}_\text{recruit}$) and tested sensitivity to different recruit sizes by sampling from a uniform distribution over the sizes the recruit stage covers (3.5-6 cm, Table \ref{APP_TAB_Params}).
 
-\subsection*{Dispersal kernel} \label{APP_SEC_METHODS_Dispersal}
+\subsection{Self persistence}
+
+Our equation for SP is a modification of that used in \cite{burgess2014beyond}, which uses LEP to represent offspring produced and uses local retention (the number of surviving recruits that disperse back to the natal patch divided by the number of eggs produced by the natal patch) to capture egg-recruit survival and dispersal combined: LEP×local retention ≥ 1. We modify this to include egg-recruit survival in the offspring term instead, using LRP in place of LEP.
+
+\subsection{Dispersal kernel} \label{APP_SEC_METHODS_Dispersal}
+
+\subsection{Growth and survival} \label{APP_SEC_METHODS_Growth_and_survival}
+
+To include size in the mark-recapture model for survival, we used the growth model (eqn.\ \ref{EQN_VBL}) and the size recorded or estimated in the previous year to estimate the size of fish not recaptured in a particular year. Fish are not well-mixed at our patches and divers needed to swim near an anemone to have a reasonable chance of capturing the fish on it so we also included a distance effect on recapture probability (Table \ref{APP_TAB_MARKmodels}). We used diver GPS tracks to estimate the minimum distance between a diver and the anemone where the fish was first caught for each tagged fish in each sample year.
+
+We compared the fit of the models using a modified version of the Akaike information criterion that reduces the potential for overfitting with small sample sizes (AICc) and selected the model with the lowest AICc value (Table \ref{APP_TAB_MARKmodels}).
+
+% Using diver GPS tracks, we estimated the minimum distance between a diver and the anemone for each tagged fish in each sample year to include as a factor. 
+
+% From the mark-recapture analysis of tagged and genotyped fish, we estimate mean values of $L_\infty = 10.71 \text{cm}$ (range of estimates 10.50 - 10.90 cm) and $K = 0.864$ (range of estimates 0.785 - 0.944) for the von Bertalanffy growth curve parameters (eqn.\ \ref{EQN_VBL}, Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{APP_TAB_Params}). For juvenile and adult (post-recruitment) survival on a log-odds scale, the best-fit model has an effect of size, with coefficient $b_a = 0.169 \pm 0.028$ SE and intercept $b_\phi = -1.83 \pm 0.231$ SE (eqn.\ \ref{EQN_Survival}). The accompanying best-fit model for log-odds recapture probability has a negative size effect and a negative effect of diver distance from the anemone (eqn.\ \ref{APP_EQN_MARKRecapture}, Fig.\ \ref{APP_FIG_RecapSizeDistEffect}).
 
 \subsection{Fecundity} \label{APP_SEC_METHODS_Fecundity}
 
@@ -440,17 +467,6 @@ We used a size-dependent fecundity relationship determined using photos of egg c
 f = c_e * e^{\beta_l\ln(L) + \beta_e[\text{eyed}] + b}. \label{EQN_Fec}
 \end{equation}
 
-\subsection{Growth and survival} \label{APP_SEC_METHODS_Growth_and_survival}
-
-To include size in the mark-recapture model for survival, we used the growth model (eqn.\ \ref{EQN_VBL}) and the size recorded or estimated in the previous year to estimate the size of fish not recaptured in a particular year. Fish are not well-mixed at our patches and divers needed to swim near an anemone to have a reasonable chance of capturing the fish on it so we also included a distance effect on recapture probability (Table \ref{APP_TAB_MARKmodels}). We used diver GPS tracks to estimate the minimum distance between a diver and the anemone where the fish was first caught for each tagged fish in each sample year.
-
-We compared the fit of the models using a modified version of the Akaike information criterion that reduces the potential for overfitting with small sample sizes (AICc) and selected the model with the lowest AICc value (Table \ref{APP_TAB_MARKmodels}).
-
-
-% Using diver GPS tracks, we estimated the minimum distance between a diver and the anemone for each tagged fish in each sample year to include as a factor. 
-
-% From the mark-recapture analysis of tagged and genotyped fish, we estimate mean values of $L_\infty = 10.71 \text{cm}$ (range of estimates 10.50 - 10.90 cm) and $K = 0.864$ (range of estimates 0.785 - 0.944) for the von Bertalanffy growth curve parameters (eqn.\ \ref{EQN_VBL}, Fig.\ \ref{FIG_ParameterInputs}b, Table \ref{APP_TAB_Params}). For juvenile and adult (post-recruitment) survival on a log-odds scale, the best-fit model has an effect of size, with coefficient $b_a = 0.169 \pm 0.028$ SE and intercept $b_\phi = -1.83 \pm 0.231$ SE (eqn.\ \ref{EQN_Survival}). The accompanying best-fit model for log-odds recapture probability has a negative size effect and a negative effect of diver distance from the anemone (eqn.\ \ref{APP_EQN_MARKRecapture}, Fig.\ \ref{APP_FIG_RecapSizeDistEffect}).
-
 \subsection{LEP} \label{APP_SEC_METHODS_LEP}
 
 To compute LEP, we discretized time and size (in eqn.\ \ref{EQN_LEP}) and summed across the matrix. When entering the starting individual into the matrix, we used 0.1 as the standard deviation of size to spread out the starting individual across size bins. To account for differences in growth rates across fish, we used the size determined by the growth curve (eqn.\ \ref{EQN_VBL}) as the mean along with an estimate of spread ($\text{size}_{sd}$) when projecting the size distribution of the fish in the next year. We used our recapture data to estimate the standard deviation ($\text{size}_{sd}$) of the distribution of sizes in the next year of fish starting from one size (Table \ref{APP_TAB_Params}). % Which size was that? Put the numbers of starting size and spread in here?
@@ -459,17 +475,23 @@ To compute LEP, we discretized time and size (in eqn.\ \ref{EQN_LEP}) and summed
 
 %We only considered reproductive effort once the fish is female and used the average size of first female observation for recaptured fish as the transition size $L_f = 9.32 \text{cm}$.
 
+\subsection{Alternate geographies and larval navigation}
+
+\paragraph{Larval navigation} \label{APP_SEC_METHODS_Larval_nav}
+
+In our sensitivity test to larval navigation and swimming, we added a buffer represenging navigation ranging from 0 - 1 km to the edges of the destination patches when determining probability of dispersal between patches. To avoid the shadows of effective patch area from overlapping, we added no more than half the distance between two adjacent patches to each patch. The buffers changed the proportion of the sampling region that is habitat (\ref{APP_SEC_PropHabInSampledRegion}), as we considered the buffer areas to be habitat as well, which affected the scaling of recruits in egg-recruit survival.
+
 \subsection{Scaling up recruits}
 
 To estimate the total number of offspring produced by genotyped parents that survived to recruitment, we scaled up the number of matched offspring caught during sampling ($R_m$) to account for recruits we could have missed (Fig.\ \ref{APP_FIG_RecruitScalingSchematic}). We scaled up by 1) the cumulative proportion of habitat we sampled at our patches over time ($P_h$) to account for recruits at anemones we did not sample (details in \ref{APP_SEC_ProbHabSampled}), 2) the probability of capturing a fish if we sampled its anemone ($P_c$) to account for fish that escaped during sampling (details in \ref{APP_SEC_ProbR}), 3) the proportion of the dispersal kernel from our patches covered within our sampling region ($P_d$) to account for fish that dispersed outside of our sampling area (details in \ref{APP_SEC_PropDispKernelSampled}), and 4) the proportion of our sampling region that was habitat ($P_s$) to avoid counting mortality of fish dispersing to non-habitat within our region twice (in both the estimate of total recruits and in the integrated dispersal kernel) (details in \ref{APP_SEC_PropHabInSampledRegion}). %, and 5) the proportion of anemones occupied by \textit{A. clarkii} ($DD$) to account for density-dependent mortality of settling recruits.
 
-\subsection{Proportion of habitat sampled} \label{APP_SEC_ProbHabSampled}
+\paragraph{Proportion of habitat sampled} \label{APP_SEC_ProbHabSampled}
 
 We used tagged anemones to estimate the proportion of habitat we sampled within our patches. We tagged each anemone that was home to yellowtail anemonefish with a metal tag, which is relatively permanent and easy to re-sight (the anemone tag is visible above the anemone in Fig.\ \ref{FIG_Map_and_photo}c). We therefore considered the total number of metal-tagged anemones at a patch to be the habitat present. We used proportion of anemones rather than proportion of total patch area because anemones, and therefore habitat quality, were unevenly distributed across each patch; areas we did not visit likely had a lower anemone density than the areas we did sample. % We divided the number of tagged anemones visited each sampling year by the total number of metal tags at that patch to get the proportion of habitat sampled. We used tagged anemones to estimate the proportion of habitat we sampled at each patch in each year ($P_{h_{i,t}}$).
 
 To scale the number of tagged recruited offspring to account for areas of our patches we did not sample, we used the overall proportion habitat sampled across all patches and sampling years ($P_h$). We summed the metal-tagged anemones we visited across all patches and years, then divided by the number of anemones we could have sampled (the sum of total metal-tagged anemones across all patches multiplied by the number of sampling years).
 
-\subsection{Probability of capturing a fish, from recapture dives} \label{APP_SEC_ProbR}
+\paragraph{Probability of capturing a fish, from recapture dives} \label{APP_SEC_ProbR}
 
 To estimate the probability of capturing a fish given that we sampled its anemone ($P_c$), we used mark-recapture data from recapture dives done within a sampling season. During some of the sampling years, portions of the patches were sampled again within a few weeks of the original sampling dives. We assumed that the probability of recapturing a fish on a recapture dive was the same as capturing a fish on a sampling dive, assuming there was no mortality in the weeks between dives and that the fish did not alter their behavior towards divers. For each recapture dive, we used GPS tracks of the divers to identify the anemones covered in the recapture dive and the set of PIT-tagged fish encountered on those anemones during the original sampling dives. We estimated the probability of capture $P_c$ as the number of tagged fish re-caught during the capture dive $m_2$ divided by the total number of fish caught on the recapture dive $n_2$: $P_c = \frac{m_2}{n_2}$. %The value of $P_c$ from each recapture dive is reported in Table \ref{APP_TAB_RecapDives}. CHECK THIS AND REWORD!!!
 
@@ -483,7 +505,7 @@ We used the mean $P_c$ across all 14 recapture dives, covering XX patches in 3 s
 % Should I include a table of the recapture probs for each recapture dive, including site and year?
 The mean of the individual capture probability values was $\mu_{P_c} = 0.56$, with variance $V_{P_c} = 0.069$, giving beta distribution parameters $\alpha_{P_c} = 1.44$ and $\beta_{P_c} = 1.13$. We sampled 1000 values from the beta distribution, then truncated the sample to include only values larger than the lowest value of $P_c$ estimated from an individual dive (0.20), to avoid unrealistically low values randomly sampled from the distribution. We then sampled with replacement from the truncated set to get a vector of 1000 values.
 
-\subsection{Proportion of dispersal kernel area sampled} \label{APP_SEC_PropDispKernelSampled}
+\paragraph{Proportion of dispersal kernel area sampled} \label{APP_SEC_PropDispKernelSampled}
 
 To account for recruits that dispersed outside our sampling region, we found the proportion of the dispersal kernels from all parents that fell within our sampling region. For each of the nineteen patches, we found the area under the kernel ($A_i$) from the center of the patch to the north edge of the sampling area ($d_N$) (northern-most tagged anemone at Palanas, the northern-most patch) and the center of the patch to the south edge of the sampling area ($d_S$) (southern-most tagged anemone at Sitio Baybayon, the southern-most patch), then multiplied by the number of genotyped parents at that patch ($N_{g_i}$). We added the areas together, then divided by the sum of the total area under the dispersal kernel in both directions (1 when the kernel was normalized to 0.5) multiplied by the total number of genotyped parents ($N_g$) to get the proportion of the total dispersal kernel area covered by our sampling region ($P_d$):
 
@@ -496,41 +518,33 @@ A_i = N_{g_i} \left( \int_{0}^{d_N} z e^{-(zd)^\theta}  dd + \int_{0}^{d_S} z e^
 P_d = \frac{\sum_{i=1}^{19} A_i}{N_g}.
 \end{equation}
 
-\subsection{Proportion habitat in sampling area} \label{APP_SEC_PropHabInSampledRegion}
+\paragraph{Proportion habitat in sampling area} \label{APP_SEC_PropHabInSampledRegion}
 
 To avoid counting mortality due to larvae settling on non-habitat twice - once in scaling up our matched recruits, which only included those who settled on habitat, and once in integrating the dispersal kernel - we scaled the estimate of total surviving recruits from our patches by the proportion of our sampling region that was habitat ($P_s$). We found $P_s$ by summing the lengths of all the patches, which run approximately north-south, and dividing by the total north-south distance of our sampling region, giving $P_s = 0.20$. We assumed that larvae were unable to navigate to habitat if they dispersed to an unsuitable area but relaxed that assumption in our sensitivity tests (\ref{APP_SEC_METHODS_Larval_nav}) as anemonefish larvae do likely have some ability both to sense good settlement areas, either by detecting host anemones \citep{elliott1995host, arvedlund1999host} or conspecifics \citep[e.g.][for coral reef fish more broadly]{lecchini2005experimental}, and to swim in a particular direction \citep[e.g.][]{bellwood2001relative, fisher2005swimming}.
 
-\subsection{Self persistence}
-
-Our equation for SP is a modification of that used in \cite{burgess2014beyond}, which uses LEP to represent offspring produced and uses local retention (the number of surviving recruits that disperse back to the natal patch divided by the number of eggs produced by the natal patch) to capture egg-recruit survival and dispersal combined: LEP×local retention ≥ 1. We modify this to include egg-recruit survival in the offspring term instead, using LRP in place of LEP.
-
-\subsection{Sensitivity tests}
-
-\paragraph{Larval navigation} \label{APP_SEC_METHODS_Larval_nav}
-
-In our sensitivity test to larval navigation and swimming, we added a buffer represenging navigation ranging from 0 - 1 km to the edges of the destination patches when determining probability of dispersal between patches. To avoid the shadows of effective patch area from overlapping, we added no more than half the distance between two adjacent patches to each patch. The buffers changed the proportion of the sampling region that is habitat (\ref{APP_SEC_PropHabInSampledRegion}), as we considered the buffer areas to be habitat as well, which affected the scaling of recruits in egg-recruit survival.
 
 \subsection{Characterizing uncertainty} \label{APP_SEC_Uncertainty}
 
-\paragraph{Growth}
-
-We used the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate L∞ and K (using eqn.\ \ref{EQN_VBL}). For fish recaptured more than once, we randomly selected only one recapture period from each to use to estimate the von Bertalanffy parameters and repeated the random selection and estimate 1000 times. We found the mean estimates (L∞ = 10.70 cm, K = 0.864) and mean standard error of those fits, then sampled from within that range to generate a set of von Bertalanffy growth curves to use in our LEP calculations (Fig. 2b, Table A1).
-
-\paragraph{Size of transition to female}
-
- To incorporate uncertainty in the size at which male fish transition to female (and reproductive output is counted in eqn.\ \ref{EQN_LEP}), we sampled directly from the sizes at which recaptured fish were first captured as female (5.2 cm - 12.7 cm) (Fig.\ \ref{FIG_ParameterInputs}d).
-
-\paragraph{Egg-recruit survival}
-
-We considered uncertainty in the number of offspring assigned to parents ($R_m$) and in the probability of capturing a fish ($P_c$). We generated a set of values for the number of assigned offspring using a random binomial, with the number of genotyped offspring (745) as the number of trials and the assignment rate from the parentage analysis (0.079) as the probability of success on each trial \citep{catalanoInPrepconnectivity}. For the probability of capturing a fish, we sampled values from a beta distribution that captured the mean and variance of capture probabilities across recapture dives (details in \ref{APP_EQN_ProbCapBetaDistParams}).
-
-\paragraph{Dispersal kernel}
+\paragraph{Dispersal kernel} \label{APP_SEC_Uncertainty_Dispersal}
 
 To account for uncertainty in the dispersal kernel, we used sets of the shape parameter $\theta$ and the scale parameter $k_d$ that represented the span of the 95\%confidence interval when $k_d$ and $\theta$ were estimated jointly \citep[Table \ref{APP_TAB_Params},][]{catalanoInPrepconnectivity}.
 
+\paragraph{Growth} \label{APP_SEC_Uncertainty_Growth}
+
+We used the first and second capture lengths for fish that were recaught after a year (within 345 to 385 days) to estimate L∞ and K (using eqn.\ \ref{EQN_VBL}). For fish recaptured more than once, we randomly selected only one recapture period from each to use to estimate the von Bertalanffy parameters and repeated the random selection and estimate 1000 times. We found the mean estimates (L∞ = 10.70 cm, K = 0.864) and mean standard error of those fits, then sampled from within that range to generate a set of von Bertalanffy growth curves to use in our LEP calculations (Fig. 2b, Table A1).
+
+
+\paragraph{Egg-recruit survival} \label{APP_SEC_Uncertainty_Egg-recruit-surv}
+
+We considered uncertainty in the number of offspring assigned to parents ($R_m$) and in the probability of capturing a fish ($P_c$). We generated a set of values for the number of assigned offspring using a random binomial, with the number of genotyped offspring (745) as the number of trials and the assignment rate from the parentage analysis (0.079) as the probability of success on each trial \citep{catalanoInPrepconnectivity}. For the probability of capturing a fish, we sampled values from a beta distribution that captured the mean and variance of capture probabilities across recapture dives (details in \ref{APP_EQN_ProbCapBetaDistParams}).
+
+\paragraph{Size of transition to female} \label{APP_SEC_Uncertainty_FemaleSize}
+
+ To incorporate uncertainty in the size at which male fish transition to female (and reproductive output is counted in eqn.\ \ref{EQN_LEP}), we sampled directly from the sizes at which recaptured fish were first captured as female (5.2 cm - 12.7 cm) (Fig.\ \ref{FIG_ParameterInputs}d).
+
 \newpage{}
 
-\section{Supplemental Results}
+\section{Supplemental Results}  %%% STILL NEED TO REARRANGE ORDER TO MATCH MAIN TEXT!
 
 \subsection{Growth}
 
@@ -571,108 +585,129 @@ We did not find any patches with a best estimate of SP $\geq 1$ or with uncertai
 
 \section{Supplemental Tables}
 
-%[\textit{Need to clarify somewhere what kind of distributions are going into the uncertainty runs (drawn from data, uniform across a range, 95\% confidence bounds, etc.)}]
-% Make table prettier
 \begingroup
 \begin{landscape}
 \singlespacing
-\begin{longtable}{|p{1.1in}|p{1.5in}|p{1.5in}|p{1.8in}|}
-\caption{Summary of parameter symbols, definitions, and values.}\label{APP_TAB_Params} \\
-\hline 
-\textbf{Parameter} & \textbf{Description} & \textbf{Best estimate [uncertainty bounds]} & \textbf{Notes} \\ \hline
-$k_d$ & scale parameter in dispersal kernel & -2.33 [-2.81 to -1.22] & eqn.\ \ref{EQN_integratingDK}, estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
-$\theta$ & shape parameter in dispersal kernel & 1.19 [0.63 to 2.02] & eqn.\ \ref{EQN_integratingDK}, estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
-$L_\infty$ & average asymptotic size (cm) in von Bertalanffy growth curve & 10.70 cm [9.81 to 11.65] & eqn.\ \ref{EQN_VBL} \\ \hline
-$K$ & growth coefficient in von Bertalanffy growth curve &  0.864 [0.80 to 0.91] & eqn.\ \ref{EQN_VBL} \\ \hline  
-$b_{\phi_{Cabatoan}}$ & intercept for adult survival at 0 cm at Cabatoan & -1.78 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline 
-$i_{\phi_{Cardidad Cemetery}}$ & addition to intercept for survival at Caridad Cemetery & -19.61 $\pm$ 2994 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Elementary School}}$ & addition to intercept for survival at Elementary School & -0.11 $\pm$ 0.41 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Gabas}}$ & addition to intercept for survival at Gabas & -0.42 $\pm$ 0.58 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Haina}}$ & addition to intercept for survival at Haina & 0.12 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Hicgop South}}$ & addition to intercept for survival at Hicgop South & -0.06 $\pm$ 0.46 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{N. Magbangon}}$ & addition to intercept for survival at N. Magbangon & -1.31 $\pm$ 0.38 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Palanas}}$ & addition to intercept for survival at Palanas & 0.24 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Poroc Rose}}$ & addition to intercept for survival at Poroc Rose & -0.19 $\pm$ 0.44 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Poroc San Flower}}$ & addition to intercept for survival at Poroc San Flower & -0.52 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{San Agustin}}$ & addition to intercept for survival at San Agustin & -0.47 $\pm$ 0.50 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Sitio Baybayon}}$ & addition to intercept for survival at Sitio Baybayon & 0.02 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{S. Magbangon}}$ & addition to intercept for survival at S. Magbangon & -1.08 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Tomakin Dako}}$ & addition to intercept for survival at Tomakin Dako & 0.39 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Visca}}$ & addition to intercept for survival at Visca & 0.33 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Wangag}}$ & addition to intercept for survival at Wangag & 0.35 $\pm$ 0.25 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$b_a$ & size effect for adult survival & 0.15 $\pm$ 0.03 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-%$b_{p_r}$ & intercept for recapture probability from mark-recapture analysis & 2.10 & $\pm$ 0.849 standard error & on a log-odds scale, not used in persistence estimates \\ \hline
-%$b_1$ & size effect for recapture & -0.161 & $\pm$ 0.088 standard error & on a log-odds scale, not used in persistence estimates \\ \hline
-%$b_2$ & distance effect for recapture & -0.196 & $\pm$ 0.023 standard error & on a log-odds scale, not used in persistence estimates \\ \hline
-$\beta_e$ & coefficient for eyed eggs & -0.608 & eqn.\ \ref{EQN_Fec}, Yawdoszyn et al.\ (in prep) \\ \hline
-$\beta_l$ & size effect in eggs-per-clutch relationship & 2.39 & eqn.\ \ref{EQN_Fec}, Yawdoszyn et al.\ (in prep) \\ \hline
-$b$ & intercept in eggs-per-clutch relationship at female size 0 cm & 1.17 & eqn.\ \ref{EQN_Fec}, Yawdoszyn et al.\ (in prep) \\ \hline
-$c_e$ & egg clutches per year & 11.9 & eqn.\ \ref{EQN_Fec}, \cite{holtswarth2017fecundity} \\ \hline
-$\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.37 cm [3.5 to 6.0 cm] & drawn from uniform distribution across range \\ \hline
-$\text{size}_{\text{recruit}, sd}$ & standard deviation of size of a recruit & 0.1 & used in discretization of IPM for LEP \\ \hline
-$\text{size}_{sd}$ & standard deviation distribution of sizes of a fish in the next year & 1.45 & used in discretization of IPM for LEP, estimated from range of sizes for fish starting at 7.4-7.6 cm and recaptured a year later \\ \hline
-$L_s$ & minimum size in LEP IPM & 0 cm & eqn.\ \ref{EQN_LEP} \\ \hline
-$U_s$ & maximum size in LEP IPM & 15 cm & eqn.\ \ref{EQN_LEP} \\ \hline
-%$S_e$ & egg-recruit survival & & &  \\ \hline
-%$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
-$L_f$ & size at transition to female & 9.32 cm [5.2 to 12.7 cm] & drawn from distribution in data \\ \hline
-$R_m$ & number of offspring matched to parents & 62	offspring & eqn.\ \ref{EQN_EggRecruitSurv} \\ \hline
-$N_g$ & number of genotyped parents & 1719 fish & eqn.\ \ref{EQN_EggRecruitSurv} \\ \hline
-$P_h$ & proportion of patches sampled cumulatively across time & 0.41 & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_ProbHabSampled} \\ \hline
-$P_d$ & proportion of dispersal kernel area from each patch covered by our sampling region & 0.57 & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_PropDispKernelSampled} \\ \hline 
-$P_c$ & probability of capturing a fish & 0.56 [drawn from beta distribution with parameters $\alpha_{P_c} = 1.44$ and $\beta_{P_c} = 1.13$] & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_ProbR} \\ \hline
-$P_s$ & proportion of our sampling region that is habitat & 0.20 & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_PropHabInSampledRegion} \\ \hline
-$\text{DD}$ & proportion of habitat that would be available without density-dependence at settlement & 1.71 & eqn.\ \ref{EQN_EggRecruitSurv} \\ \hline
-$p_U$ & proportion of anemones unoccupied by clownfish & 0.53 & used to estimate DD \\ \hline
-$p_A$ & proportion of anemones occupied by \textit{A. clarkii} & 0.38 & used to estimate DD \\ \hline
+\begin{longtable}{|p{1.0in}|p{1.5in}|p{1.5in}|p{1.25in}|p{1.0in}|p{1.5in}|}
+\caption{Summary of parameter symbols, definitions, and values, including sections and equations where each are described in detail.} \label{APP_TAB_Params} \\ 
+\hline
+\textbf{Parameter} & \textbf{Description} & \textbf{Best estimate [uncertainty bounds]} & \textbf{Uncertainty origin} & \textbf{Details} & \textbf{Notes} \\ \hline
+\multicolumn{6}{c|}{\textit{Dispersal and demographics}} \\ \hline
+$K_d$ & scale parameter in dispersal kernel & \textbf{XX} & drawn from joint 95\% confidence limits with $\theta$, weighted by log-likelihood & eqn.\ \ref{EQN_integratingDK} & estimated in \cite{catalanoInPrepconnectivity}using methods in \cite{bode2018estimating} \\ \hline
+$\theta$ & shape parameter in dispersal kernel & \textbf{XX} & drawn from joint 95\% confidence limits with $k_d$, weighted by log-likelihood &eqn.\ \ref{EQN_integratingDK} & estimated in \cite{catalanoInPrepconnectivity} using methods in \cite{bode2018estimating} \\ \hline
+$L_\infty$ & average asymptotic size (cm) in von Bertalanffy growth curve & 10.70 cm \textbf{[]} & growth curve estimated with different pairs of fish & eqn.\ \ref{EQN_VBL} & \\ \hline
+$k$ & growth coefficient in von Bertalanffy growth curve &  0.864 \textbf{[]} & \textbf{XX} & eqn.\ \ref{EQN_VBL} & \\ \hline 
+\multicolumn{6}{c|}{\textit{Habitat and region characteristics}} \\ \hline
+\multicolumn{6}{c|}{\textit{Alternate geographies and scenarios}} \\ \hline
 \end{longtable}
 \end{landscape}
 \endgroup
 
-\begin{table}[!htbp]
+% %[\textit{Need to clarify somewhere what kind of distributions are going into the uncertainty runs (drawn from data, uniform across a range, 95\% confidence bounds, etc.)}]
+% % Make table prettier
+% %%%% OLD VERSION OF TABLE - COMMENTING OUT PARAMETERS AS THEY GET DEALT WITH
+% \begingroup
+% \begin{landscape}
+% \singlespacing
+% \begin{longtable}{|p{1.1in}|p{1.5in}|p{1.5in}|p{1.8in}|}
+% \caption{Summary of parameter symbols, definitions, and values.}\label{APP_TAB_Params} \\
+% \hline 
+% \textbf{Parameter} & \textbf{Description} & \textbf{Best estimate [uncertainty bounds]} & \textbf{Notes} \\ \hline
+% $k_d$ & scale parameter in dispersal kernel & -2.33 [-2.81 to -1.22] & eqn.\ \ref{EQN_integratingDK}, estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+% $\theta$ & shape parameter in dispersal kernel & 1.19 [0.63 to 2.02] & eqn.\ \ref{EQN_integratingDK}, estimated using methods in \cite{bode2018estimating} in Catalano et al.\ (in prep) \\ \hline
+% $L_\infty$ & average asymptotic size (cm) in von Bertalanffy growth curve & 10.70 cm [9.81 to 11.65] & eqn.\ \ref{EQN_VBL} \\ \hline
+% $K$ & growth coefficient in von Bertalanffy growth curve &  0.864 [0.80 to 0.91] & eqn.\ \ref{EQN_VBL} \\ \hline  
+% % $b_{\phi_{Cabatoan}}$ & intercept for adult survival at 0 cm at Cabatoan & -1.78 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline 
+% % $i_{\phi_{Cardidad Cemetery}}$ & addition to intercept for survival at Caridad Cemetery & -19.61 $\pm$ 2994 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Elementary School}}$ & addition to intercept for survival at Elementary School & -0.11 $\pm$ 0.41 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Gabas}}$ & addition to intercept for survival at Gabas & -0.42 $\pm$ 0.58 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Haina}}$ & addition to intercept for survival at Haina & 0.12 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Hicgop South}}$ & addition to intercept for survival at Hicgop South & -0.06 $\pm$ 0.46 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{N. Magbangon}}$ & addition to intercept for survival at N. Magbangon & -1.31 $\pm$ 0.38 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Palanas}}$ & addition to intercept for survival at Palanas & 0.24 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Poroc Rose}}$ & addition to intercept for survival at Poroc Rose & -0.19 $\pm$ 0.44 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Poroc San Flower}}$ & addition to intercept for survival at Poroc San Flower & -0.52 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{San Agustin}}$ & addition to intercept for survival at San Agustin & -0.47 $\pm$ 0.50 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Sitio Baybayon}}$ & addition to intercept for survival at Sitio Baybayon & 0.02 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{S. Magbangon}}$ & addition to intercept for survival at S. Magbangon & -1.08 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Tomakin Dako}}$ & addition to intercept for survival at Tomakin Dako & 0.39 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Visca}}$ & addition to intercept for survival at Visca & 0.33 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% % $i_{\phi_{Wangag}}$ & addition to intercept for survival at Wangag & 0.35 $\pm$ 0.25 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% $b_a$ & size effect for adult survival & 0.15 $\pm$ 0.03 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+% %$b_{p_r}$ & intercept for recapture probability from mark-recapture analysis & 2.10 & $\pm$ 0.849 standard error & on a log-odds scale, not used in persistence estimates \\ \hline
+% %$b_1$ & size effect for recapture & -0.161 & $\pm$ 0.088 standard error & on a log-odds scale, not used in persistence estimates \\ \hline
+% %$b_2$ & distance effect for recapture & -0.196 & $\pm$ 0.023 standard error & on a log-odds scale, not used in persistence estimates \\ \hline
+% $\beta_e$ & coefficient for eyed eggs & -0.608 & eqn.\ \ref{EQN_Fec}, Yawdoszyn et al.\ (in prep) \\ \hline
+% $\beta_l$ & size effect in eggs-per-clutch relationship & 2.39 & eqn.\ \ref{EQN_Fec}, Yawdoszyn et al.\ (in prep) \\ \hline
+% $b$ & intercept in eggs-per-clutch relationship at female size 0 cm & 1.17 & eqn.\ \ref{EQN_Fec}, Yawdoszyn et al.\ (in prep) \\ \hline
+% $c_e$ & egg clutches per year & 11.9 & eqn.\ \ref{EQN_Fec}, \cite{holtswarth2017fecundity} \\ \hline
+% $\text{size}_\text{recruit}$ & size (cm) of recruited offspring & mean of size of offspring in parentage analysis = 4.37 cm [3.5 to 6.0 cm] & drawn from uniform distribution across range \\ \hline
+% $\text{size}_{\text{recruit}, sd}$ & standard deviation of size of a recruit & 0.1 & used in discretization of IPM for LEP \\ \hline
+% $\text{size}_{sd}$ & standard deviation distribution of sizes of a fish in the next year & 1.45 & used in discretization of IPM for LEP, estimated from range of sizes for fish starting at 7.4-7.6 cm and recaptured a year later \\ \hline
+% $L_s$ & minimum size in LEP IPM & 0 cm & eqn.\ \ref{EQN_LEP} \\ \hline
+% $U_s$ & maximum size in LEP IPM & 15 cm & eqn.\ \ref{EQN_LEP} \\ \hline
+% %$S_e$ & egg-recruit survival & & &  \\ \hline
+% %$E_c$ & eggs per clutch & depends on female size (eqn.\ \ref{EQN_Fec}) & & relationship from Yawdoszyn et al.\ (in prep) \\ \hline
+% $L_f$ & size at transition to female & 9.32 cm [5.2 to 12.7 cm] & drawn from distribution in data \\ \hline
+% $R_m$ & number of offspring matched to parents & 62	offspring & eqn.\ \ref{EQN_EggRecruitSurv} \\ \hline
+% $N_g$ & number of genotyped parents & 1719 fish & eqn.\ \ref{EQN_EggRecruitSurv} \\ \hline
+% $P_h$ & proportion of patches sampled cumulatively across time & 0.41 & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_ProbHabSampled} \\ \hline
+% $P_d$ & proportion of dispersal kernel area from each patch covered by our sampling region & 0.57 & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_PropDispKernelSampled} \\ \hline 
+% $P_c$ & probability of capturing a fish & 0.56 [drawn from beta distribution with parameters $\alpha_{P_c} = 1.44$ and $\beta_{P_c} = 1.13$] & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_ProbR} \\ \hline
+% $P_s$ & proportion of our sampling region that is habitat & 0.20 & eqn.\ \ref{EQN_EggRecruitSurv}, details in \ref{APP_SEC_PropHabInSampledRegion} \\ \hline
+% $\text{DD}$ & proportion of habitat that would be available without density-dependence at settlement & 1.71 & eqn.\ \ref{EQN_EggRecruitSurv} \\ \hline
+% $p_U$ & proportion of anemones unoccupied by clownfish & 0.53 & used to estimate DD \\ \hline
+% $p_A$ & proportion of anemones occupied by \textit{A. clarkii} & 0.38 & used to estimate DD \\ \hline
+% \end{longtable}
+% \end{landscape}
+% \endgroup
+
+%%%%% TABLE UPDATED (CREATED) 6/19/20
+\begin{table}[!htbp] 
 \begin{centering}
-\caption{Table with site-specific survival ($\phi_i$) values, where the intercept is for adult survival at 0cm.} \label{APP_TAB_SiteSurvivals}
-\begin{tabular}{|p{1.1in}|p{1.5in}|p{1.5in}|p{1.8in}|}
+\caption{Table with site-specific survival ($\phi_i$) values on a log-odds scale (used in eqn.\ \ref{APP_EQN_Survival}), where the intercept is for adult survival for a fish of size 0 cm. The intercepts for each site is the intercept for Cabatoan plus the additional intercept value for that site, shown in the table.} \label{APP_TAB_SiteSurvivals}
+\begin{tabular}{|p{1.1in}|p{0.75in}|p{0.75in}|p{1.25in}|p{1.5in}|}
 \hline 
-\textbf{Site} & \textbf{Intercept} & \textbf{Standard Error} & \textbf{Notes} \\ \hline
-Cabatoan & & -1.78 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline 
-$i_{\phi_{Cardidad Cemetery}}$ & addition to intercept for survival at Caridad Cemetery & -19.61 $\pm$ 2994 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Elementary School}}$ & addition to intercept for survival at Elementary School & -0.11 $\pm$ 0.41 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Gabas}}$ & addition to intercept for survival at Gabas & -0.42 $\pm$ 0.58 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Haina}}$ & addition to intercept for survival at Haina & 0.12 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Hicgop South}}$ & addition to intercept for survival at Hicgop South & -0.06 $\pm$ 0.46 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{N. Magbangon}}$ & addition to intercept for survival at N. Magbangon & -1.31 $\pm$ 0.38 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Palanas}}$ & addition to intercept for survival at Palanas & 0.24 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Poroc Rose}}$ & addition to intercept for survival at Poroc Rose & -0.19 $\pm$ 0.44 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Poroc San Flower}}$ & addition to intercept for survival at Poroc San Flower & -0.52 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{San Agustin}}$ & addition to intercept for survival at San Agustin & -0.47 $\pm$ 0.50 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Sitio Baybayon}}$ & addition to intercept for survival at Sitio Baybayon & 0.02 $\pm$ 0.26 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{S. Magbangon}}$ & addition to intercept for survival at S. Magbangon & -1.08 $\pm$ 0.48 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Tomakin Dako}}$ & addition to intercept for survival at Tomakin Dako & 0.39 $\pm$ 0.33 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Visca}}$ & addition to intercept for survival at Visca & 0.33 $\pm$ 0.35 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
-$i_{\phi_{Wangag}}$ & addition to intercept for survival at Wangag & 0.35 $\pm$ 0.25 standard error & on a log-odds scale, eqn.\ \ref{APP_EQN_Survival} \\ \hline
+\textbf{Site} & \textbf{Intercept} & \textbf{Standard error} & \textbf{Confidence limits} & \textbf{Notes} \\ \hline
+Cabatoan & -1.78 & 0.33 & -2.42 to -1.14 & \\ \hline
+Caridad Cemetery & -19.66 & 0.00 & -19.66 to -19.66 & addition to Cabatoan intercept \\ \hline
+Elementary School & -0.11 & 0.41 & -0.92 to 0.69 & addition to Cabatoan intercept \\ \hline
+Gabas & -0.42 & 0.58 & -1.55 to 0.72 & addition to Cabatoan intercept \\ \hline
+Haina & 0.12 & 0.35 & -0.57 to 0.81 & addition to Cabatoan intercept \\ \hline
+Higcop South & -0.06 & 0.46 & -0.96 to 0.84 & addition to Cabatoan intercept \\ \hline
+N. Magbangon & -1.31 & 0.38 & -2.05 to -0.57 & addition to Cabatoan intercept \\ \hline
+Palanas & 0.24 & 0.26 & -0.26 to 0.75 & addition to Cabatoan intercept \\ \hline
+Poroc Rose & -0.19 & 0.44 & -1.05 to 0.68 & addition to Cabatoan intercept \\ \hline
+Poroc San Flower & -0.52 & 0.48 & -1.45 to 0.42 & addition to Cabatoan intercept \\ \hline
+San Agustin & -0.47 & 0.50 & -1.45 to 0.42 & addition to Cabatoan intercept \\ \hline
+Sitio Baybayon & 0.02 & 0.26 & -0.49 to 0.52 & addition to Cabatoan intercept \\ \hline
+S. Magbangon & -1.08 & 0.48 & -2.02 to -0.14 & addition to Cabatoan intercept \\ \hline
+Tomakin Dako & 0.39 & 0.33 & -0.25 to 1.03 & addition to Cabatoan intercept \\ \hline
+Visca & 0.33 & 0.35 & -0.36 to 1.01 & addition to Cabatoan intercept \\ \hline
+Wangag & 0.35 & 0.25 & -0.15 to 0.85 & addition to Cabatoan intercept \\ \hline
 \end{tabular}
 \end{centering}
 \end{table}
 
+%%%%% TABLE UPDATED 6/19/20 and comments in pdf addressed
 \begin{table}[!htbp]
 \begin{centering}
-\caption{Table showing the set of models considered in MARK for survival ($\phi$) and recapture ($p_r$) probability, including effects of size ($S$), minimum distance from diver to anemone during surveys ($D$), time ($t$), and patch ($i$), and their relative AICc scores.}\label{APP_TAB_MARKmodels}
-\begin{tabular}{|p{2in}|p{2.5in}|p{0.75in}|p{0.75in}|}
+\caption{Table showing the set of models considered in MARK for survival ($\phi$) (from eqn.\ \ref{APP_EQN_Survival}) and recapture ($p_r$)  (from eqn.\ \ref{APP_EQN_MARK_Recapture}) probability, including effects of fish size ($S$), minimum distance from diver to the anemone where fish were first caught during surveys ($D$), year ($t$), and patch ($i$), and their relative AICc scores.}\label{APP_TAB_MARKmodels}
+\begin{tabular}{|p{1.75in}|p{2.75in}|p{0.75in}|p{0.75in}|}
 \hline 
 \textbf{Model} & \textbf{Model description} & \textbf{AICc} & \textbf{dAICc} \\ \hline
 $\phi \sim S+i$, $p_r \sim S+D$ & survival size+patch, recapture size+distance & 3104.1 & 0 \\ \hline
-$\phi \sim i$, $p_r \sim D$ & survival patch, recapture size+distance & 3127.1 & 23 \\ \hline
-$\phi \sim i$, $p_r \sim D$ & survival patch, recapture distance & 3127.2 & 23 \\ \hline
-$\phi \sim S$, $p_r \sim S+D$ & survival size, recapture size+distance & 3139.9 & 35.8 \\ \hline
-$\phi \sim S$, $p_r$ & survival size, recapture distance & 3141.6 & 37.5 \\ \hline
-$\phi$, $p_r \sim S+D$ & survival constant, recapture size+distance & 3168.3 & 64.2 \\ \hline
-$\phi$, $p_r \sim D$ & survival constant, recapture distance & 3169.3 & 65.2 \\ \hline
-$\phi \sim t$, $p_r$ & survival time, recapture constant & 3243.9 & 139.7 \\ \hline
-$\phi \sim i$, $p_r$ & survival patch, recapture constant & 3254.4 & 150.3 \\ \hline
-$\phi$, $p_r \sim t$ & survival constant, recapture time & 3274.0 & 169.9 \\ \hline
-$\phi \sim S$, $p_r \sim S$ & survival size, recapture size & 3345.2 & 241.0 \\ \hline
-$\phi$, $p_r$ & survival constant, recapture constant & 3382.7 & 278.5 \\ \hline
+$\phi \sim i$, $p_r \sim S+D$ & survival patch, recapture size+distance & 3127.2 & -23.1 \\ \hline
+$\phi \sim i$, $p_r \sim D$ & survival patch, recapture distance & 3127.2 & -23.1 \\ \hline
+$\phi \sim S$, $p_r \sim S+D$ & survival size, recapture size+distance & 3139.9 & -35.8 \\ \hline
+$\phi \sim S$, $p_r \sim D$ & survival size, recapture distance & 3141.6 & -37.5 \\ \hline
+$\phi$, $p_r \sim S+D$ & survival constant, recapture size+distance & 3168.4 & -64.3 \\ \hline
+$\phi$, $p_r \sim D$ & survival constant, recapture distance & 3169.3 & -65.2 \\ \hline
+$\phi \sim t$, $p_r$ & survival time, recapture constant & 3243.9 & -139.8 \\ \hline
+$\phi \sim i$, $p_r$ & survival patch, recapture constant & 3254.4 & -150.3 \\ \hline
+$\phi$, $p_r \sim t$ & survival constant, recapture time & 3274.0 & -169.9 \\ \hline
+$\phi \sim S$, $p_r \sim S$ & survival size, recapture size & 3345.1 & -241.0 \\ \hline
+$\phi$, $p_r$ & survival constant, recapture constant & 3382.7 & -278.6 \\ \hline
 \end{tabular}
 \end{centering}
 \end{table}
