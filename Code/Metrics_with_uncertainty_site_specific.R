@@ -2968,6 +2968,37 @@ dev.off()
 
 ########## Appendix figures #########
 
+##### Site-specific LEP and LRP
+# Join so have site name rather than just number
+site_specific_LEP_plot_df <- left_join(site_vec_order, output_uncert_all_DD$LEP_by_site_out_df, by = c("alpha_order" = "site")) %>%
+  dplyr::rename(site = site_name)
+site_specific_LRP_plot_df <- left_join(output_uncert_all_DD$LEP_R_by_site_out_df, site_vec_order, by = c("site" = "alpha_order"))
+
+pdf(file = here::here("Plots/FigureDrafts","LEP_by_site.pdf"))
+ggplot(data = site_specific_LEP_plot_df, aes(x=reorder(site, geo_order), y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = best_est_metrics_mean_offspring_DD$LEP_by_site, aes(x = site, y = LEP), color = "black") +
+  xlab("\npatch") + ylab(bquote("lifetime egg production (LEP"[i] ~")")) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+dev.off()
+
+site_specific_LRP_plot <- ggplot(data = site_specific_LRP_plot_df, aes(x=reorder(site_name, geo_order), y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = best_est_metrics_mean_offspring_DD$LEP_by_site, aes(x = site, y = LEP_R), color = "black") +
+  xlab("\npatch") + ylab(bquote("lifetime recruit production (LRP"[i] ~")")) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+pdf(file = here::here("Plots/FigureDrafts","LRP_by_site.pdf"))
+ggplot(data = site_specific_LRP_plot_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=50, color='gray', fill='gray') +
+  facet_wrap(~site_name) +
+  #geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_by_site, aes(x = site, y = LEP_R), color = "black") +
+  xlab(bquote("lifetime recruit production (LRP"[i] ~")")) + ylab("relative frequency") + 
+  theme_bw() 
+dev.off()
+
 ##### Proportion of kernel sampled - made elsewhere
 
 ##### Survival by size and site
