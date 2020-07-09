@@ -3011,7 +3011,7 @@ ggplot(data = site_specific_LRP_plot_df, aes(x=value)) +
   theme_bw() 
 dev.off()
 
-##### Proportion of kernel sampled - made elsewhere
+##### Proportion of kernel sampled - it's below, need to move up!
 
 ##### Survival by size and site
 surv_by_site_to_plot <- best_fit_model_dfs$surv_site_size %>%  # change site from factor to character so can update spelling of Tomakin Dako
