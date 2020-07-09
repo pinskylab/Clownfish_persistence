@@ -1336,6 +1336,16 @@ LRP_local_average_vec <- sort(output_uncert_all_DD$LEP_R_local_out_df$value)
 LRP_local_average_lower <- LRP_local_average_vec[lower_index]
 LRP_local_average_upper <- LRP_local_average_vec[upper_index]
 
+# LRP averaged across sites values above 1
+LRP_avg_ests_above_1 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+LR_est_DD_above_1 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+# Haina SP
+Haina_SP_vec <- sort((output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina"))$SP)
+Haina_SP_lower <- Haina_SP_vec[lower_index]
+Haina_SP_upper <- Haina_SP_vec[upper_index]
+
 # NP_vec <- output_uncert_all_DD$NP_out_df$value
 # NP_breaks <- seq(0, 1, by = 0.)
 # > breaks = seq(1.5, 5.5, by=0.5) 
@@ -1635,6 +1645,8 @@ for(i in 1:length(perc_hab_vals)) {
   perc_hab_best_est_NP_df$value[i] = perc_hab_best_ests_avgSurvs[[i]]$NP
 }
 
+# Find number of runs with NP >=1 at perc_hab = 0.9 (where NP is > 1) (not sure why filtering for == 0.9 doesn't work)
+perc_hab_plot_df %>% filter(0.88 < perc_hab & perc_hab < 0.92) %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
 
 ##### What if - same habitat density, wider region - should re-do this so the patches stay in the center, just extend the region!!
 region_width_list <- c(region_width_km, 35, 40, 45, 50, 55)
@@ -3353,6 +3365,12 @@ propHabitat_plot <- ggplot(data = prop_scaling_vals_for_plot, aes(x = value, y =
 pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_Parameter_inputs.pdf'))  # hacked the color scales being comparable, deal with for real if people like showing both
 plot_grid(startRecruit_plot, growthLinf_k_plot, probR_plot, assignedOffspring_plot, propHabitat_plot,
           labels = c("a","b","c","d","e"), nrow=2)
+dev.off()
+
+# Put them together - without scaling factors (since no uncertainty)
+pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_Parameter_inputs.pdf'))  # hacked the color scales being comparable, deal with for real if people like showing both
+plot_grid(startRecruit_plot, growthLinf_k_plot, probR_plot, assignedOffspring_plot,
+          labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
 ##### LEP vs. max size
