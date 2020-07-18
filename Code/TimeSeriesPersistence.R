@@ -17,8 +17,6 @@ prob_r_avg <- mean(prob_r)
 
 ##### Set parameters 
 sample_months <- c(3,4,5,6,7,8) #set months to avoid winter 2015 anem surveys
-#dive_list <- c("0","C","D","E")
-#min_female_size <- 5  # not sure what this should be, just setting it as 5 for now (not based on any particular data, except that when finding breeding size for uncertainty metrics, looked like more fish marked YP and <6cm than I would have expected)
 
 # Number of sites
 n_sites = 19
@@ -29,7 +27,7 @@ site_vec_NS_TD[17] <- "Tomakin Dako"
 
 #################### Running things: ####################
 ##### Number of females (just from clownfish table for now - could change this later)
-## Find raw number of females in database, now using sex column instead of color/size - weirdly this doesn't have as many site/year combos - should look into this more... sticking with the other method for now
+## Find raw number of females in database, now using sex column instead of color/size 
 females_df_F <- allfish_caught %>%
   #filter(dive_type %in% dive_list) %>%  # not filtering by dives b/c most of the fish in 2017 were getting removed? but there are duplicates of tagged fish and such?? not sure how to deal with this...  filter(sex == "F") %>%
   filter(sex == "F") %>%
@@ -45,33 +43,20 @@ females_df_F <- allfish_caught %>%
 #   summarize(nFemalesRaw = n())
 
 ## Scale by proportion of habitat sampled and probability of capturing a fish
-# Join in proportion of habitat sampled in each year at each site
-# females_df <- left_join(females_df, anems_visited_by_year %>% 
-#                           filter(method == "metal tags") %>% 
-#                           select(site, year, prop_hab_sampled_tidied), by = c('year', 'site'))  
 females_df_F <- left_join(females_df_F, anems_visited_by_year %>%
                           filter(method == "metal tags") %>%
                           select(site, year, prop_hab_sampled_tidied), by = c('year', 'site'))
-
-# Add in prob_r, scale up females by proportion habitat sampled and probability of capturing a fish
-# females_df <- females_df %>%
-#   mutate(prob_r = prob_r_avg) %>%
-#   mutate(nFemalesScaled = nFemalesRaw/(prob_r*prop_hab_sampled_tidied)) 
 
 females_df_F <- females_df_F %>%
   mutate(prob_r = prob_r_avg) %>%
   mutate(nFemalesScaled = nFemalesRaw/(prob_r*prop_hab_sampled_tidied)) 
 
 # For sites that are sampled but have Inf for scaled females b/c proportion hab sampled was 0, make the females estimated the raw # instead of NA
-# females_df <- females_df %>%
-#   mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), nFemalesRaw, nFemalesScaled)) %>%
-#   mutate(nF = round(nFemalesEstimated))
-
 females_df_F <- females_df_F %>%
   mutate(nFemalesEstimated = ifelse(is.infinite(nFemalesScaled), nFemalesRaw, nFemalesScaled)) %>%
   mutate(nF = round(nFemalesEstimated))
 
-# Find mean abundance
+# Find mean abundance at each site
 females_df_F_mean <- females_df_F %>%
   group_by(site) %>%
   summarize(mean_abundance = mean(nFemalesEstimated, na.rm = TRUE))
