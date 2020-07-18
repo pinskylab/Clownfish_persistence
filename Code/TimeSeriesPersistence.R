@@ -18,7 +18,7 @@ prob_r_avg <- mean(prob_r)
 ##### Set parameters 
 sample_months <- c(3,4,5,6,7,8) #set months to avoid winter 2015 anem surveys
 #dive_list <- c("0","C","D","E")
-min_female_size <- 5  # not sure what this should be, just setting it as 5 for now (not based on any particular data, except that when finding breeding size for uncertainty metrics, looked like more fish marked YP and <6cm than I would have expected)
+#min_female_size <- 5  # not sure what this should be, just setting it as 5 for now (not based on any particular data, except that when finding breeding size for uncertainty metrics, looked like more fish marked YP and <6cm than I would have expected)
 
 # Number of sites
 n_sites = 19
