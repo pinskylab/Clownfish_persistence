@@ -122,7 +122,7 @@ ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
 dev.off()
 
 ##### Summed across patches (for those sampled all or most years)
-pdf(file=here::here("Plots/FigureDrafts", "Summed_abundance_through_time"))
+pdf(file=here::here("Plots/FigureDrafts", "Summed_abundance_through_time.pdf"))
 ggplot(data =  females_df_F_summed_all, aes(x=year, y=nF_metapop)) +
   geom_line(color = "blue") +
   geom_line(data=females_df_F_summed_most, aes(x=year, y=nF_metapop), color = "orange") +
