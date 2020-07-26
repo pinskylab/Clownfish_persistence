@@ -92,6 +92,24 @@ for(i in 2:n_sites) {
 site_trends_time <- site_trends_time %>%
   mutate(site = if_else(site == "Tamakin Dacot", "Tomakin Dako", site))
 
+##### Does population summed across patches stay stable?
+# Sites sampled every year
+all_years_2012_to_2018 <- c("Palanas", "Wangag", "San Agustin", "Visca")
+most_years_2013_to_2018 <- c(all_years_2012_to_2018, "Elementary School", "Tamakin Dacot", "Haina", "Sitio Baybayon")
+
+# Sum
+females_df_F_summed_all <- females_df_F %>%
+  filter(site %in% all_years_2012_to_2018) %>%
+  group_by(year) %>%
+  summarize(nF_metapop = sum(nF))
+
+females_df_F_summed_most <- females_df_F %>%
+  filter(site %in% most_years_2013_to_2018) %>%
+  group_by(year) %>%
+  summarize(nF_metapop = sum(nF)) 
+
+females_df_F_summed_most <- rbind(females_df_F_summed_most, data.frame(year = 2012, nF_metapop = NA))
+
 #################### Plots: ####################
 
 ##### Trend line of average site, plus individual sites in grey - no raw data
@@ -102,6 +120,16 @@ ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
   xlab("year") + ylab("# females") +
   scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017"))
 dev.off()
+
+##### Summed across patches (for those sampled all or most years)
+pdf(file=here::here("Plots/FigureDrafts", "Summed_abundance_through_time"))
+ggplot(data =  females_df_F_summed_all, aes(x=year, y=nF_metapop)) +
+  geom_line(color = "blue") +
+  geom_line(data=females_df_F_summed_most, aes(x=year, y=nF_metapop), color = "orange") +
+  xlab("year") + ylab("# summed females") +
+  theme_bw()
+dev.off()
+
 
 ##### WSN plot: trend line of average site, plus individual sites in grey - no raw data
 pdf(file=here::here("Plots/WSN_2019","WSN_2019_abundance_through_time.pdf"))
