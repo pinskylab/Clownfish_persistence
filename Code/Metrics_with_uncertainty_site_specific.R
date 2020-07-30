@@ -1289,7 +1289,7 @@ NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_gr
                    #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
                    output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
 
-##### Find 95% range
+##### Find 95% range for estimates 
 ## NP with DD
 NP_decimal_points <- 2  # bin size of 0.01
 lower_edge <- 0.025
@@ -1308,6 +1308,11 @@ NP_vec <- sort(output_uncert_all_DD$NP_out_df$value)
 NP_lower <- round(NP_vec[25], 2)
 NP_upper <- round(NP_vec[975], 2)
 
+## NP without DD compensation
+NP_vec_noDD <- sort(output_uncert_all$NP_out_df$value)
+NP_lower_noDD <- round(NP_vec_noDD[25], 2)
+NP_upper_noDD <- round(NP_vec_noDD[975], 2)
+
 ## LEP averaged across sites
 LEP_avg_vec <- sort(output_uncert_all_DD$LEP_out_df$value)
 LEP_avg_lower <- round(LEP_avg_vec[lower_index])
@@ -1321,25 +1326,44 @@ for(i in 1:n_sites) {
   LEP_site_limits$upper[i] <- LEP_site_vec[upper_index]
 }
 
-## Egg-recruit survival
+## Egg-recruit survival with DD compensation
 egg_recruit_survival_vec <- sort(output_uncert_all_DD$RperE_out_df$value)
 egg_recruit_survival_lower <- egg_recruit_survival_vec[lower_index]
 egg_recruit_survival_upper <- egg_recruit_survival_vec[upper_index]
 
-## LEP R averaged across sites
+## Egg-recruit survival without DD compensation
+egg_recruit_survival_vec_noDD <- sort(output_uncert_all$RperE_out_df$value)
+egg_recruit_survival_lower_noDD <- egg_recruit_survival_vec_noDD[lower_index]
+egg_recruit_survival_upper_noDD <- egg_recruit_survival_vec_noDD[upper_index]
+
+## LEP R averaged across sites with DD compensation
 LRP_average_vec <- sort(output_uncert_all_DD$LEP_R_out_df$value)
 LRP_average_lower <- LRP_average_vec[lower_index]
 LRP_average_upper <- LRP_average_vec[upper_index]
+
+## LEP R averaged across sites without DD compensation
+LRP_average_vec_noDD <- sort(output_uncert_all$LEP_R_out_df$value)
+LRP_average_lower_noDD <- LRP_average_vec_noDD[lower_index]
+LRP_average_upper_noDD <- LRP_average_vec_noDD[upper_index]
 
 ## LRP local averaged across sites
 LRP_local_average_vec <- sort(output_uncert_all_DD$LEP_R_local_out_df$value)
 LRP_local_average_lower <- LRP_local_average_vec[lower_index]
 LRP_local_average_upper <- LRP_local_average_vec[upper_index]
 
+## LRP local averaged across sites without DD compensation
+LRP_local_average_vec_noDD <- sort(output_uncert_all$LEP_R_local_out_df$value)
+LRP_local_average_lower_noDD <- LRP_local_average_vec_noDD[lower_index]
+LRP_local_average_upper_noDD <- LRP_local_average_vec_noDD[upper_index]
+
 # LRP averaged across sites values above 1
 LRP_avg_ests_above_1 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
 LR_est_DD_above_1 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
 NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+LRP_avg_noDD_ests_above_1 <- output_uncert_all$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+NP_est_noDD_above_1 <- output_uncert_all$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+#LRP_local_avg_noDD_all_offspring_above_1 <- output
 
 # Haina SP
 Haina_SP_vec <- sort((output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina"))$SP)
