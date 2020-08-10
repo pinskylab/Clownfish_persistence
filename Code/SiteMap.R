@@ -276,7 +276,7 @@ dev.off()
 
 # Life cycle schematic
 life_cycle_plot <- ggdraw() +
-  draw_image(here::here("Plots/LifeCycleSchematic", "lifecycle2.png"))
+  draw_image(here::here("Plots/LifeCycleSchematic", "lifecycle3.png"))
 
 # Metrics schematic parts
 LRP_schematic_plot <- ggdraw() +
