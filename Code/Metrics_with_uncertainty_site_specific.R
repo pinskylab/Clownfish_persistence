@@ -37,17 +37,15 @@ p_int_pos = 18  # placement of intercept for recap prob
 p_size_pos = 19  # placement of size effect for recap prob
 p_dist_pos = 20  # placement of distance effect for recap prob
 
-##### NEED TO CHECK THE TimeSeriesPersistence SCRIPT #####
 # Load output from abundance trend (for plotting) (from Code/TimeSeriesPersistence.R)
 load(file = here::here("Data/Script_outputs", "site_trends_all.RData"))
 load(file = here::here("Data/Script_outputs", "site_trends_time.RData"))
-########################################################## 
 
 ##### Load input from other analyses outside this repository
 
-# Size transition info (Michelle analysis in genomics repo) - switch this to just females from males (is that reasonable?)
-recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))
-recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))
+# Size transition info (Michelle analysis in genomics repo) 
+recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))  # sizes of fish when they were first caught as males
+recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
 
 ##### Set parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
 
@@ -58,21 +56,24 @@ eggs_slope_log = size_fecundity_model$coefficients[2]
 eyed_effect = size_fecundity_model$coefficients[3]  # effect of eggs having visible eyes
 
 # Set params for IPM structure for calculating LEP
-n_bins = 100
-n_tsteps = 100
-# start_recruit_size = 3.5  # size of recruit that starts out the IPM for LEP
-start_recruit_sd = 0.1  # should estimate this somehow! Or do sensitivity to it?
+n_bins = 100  # number of size bins
+n_tsteps = 100  # number of time steps (large number, approximating infinity)
+start_recruit_sd = 0.1  # standard deviation of starting recruit size (to spread initial fish across size bins)
 
 # Parameters for incorporating growth
 size_around_mean_L1_size = 0.1  # how much buffer to give for finding fish of that size (so searching for the sd of L2 of fish within 0.2 cm range)
 
 # Parent size (for "tagged" eggs produced by parents)
-parent_size = 6.0
+parent_size = 6.0  # cm
 
 # Parameters for what-ifs
-n_sites = length(site_vec_order$site_name)  # number of sites for habitat, region width, and larval navigation simulations
-perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # set range of percent habitat to test for sensitivity to amount of habitat in region
+n_sites = length(site_vec_order$site_name)  # number of sites for habitat, region width, and larval navigation simulations (same as actual number of sites)
+perc_hab_vals <- seq(from=0.05,to=1.0, by=0.05)  # values of percent habitat to test for sensitivity to amount of habitat in region
 
+# Parameters for analyzing and interpreting results
+NP_decimal_points <- 2  # numbers past decimal point for NP range
+quantile_lower_index = 25  # lower index for 95% quantile reporting
+quantile_upper_index = 975  # upper index for 95% quantile reporting
 
 #################### Functions: ####################
 # For flexible theta and k, function of d, k, and theta
@@ -106,7 +107,7 @@ VBL_growth <- function(Linf, k_growth, length) {
   return(Ls)
 }
 
-# Find eggs by fish size (eyed eggs) - should double check used log (ln) and not log10 (base 10 log)
+# Find eggs by fish size (eyed eggs) 
 findEggs = function(fish_size, egg_size_intercept, egg_size_slope, eyed_effect) {
   count_logged = egg_size_intercept + egg_size_slope*log(fish_size) + eyed_effect
   raw_eggs = exp(count_logged)
@@ -119,7 +120,7 @@ scaleTaggedRecruits = function(offspring_assigned, total_prop_hab_sampled, prob_
   return(rto)
 }
 
-# Just consider recruits at our sites
+# Just consider recruits that return to our sites (used in local replacement)
 scaleTaggedRecruits_local = function(offspring_assigned, total_prop_hab_sampled, prob_capture) {
   rto <- offspring_assigned/(total_prop_hab_sampled*prob_capture)
   return(rto)
@@ -131,13 +132,13 @@ scaleTaggedRecruitsDD = function(recruited_tagged_offspring, perc_UNOC, perc_APC
   return(recruited_tagged_offspring_total_DD)
 }
 
-# Find recruits per egg (using Johnson et al. like method)
-findRecruitsPerTaggedEgg = function(tagged_recruits, tagged_eggs) {
-  tagged_recruits/tagged_eggs
-}
+# # Find recruits per "tagged" egg, which are eggs produced by genotyped parents (using Johnson et al. like method)
+# findRecruitsPerTaggedEgg = function(tagged_recruits, tagged_eggs) {
+#   tagged_recruits/tagged_eggs
+# }
 
-# Find LEP (SHOULD CHECK, UPDATE THIS!)
-findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, eggs_per_clutch, clutches_per_year,
+# Find LEP - use an IPM to find LEP 
+findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, clutches_per_year,
                    breeding_size, start_recruit_size, start_recruit_sd, egg_size_slope, egg_size_intercept, eyed_effect) {
 
   # Create vector of lengths
@@ -149,8 +150,8 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   ymat = t(xmat)
 
   # Survival probability (based on size)
-  S = logit_recip(Sint + lengths_vec*Sl)  # survival probability (based on size) - make sure doing this right, with the whole logit_recip thing...
-  S[is.na(S)] = 1  # replace the NaNs (coming from Inf/Inf in logit_recip) with 1
+  S = logit_recip(Sint + lengths_vec*Sl)  # survival probability (based on size), where Sint varies by site
+  S[is.na(S)] = 1  # replace the NaNs (coming from Inf/Inf in logit_recip) with 1 (shouldn't occur anymore, was sometimes an issue when survival uncertainties were wide)
   Smat = matrix(rep(S,n_bins), nrow=n_bins, ncol=n_bins, byrow = TRUE)  # survival part of kernel
 
   # Growth probability
@@ -162,7 +163,7 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   K = dx*K
 
   # Iterate with 1 subadult to start  # 3.5, 0.1
-  N0 = dnorm(lengths_vec, start_recruit_size, start_recruit_sd)  # create a size distribution for one recruit
+  N0 = dnorm(lengths_vec, start_recruit_size, start_recruit_sd)  # create a size distribution for one recruit, spread across size bins
 
   # Integrate and scale to have it integrate to 1
   N0 = N0/sum(N0*dx)
@@ -178,13 +179,9 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   # Make fecundity matrix
   # Start with vector of whether or not a fish is reproducing (has it reached female or not yet)
   Fvec = rep(0,n_bins)  # start with 0 (so no reproduction) for all sizes
-  Fvec[which(lengths_vec > breeding_size)] = 1
-
-  # # Vector of eggs produced per clutch, dependent on female size - old, non-log-transformed version
-  # eggs_by_size_vec = egg_size_intercept + lengths_vec*egg_size_slope
-  # eggs_by_size_vec[eggs_by_size_vec < 0] = 0  # make negative values of eggs 0
-
-  # Vector of eyed eggs produced per clutch, dependent on female size - log-transformed version
+  Fvec[which(lengths_vec > breeding_size)] = 1  # switch to 1 for sizes larger than size of transition to female
+  
+  # Vector of eyed eggs produced per clutch, dependent on female size
   eggs_by_size_vec = findEggs(lengths_vec, egg_size_intercept, egg_size_slope, eyed_effect)
   eggs_by_size_vec[eggs_by_size_vec < 0] = 0  # make negative values of eggs 0
 
@@ -200,61 +197,51 @@ findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_gro
   # And integrate over all the eggs that get produced
   LEP = sum(egg_out*dx)
 
-  # # Compare to the LEP estimate without size-dependent fecundity
-  # # Find the number of breeding adults one recruit produces
-  # breeding_Adults <- colSums(N[lengths_vec>breeding_size,]*dx)
-  #
-  # # Eggs produced by one breeding adult in one year
-  # eggs <- eggs_per_clutch*clutches_per_year
-  #
-  # # Combine to get LEP
-  # LEP_nossF <- sum(breeding_Adults*eggs)
-  #
-  # out = list(LEP=LEP, LEP_nossF = LEP_nossF)
-
   return(LEP)
 }
 
 # Run through a metric calculation with one set of parameters
-calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_vec, DD) {
+calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_vec, DD) {  # param_set is set of parameters, site_based_surv_sets is survival parameters, sites_and_dists is data frame of sites and distances beween then, DD is TRUE if compensating for density dependence/FALSE if not
 
   sites <- site_vec$site_name
 
   # Define function with the right parameters
-  disp_allyears <- function(d) {  # theta = 1, equation for p(d) in eqn. 6c in Bode et al. 2018
+  disp_allyears <- function(d) {  # generalization of equation for p(d) in eqn. 6c in Bode et al. 2018
     z = exp(param_set$k_connectivity)
     z_front = (z*param_set$theta_connectivity)/gamma(1/param_set$theta_connectivity)
     disp = (z_front/2)*exp(-(z*d)^(param_set$theta_connectivity))
     return(disp)
   }
   
-  # Create connectivity matrix
+  # Create connectivity matrix, find probability of dispersing among sites
   Cmat <- sites_and_dists %>% select(org_site, dest_site, d1_km, d2_km, org_alpha_order, org_geo_order, dest_alpha_order, dest_geo_order)
   for(i in 1:length(Cmat$org_site)) {
     Cmat$prob_disp[i] <- integrate(disp_allyears, Cmat$d1_km[i], Cmat$d2_km[i])$value
+    # Double probability of dispersal for self-self to include both directions (from center to patch edge to both N and S)
+    if(Cmat$org_site[i] == Cmat$dest_site[i]) {
+      Cmat$prob_disp[i] <- Cmat$prob_disp[i]*2
+    }
   }
 
   # Find LEP (in terms of eggs) by site
   LEP_by_site <- data.frame(site = (site_vec %>% arrange(geo_order))$site_name, LEP = NA, LEP_parents = NA)
+  
   for(i in 1:length(LEP_by_site$site)) {
+    
+    # Select the survival parameters for that site
     Sint_set <- (site_based_surv_sets %>% filter(site == LEP_by_site$site[i]))$Sint
     Sl_set <- (site_based_surv_sets %>% filter(site == LEP_by_site$site[i]))$Sl
 
+    # Then calculate LEP
     LEP_by_site$LEP[i] = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, Sint_set, Sl_set,
-                                 param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year,
+                                 param_set$s, param_set$Linf, param_set$k_growth, param_set$clutches_per_year,
                                  param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd,
                                  param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
     LEP_by_site$LEP_parents[i] = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, Sint_set, Sl_set,
-                                                 param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year,
-                                                 param_set$breeding_size, parent_size, param_set$start_recruit_sd,
-                                                 param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
+                                         param_set$s, param_set$Linf, param_set$k_growth, param_set$clutches_per_year,
+                                         param_set$breeding_size, parent_size, param_set$start_recruit_sd,
+                                         param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
   }
-
-  # # Find LEP (in terms of eggs) - COULD MAKE MORE OF THESE PARAMETERS PULLED FROM A DISTRIBUTION!
-  # LEP = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
-  #               param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year,
-  #               param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd,
-  #               param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
 
   # Find egg-recruit survival (recruits/egg)
   tagged_recruits_val = scaleTaggedRecruits(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled,
@@ -262,46 +249,36 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
 
   tagged_recruits_local = scaleTaggedRecruits_local(param_set$offspring_assigned_to_parents, param_set$total_prop_hab_sampled,
                                                     param_set$prob_r)
-
-  # # Find LEP_parents by site
-  # LEP_parents = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, param_set$Sint, param_set$Sl,
-  #                       param_set$s, param_set$Linf, param_set$k_growth, param_set$eggs_per_clutch, param_set$clutches_per_year,
-  #                       param_set$breeding_size, 6.0, param_set$start_recruit_sd,
-  #                       param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
-
+ 
+  # Find the mean of LEP starting from parent size across sites
  LEP_parents_mean <- mean(LEP_by_site$LEP_parents)
 
- tagged_eggs_val = param_set$n_parents*LEP_parents_mean  # not doing this by site for now... just averaging LEP parents across sites
+ # Use mean LEPparents to estimate the number of tagged eggs, rather than doing it by site
+ tagged_eggs_val = param_set$n_parents*LEP_parents_mean  
 
-  if(DD == "TRUE"){
+  if(DD == "TRUE"){  # if compensating for density dependence
     tagged_recruits_val_scaled = scaleTaggedRecruitsDD(tagged_recruits_val, param_set$perc_UNOC, param_set$perc_APCL)
     tagged_recruits_local_scaled = scaleTaggedRecruitsDD(tagged_recruits_local, param_set$perc_UNOC, param_set$perc_APCL)
   } else {
     tagged_recruits_val_scaled = tagged_recruits_val
     tagged_recruits_local_scaled = tagged_recruits_local
   }
-  #recruits_per_egg = findRecruitsPerTaggedEgg(tagged_recruits_val, tagged_eggs_val)
+ 
   recruits_per_egg = tagged_recruits_val_scaled/tagged_eggs_val
 
-  # # Find egg-recruit survival (recruits/egg) - RIGHT NOW, USING JOHNSON-LIKE ESTIMATE BUT COULD MAKE THIS A DISTRIBUTION TOO
-  # recruits_per_egg = param_set$recruits_per_egg
-
-  # Find LEP in terms of recruits
+  # Find LRP (lifetime recruit production)
   LEP_by_site <- LEP_by_site %>%
     mutate(LEP_R = LEP*recruits_per_egg,
-           LEP_R_local = LEP*(tagged_recruits_local_scaled/tagged_eggs_val))
+           LEP_R_local = LEP*(tagged_recruits_local_scaled/tagged_eggs_val))  # use only recruits that returned to local metapop to calculate local replacement
 
+  # Find mean LRP across sites
   LEP_R_mean <- mean(LEP_by_site$LEP_R)
 
+  # Find mean local replacement (LR) across sites
   LEP_R_local_mean = mean(LEP_by_site$LEP)*(tagged_recruits_local_scaled/tagged_eggs_val)
 
-  # # Find LEP in terms of recruits
-  # LEP_R = LEP*recruits_per_egg
-  # LEP_R_local = LEP*(tagged_recruits_local_scaled/tagged_eggs_val)
-
-  # Find connectivity matrix - EVENTUALLY, WILL USE CONFIDENCE INTERVALS AROUND DISPERSAL KERNELS TO DO THIS - FOR ALL-YEARS ONE? NOT SURE...
-  #conn_matrix = Cmatrix
-  conn_matrix <- matrix(NA,ncol=max(Cmat$org_geo_order), nrow=max(Cmat$org_geo_order))
+  # Put connectivity matrix into a matrix form
+  conn_matrix <- matrix(NA, ncol=max(Cmat$org_geo_order), nrow=max(Cmat$org_geo_order))
   for(i in 1:length(Cmat$org_site)) {
     column = Cmat$org_geo_order[i]  # column is origin
     row = Cmat$dest_geo_order[i]  # row is destination
@@ -309,18 +286,13 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
   }
 
   # Make realized connectivity matrix, both in the matrix form and dataframe form
-  conn_matrixR = conn_matrix
+  conn_matrixR = conn_matrix  # matrix form (for eigenvalues)
   for(i in 1:length(LEP_by_site$site)) {
     conn_matrixR[,i] <- conn_matrix[,i]*LEP_by_site$LEP_R[i]
   }
-  Cmat <- left_join(Cmat, LEP_by_site %>% select(site, LEP_R), by=c("org_site" = "site"))
+  Cmat <- left_join(Cmat, LEP_by_site %>% select(site, LEP_R), by=c("org_site" = "site"))  # data frame form (for plotting)
   Cmat <- Cmat %>%
     mutate(prob_disp_R = prob_disp*LEP_R)
-
-  # # Make realized connectivity matrix, both in the matrix form and dataframe form
-  # conn_matrixR = conn_matrix*LEP_R  # matrix form (for eigenvalues)
-  # Cmat <- Cmat %>%
-  #   mutate(prob_disp_R = prob_disp*LEP_R)  # dataframe form (for plotting)
 
   # Assess network persistence
   eig_cR = eigen(conn_matrixR)
@@ -329,7 +301,6 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
   SP_values = data.frame(site = sites, stringsAsFactors = FALSE) %>%
     mutate(SP_value = NA, org_geo_order = NA)
   for(i in 1:length(sites)) {
-    # SP_values$SP_value[i] = conn_matrixR[i,i]  # pull out diagonal entries of realized connectivity matrix - I think something is going wrong here, since Poroc Rose is always 0 in SP but doesn't seem to be elsewhere
     site_val = sites[i]
     SP_values$SP_value[i] = (Cmat %>% filter(org_site == site_val & dest_site == site_val))$prob_disp_R
     SP_values$org_geo_order[i] = (Cmat %>% filter(org_site == site_val & dest_site == site_val))$org_geo_order
@@ -338,20 +309,22 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
   # Put outputs together into one list
   out = list(NP = Re(eig_cR$values[1]), SP = SP_values, LEP_by_site = LEP_by_site, LEP_R_mean = LEP_R_mean, LEP_R_local_mean = LEP_R_local_mean, recruits_per_egg = recruits_per_egg,
              conn_matrix = conn_matrix, conn_matrixR = conn_matrixR, Cmat = Cmat)
+  
+  return(out)
 }
 
 # Calculate metrics across many runs (this is slow, if have time, should really try to write this without a for loop....)
-calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site_dist_info, site_vec_order, set_name, DD) {
+calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site_dist_info, site_vec_order, set_name, DD) {  # set name is to identify what kind of uncertainty is included in the run
 
-  LEP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  LEP_min_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  LEP_max_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  LEP_R_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  LEP_R_min_out_df <-  data.frame(value = rep(NA, n_runs), metric = 'LEP_R_max', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  LEP_R_max_out_df <-  data.frame(value = rep(NA, n_runs), metric = 'LEP_R_max', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  LEP_R_local_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R_local', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  RperE_out_df <- data.frame(value = rep(NA, n_runs), metric = 'recruits per egg', inout = 'input', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
-  NP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'NP', inout = 'output', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_min_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_max_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_min_out_df <-  data.frame(value = rep(NA, n_runs), metric = 'LEP_R_max', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_max_out_df <-  data.frame(value = rep(NA, n_runs), metric = 'LEP_R_max', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  LEP_R_local_out_df <- data.frame(value = rep(NA, n_runs), metric = 'LEP_R_local', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  RperE_out_df <- data.frame(value = rep(NA, n_runs), metric = 'recruits per egg', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
+  NP_out_df <- data.frame(value = rep(NA, n_runs), metric = 'NP', run = seq(1:n_runs), uncertainty_type = set_name, stringsAsFactors = FALSE)
 
   metric_vals <- data.frame(run = seq(1:n_runs), LEP = NA, LEP_R = NA, LEP_R_local = NA, recruits_per_egg = NA, NP = NA, uncertainty_type = set_name, stringsAsFactors = FALSE)
 
@@ -384,7 +357,7 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
     # Do the run
     metrics_output = calcMetrics(params, surv_params, site_dist_info, site_vec_order, DD)
 
-    print(i)
+    print(i)  # Just to keep track of how many are left...
 
     # Fill in the metrics
     LEP_out_df$value[i] = mean(metrics_output$LEP_by_site$LEP)
@@ -427,7 +400,6 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
     mutate(breeding_size = param_sets$breeding_size,
            Linf = param_sets$Linf,
            k_growth = param_sets$k_growth,
-           #Sint = param_sets$Sint,
            k_connectivity = param_sets$k_connectivity,
            theta_connectivity = param_sets$theta_connectivity,
            recruits_per_egg = param_sets$recruits_per_egg,
@@ -449,12 +421,13 @@ calcMetricsAcrossRuns <- function(n_runs, param_sets, site_based_surv_sets, site
 }
 
 ##### Functions for what-ifs
-# Find width of sites and distance between them for different percent habitats (and sampling region lengths)
+
+# Find width of sites and distance between them for different percent habitats (and sampling region lengths), sites start right at the edge of the region like in actual configuration
 find_site_locations <- function(nsites, perc_hab_val, total_region) {
   
   site_info <- data.frame(org_site = seq(from=1, to=nsites, by=1))
   site_width <- (total_region*perc_hab_val)/nsites
-  hab_break <- (total_region*(1-perc_hab_val))/(nsites-1)
+  hab_break <- (total_region*(1-perc_hab_val))/(nsites-1)  # width of break between habitat patches
   
   for(i in 1:nsites){
     site_info$S_edge_org[i] = (i-1)*(site_width + hab_break)
@@ -487,7 +460,7 @@ make_output_with_dist <- function(nsites, perc_hab_val, total_region) {
   out_df <- cbind(org_df_out, dest_df_out) %>%
     mutate(dist_mid_to_S = NA, dist_mid_to_N = NA, d1_km = NA, d2_km = NA)
   
-  # Find distances between each site of sites
+  # Find distances between each set of sites
   for(i in 1:length(out_df$org_site)) {
     out_df$dist_mid_to_N[i] = abs(out_df$center_org[i] - out_df$N_edge_dest[i])
     out_df$dist_mid_to_S[i] = abs(out_df$center_org[i] - out_df$S_edge_dest[i])
@@ -499,12 +472,12 @@ make_output_with_dist <- function(nsites, perc_hab_val, total_region) {
     out_df$d2_km[i] = max(c(out_df$dist_mid_to_S[i], out_df$dist_mid_to_N[i]))
   }
   
-  # Fix the self-selfs (will just need to make d1_km = 0 when fix the normalization, I think!)
+  # Fix the self-selfs to make sure d1 is 0, d2 is half the width of the site
   out_df <- out_df %>%
     mutate(d1_km = case_when(org_site != dest_site ~ d1_km,
                              org_site == dest_site ~ 0),  # min distance is 0 for self-self distances
            d2_km = case_when(org_site != dest_site ~ d2_km,
-                             org_site == dest_site ~ width_dest/2))  # max distance is site width for self-self distances (now 1/2 width)
+                             org_site == dest_site ~ width_dest/2))  # max distance is half of site width for self-self distances 
   
   # Add the random other columns the calcMetrics function needs
   out_df <- out_df %>% 
@@ -516,1357 +489,14 @@ make_output_with_dist <- function(nsites, perc_hab_val, total_region) {
   return(out_df)
 }
 
-
-#################### Running things: ####################
-
-########## Find number of tagged fish, genotyped fish, fish that are marked somehow (to report in paper)
-n_fish_genotyped <- allfish_caught %>%
-  filter(!is.na(gen_id)) %>%
-  distinct(gen_id) %>%
-  summarize(nfish = n())
-
-n_fish_PIT_tagged <- allfish_caught %>%
-  filter(!is.na(tag_id)) %>%
-  distinct(tag_id) %>%
-  summarize(nfish = n())
-
-n_fish_marked <- allfish_caught %>%
-  filter(!is.na(fish_indiv)) %>%
-  distinct(fish_indiv) %>%
-  summarize(nfish = n())
-
-#################### Find "best estimates" of input parameters if additional calculations needed before use in finding metrics ####################
-
-##### Growth (for LEP)
-k_growth_mean = mean(growth_info_estimate$k_est)  # mean of various estimates from different pairs of recaptures for fish caught multiple times
-Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # mean of various estimates from different pairs of recaptures for fish caught multiple times
-
-mean_L1_size <- mean(recap_pairs_year$L1)  # mean size of first recapture of a fish for those caught a year apart, use as the starting size to estimate the sd of the size the fish will be in a year
-s <- sd((recap_pairs_year %>% filter(mean_L1_size - size_around_mean_L1_size <= L1 & L1 <= mean_L1_size + size_around_mean_L1_size))$L2)  # find the sd of the L2 size of fish that start at size mean_L1_size, within a buffer of +- size_around_mean_L1_size (defined above in Set-up parameters section)
-
-##### Breeding size (used in LEP)
-breeding_size_mean <- mean(recap_first_female$size)
-
-##### Recruit size - use mean size of potential (genotyped) offspring
-mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  
-#start_recruit_size = mean_sampled_offspring_size
-
-# ##### Find total number of metal-tagged anemones
-# n_total_metal_anems <- anems_visited_by_year %>% filter(method == "metal tags") %>% filter(year == "2018") %>% summarize(n_total_anems_all_sites = sum(n_total_anems))
-
-##### Scaling factors recruits to find egg-recruit survival
-
-### Probability of capturing a fish (Pc)
-prob_r_mean <- mean(prob_r)  # average value of prob r from each recap dive
-
-### Proportion of sampling area that is habitat (Ps) (to scale egg-recruit survival to avoid counting mortality from dispersal to non-habitat twice)
-# Find total length of sampling area from N to S (assumes sites are all in a line)
-total_range_of_sampling_area <- geosphere::distHaversine(c((sampling_area_edges %>% filter(edge == "north"))$lon, (sampling_area_edges %>% filter(edge == "north"))$lat),
-                                                         c((sampling_area_edges %>% filter(edge == "south"))$lon, (sampling_area_edges %>% filter(edge == "south"))$lat))
-# Total area covered by sites (sum of site widths)
-total_sum_of_site_widths <- sum(site_width_info$width_m)
-
-# (Rough) proportion of sampling area that is habitat
-prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_area
-Ps <- prop_sampling_area_habitat
-
-### (Pd) How much of the dispersal kernel area from each site did we actually sample? (So can scale up "tagged" recruits found to account for areas they might have gone that weren't in our sites)
-# Find the number and proportion of total parents at each site       
-all_parents_site <- all_parents_by_site %>%
-  group_by(site) %>%
-  summarize(nparents = n()) %>%
-  mutate(prop_parents = nparents/sum(nparents))
-
-# Add in site info
-all_parents_site <- left_join(all_parents_site, site_width_info %>% select(site, site_geo_order, dist_to_N_edge_km, dist_to_S_edge_km), by = "site")
-
-# Find area of dispersal kernel from middle of each site within sampling area to the north and south of each site
-all_parents_site <- all_parents_site %>%
-  mutate(disp_area_N_within_sites = NA,
-         disp_area_S_within_sites = NA)
-
-for(i in 1:length(all_parents_site$site)) {
-  all_parents_site$disp_area_N_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_N_edge_km[i])$value
-  all_parents_site$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_S_edge_km[i])$value
-}
-
-# Find proportion of total area under dispersal kernel
-all_parents_site <- all_parents_site %>%
-  mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
-         prop_disp_area_within_sites = total_disp_area_within_sites,  # now, dispersal kernel normalized to 0.5 so total to N and S combined is 1
-         total_parent_area_sampled = total_disp_area_within_sites*nparents)
-
-all_parents_site_summarized <- all_parents_site %>%
-  summarize(total_parent_kernel_area = sum(nparents),  
-            sampled_parent_kernel_area = sum(total_parent_area_sampled),
-            prop_parent_kernel_area_sampled = sampled_parent_kernel_area/total_parent_kernel_area)
-
-prop_total_disp_area_sampled_best_est <- all_parents_site_summarized$prop_parent_kernel_area_sampled
-Pd <- prop_total_disp_area_sampled_best_est
-
-### (Ph) What proportion of habitat at our sites did we sample over time? (to scale up to account for habitat areas we didn't sample)
-total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area  # use proportion of metal-tagged anemones sampled at each site
-Ph <- total_prop_hab_sampled_through_time
-
-##### Survival by site (here, using median site survival for missing sites)
-
-# Set up data frame for best-estimate survival parameters by site
-site_surv_best_est <- data.frame(site = no_space_sites_revisited, Sint = NA, 
-                                 lcl = NA, ucl = NA,
-                                 Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], 
-                                 stringsAsFactors = FALSE)
-
-# Cabatoan is the first intercept
-site_surv_best_est$Sint[1] = best_fit_model_dfs$results$estimate[1]
-site_surv_best_est$lcl[1] = best_fit_model_dfs$results$lcl[1]
-site_surv_best_est$ucl[1] = best_fit_model_dfs$results$ucl[1]
-
-# fill in rest of sites, which are additions to the intercept for Cabatoan
-for(i in 2:length(no_space_sites_revisited)) {
-  site_surv_best_est$Sint[i] = best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[i]
-  site_surv_best_est$lcl[i] = best_fit_model_dfs$results$lcl[i]
-  site_surv_best_est$ucl[i] = best_fit_model_dfs$results$ucl[i]
-}
-
-# Fill in median of estimated sites for sites not revisited so not estimated (Caridad Proper, Sitio Lonas, Sitio Tugas)
-median_site_pos = 3
-site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = (best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[median_site_pos]),
-                                    lcl = best_fit_model_dfs$results$lcl[median_site_pos], ucl = best_fit_model_dfs$results$ucl[median_site_pos],
-                                    Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
-
-# Bind them together
-site_surv_best_est <- rbind(site_surv_best_est, site_surv_notrevisited)
-
-##### Parentage assignment rate
-assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of genotyped offspring that were assigned to parents in parentage analysis
-
-
-########## Estimate some of the "best estimates" of metrics/parameters
-
-# ##### How big are the offspring? What size should we use for recruits?
-# mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  # might be duplicate observations of fish in here, but I don't think so - should check
-# #mean_sampled_offspring_size <- mean(n_offspring_genotypes_df$size, rm.na = TRUE)  # this is just one of the obs of each of these fish... not sure how many duplicates there are, should really check...
-# 
-# start_recruit_size = mean_sampled_offspring_size
-
-# ### Best-estimate survival parameters by site
-# site_surv_best_est <- data.frame(site = no_space_sites_revisited, Sint = NA, 
-#                                  lcl = NA, ucl = NA,
-#                                  Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], 
-#                                  stringsAsFactors = FALSE)
-# 
-# # Cabatoan
-# site_surv_best_est$Sint[1] = best_fit_model_dfs$results$estimate[1]
-# site_surv_best_est$lcl[1] = best_fit_model_dfs$results$lcl[1]
-# site_surv_best_est$ucl[1] = best_fit_model_dfs$results$ucl[1]
-# 
-# # fill in rest of sites
-# for(i in 2:length(no_space_sites_revisited)) {
-#   site_surv_best_est$Sint[i] = best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[i]
-#   site_surv_best_est$lcl[i] = best_fit_model_dfs$results$lcl[i]
-#   site_surv_best_est$ucl[i] = best_fit_model_dfs$results$ucl[i]
-# }
-# 
-# # Fill in median of estimated sites for sites not revisited
-# median_site_pos = 3
-# site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = (best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[median_site_pos]),
-#                                     lcl = best_fit_model_dfs$results$lcl[median_site_pos], ucl = best_fit_model_dfs$results$ucl[median_site_pos],
-#                                     Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
-# 
-# # # Fill in average of other sites for sites not revisited and estimated (Sitio Lonas, Sitio Tugas, Caridad Proper)
-# # avg_Sint = sum(best_fit_model_dfs$results$estimate[1]*16, best_fit_model_dfs$results$estimate[2:16])/16  
-# # avg_Sint_withoutCC = sum(best_fit_model_dfs$results$estimate[1]*15, best_fit_model_dfs$results$estimate[3:16])/15  # avg Sint of all sites except Caridad Cemetery  
-# # site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = avg_Sint, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
-# 
-# # Bind them together
-# site_surv_best_est <- rbind(site_surv_best_est, site_surv_notrevisited)
-
-# ##### LEP, from a few different starting sizes
-# LEP_different_sizes <- site_surv_best_est %>%
-#   mutate(LEP_mean_breeding_size = NA,
-#          LEP_6cm = NA,
-#          LEP_3.5cm = NA)
-# 
-# for(i in 1:length(LEP_different_sizes$site)) {
-#   
-#   # Starting from mean transition to female size
-#   LEP_different_sizes$LEP_mean_breeding_size[i] <- findLEP(min_size, max_size, n_bins, t_steps, LEP_different_sizes$Sint[i], LEP_different_sizes$Sl[i],
-#                                                            s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts, 
-#                                                            clutches_per_year_mean, breeding_size_mean, breeding_size_mean, start_recruit_sd, 
-#                                                            eggs_slope_log, eggs_intercept_log, eyed_effect)
-#   # Starting at tagging size (6cm)
-#   LEP_different_sizes$LEP_6cm[i] <- findLEP(min_size, max_size, n_bins, t_steps, LEP_different_sizes$Sint[i], LEP_different_sizes$Sl[i],
-#                                             s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts, 
-#                                             clutches_per_year_mean, breeding_size_mean, 6, start_recruit_sd, 
-#                                             eggs_slope_log, eggs_intercept_log, eyed_effect)
-#   
-#   # Starting at fin-clip size (3.5cm)
-#   LEP_different_sizes$LEP_3.5cm[i] <- findLEP(min_size, max_size, n_bins, t_steps, LEP_different_sizes$Sint[i], LEP_different_sizes$Sl[i],
-#                                               s, Linf_growth_mean, k_growth_mean, mean_eggs_per_clutch_from_counts, 
-#                                               clutches_per_year_mean, breeding_size_mean, 3.5, start_recruit_sd, 
-#                                               eggs_slope_log, eggs_intercept_log, eyed_effect)
-# }
-# 
-# ##### Find estimated number of tagged eggs, estimated number of tagged recruits (scaled up), the egg-recruit survival
-# # How many potential offspring (eggs) were produced by those potential (genotyped) parents ("tagged" adults b/c genetically marked)?
-# tagged_eggs_6cm <- n_parents_genotyped*mean(LEP_different_sizes$LEP_6cm)
-# tagged_eggs_3.5cm <- n_parents_genotyped*mean(LEP_different_sizes$LEP_3.5cm)
-# # # tagged_eggs_6cm <- n_parents_genotyped*LEP_6cm  # Use LEP from what size here? How to avoid double-counting if those parents mated together?
-# # # tagged_eggs_3.5cm <- n_parents_genotyped*LEP_3.5cm
-# 
-# # Scale up the number of "tagged offspring" by the probability of catching a fish (prob_r), proportion of site area we sampled (Ph), proportion of dispersal kernel area we sampled (Pd), and proportion of sample area that is habitat (Ps)
-# recruited_tagged_offspring_scaled <- n_offspring_matched/(prob_r_mean*Ps*Pd*Ph)
-# recruited_tagged_offspring_oursites <- n_offspring_matched/(prob_r_mean*Ph)  # just scaling up to recruits arriving back to our sites
-# 
-# # Scale up by DD
-# recruited_tagged_offspring_scaled_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_scaled, perc_UNOC_val, perc_APCL_val)
-# recruited_tagged_offspring_oursites_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_oursites, perc_UNOC_val, perc_APCL_val)
-# 
-# # Assignment rate
-# assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of genotyped offspring that were assigned to parents in parentage analysis
-# 
-# ##### Estimate egg-recruit survival
-# # Estimate survival from eggs-recruits by seeing how many "tagged" offspring we found out of eggs "tagged" parents produced
-# recruits_per_egg_best_est <- recruited_tagged_offspring_scaled/tagged_eggs_6cm
-# 
-# # New best est with DD
-# recruits_per_egg_best_est_DD <- recruited_tagged_offspring_scaled_DD/tagged_eggs_6cm
-# 
-# # Recruits per egg just arriving to our sites (for an LRP for our sites that includes dispersal mortality in the egg-recruit surv)
-# recruits_per_egg_oursites <- recruited_tagged_offspring_oursites/tagged_eggs_6cm
-# recruits_per_egg_oursites_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_oursites, perc_UNOC_val, perc_APCL_val)/tagged_eggs_6cm
-# 
-# 
-
-# ##### Sensitivity test to different max sizes for LEP
-# max_size_sens <- c(9,9.5,10,10.5,11,11.5,12,12.5,13)  # max sizes to try
-# LEP_max_size_sens <- list()
-# for(i in 1:length(max_size_sens)) {
-#   
-# }
-
-########## Estimate survival from egg to recruit (method similar to Johnson et al. 2018):
-
-# ##### Scaling factors for recruits to find egg-recruit survival
-# 
-# ### (Ps) Find proportion of sampling area that is habitat (to scale egg-recruit survival to avoid counting mortality from dispersal to non-habitat twice)
-# # Right now this assumes the whole sampling region and all sites are totally in a line, which they are not...
-# # Find total length of sampling area from N to S
-# total_range_of_sampling_area <- geosphere::distHaversine(c((sampling_area_edges %>% filter(edge == "north"))$lon, (sampling_area_edges %>% filter(edge == "north"))$lat),
-#                                                          c((sampling_area_edges %>% filter(edge == "south"))$lon, (sampling_area_edges %>% filter(edge == "south"))$lat))
-# # Total area covered by sites (sum of site widths)
-# total_sum_of_site_widths <- sum(site_width_info$width_m)
-# 
-# # (Rough) proportion of sampling area that is habitat
-# prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_area
-# Ps <- prop_sampling_area_habitat
-# 
-# ### (Pd) How much of the dispersal kernel area from each site did we actually sample? (So can scale up "tagged" recruits found to account for areas they might have gone that weren't in our sites)
-# # Find the number of parents at each site       # OLD COMMENT, RIGHT? (eventually, this parent file pull will go in Constants_database_common_functions). Just putting it here for now b/c going to use original 913, with same distribution as current parents
-# all_parents_site <- all_parents_by_site %>%
-#   group_by(site) %>%
-#   summarize(nparents = n()) %>%
-#   mutate(prop_parents = nparents/sum(nparents))
-# 
-# # #### CONFIRM THAT PARENTS DON'T NEED TO BE MULTIPLIED BY 2 ANYMORE!! Yes, looks like that based on written methods in SI.
-# # # Total dispersal kernel area (total parents*2 - total area dispersing north of site is 1 and south is 1 for each parent) - think this isn't true with the new normalization...
-# # # total_parent_kernel_area = n_parents_genotyped*2
-# # total_parent_kernel_area = n_parents_genotyped
-# 
-# # Add in site info
-# all_parents_site <- left_join(all_parents_site, site_width_info %>% select(site, site_geo_order, dist_to_N_edge_km, dist_to_S_edge_km), by = "site")
-# 
-# # Find area within sampling area to the north and south of each site
-# all_parents_site <- all_parents_site %>%
-#   mutate(disp_area_N_within_sites = NA,
-#          disp_area_S_within_sites = NA)
-# 
-# for(i in 1:length(all_parents_site$site)) {
-#   all_parents_site$disp_area_N_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_N_edge_km[i])$value
-#   all_parents_site$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_S_edge_km[i])$value
-# }
-# 
-# # Find proportion of total area under dispersal kernel
-# ### OLD COMMENT - now total area to Inf is 1 (where total area to INF is 2 (1 for each side)) covered within sample sites
-# all_parents_site <- all_parents_site %>%
-#   mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
-#          prop_disp_area_within_sites = total_disp_area_within_sites,  # now, dispersal kernel normalized to 0.5 so total to N and S combined is 1
-#          total_parent_area_sampled = total_disp_area_within_sites*nparents)
-# 
-# all_parents_site_summarized <- all_parents_site %>%
-#   summarize(total_parent_kernel_area = sum(nparents),  # no longer need to multiply by 2 because sum of kernel to N and kernel to S is 1
-#             sampled_parent_kernel_area = sum(total_parent_area_sampled),
-#             prop_parent_kernel_area_sampled = sampled_parent_kernel_area/total_parent_kernel_area)
-# 
-# prop_total_disp_area_sampled_best_est <- all_parents_site_summarized$prop_parent_kernel_area_sampled
-# Pd <- prop_total_disp_area_sampled_best_est
-# 
-# ### (Ph) What proportion of habitat at our sites did we sample over time?
-# # Find the total prop habitat sampled over time - need to update this to have the other sites...
-# #total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area*mean(prob_r)  # scale up by proportion of habitat sampled and probability of catching a fish
-# total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area  # scale up by proportion of habitat sampledP
-# Ph <- total_prop_hab_sampled_through_time
-
-# ##### Find estimated number of tagged eggs, estimated number of tagged recruits (scaled up), the egg-recruit survival
-# # How many potential offspring (eggs) were produced by those potential (genotyped) parents ("tagged" adults b/c genetically marked)?
-# tagged_eggs_6cm <- n_parents_genotyped*mean(LEP_different_sizes$LEP_6cm)
-# tagged_eggs_3.5cm <- n_parents_genotyped*mean(LEP_different_sizes$LEP_3.5cm)
-# # # tagged_eggs_6cm <- n_parents_genotyped*LEP_6cm  # Use LEP from what size here? How to avoid double-counting if those parents mated together?
-# # # tagged_eggs_3.5cm <- n_parents_genotyped*LEP_3.5cm
-# 
-# # Scale up the number of "tagged offspring" by the probability of catching a fish (prob_r), proportion of site area we sampled (Ph), proportion of dispersal kernel area we sampled (Pd), and proportion of sample area that is habitat (Ps)
-# recruited_tagged_offspring_scaled <- n_offspring_matched/(prob_r_mean*Ps*Pd*Ph)
-# recruited_tagged_offspring_oursites <- n_offspring_matched/(prob_r_mean*Ph)  # just scaling up to recruits arriving back to our sites
-# 
-# # Scale up by DD
-# recruited_tagged_offspring_scaled_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_scaled, perc_UNOC_val, perc_APCL_val)
-# recruited_tagged_offspring_oursites_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_oursites, perc_UNOC_val, perc_APCL_val)
-# 
-# # Assignment rate
-# assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of genotyped offspring that were assigned to parents in parentage analysis
-# 
-# ##### Estimate egg-recruit survival
-# # Estimate survival from eggs-recruits by seeing how many "tagged" offspring we found out of eggs "tagged" parents produced
-# recruits_per_egg_best_est <- recruited_tagged_offspring_scaled/tagged_eggs_6cm
-# 
-# # New best est with DD
-# recruits_per_egg_best_est_DD <- recruited_tagged_offspring_scaled_DD/tagged_eggs_6cm
-# 
-# # Recruits per egg just arriving to our sites (for an LRP for our sites that includes dispersal mortality in the egg-recruit surv)
-# recruits_per_egg_oursites <- recruited_tagged_offspring_oursites/tagged_eggs_6cm
-# recruits_per_egg_oursites_DD <- scaleTaggedRecruitsDD(recruited_tagged_offspring_oursites, perc_UNOC_val, perc_APCL_val)/tagged_eggs_6cm
-
-
-#################### Estimate metrics ####################
-
-# Put best-estimate intput parameters into one data frame (where starting recruit size is mean size of actual offspring collected ~ 4.38)
-param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
-  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, #recruits_per_egg = recruits_per_egg_best_est,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Calculate the metrics for the best estimates, without and with (_DD) density-dependence compensated for
-best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info, site_vec_order, "FALSE")
-best_est_metrics_mean_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info, site_vec_order, "TRUE")
-
-# # Do I need any of these? maybe not...
-# LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # how to deal with site variation?
-# LEP_best_est_min <- min(best_est_metrics_mean_offspring$LEP_by_site$LEP)
-# LEP_best_est_max <- max(best_est_metrics_mean_offspring$LEP_by_site$LEP)
-# LEP_R_best_est_min <- min(best_est_metrics_mean_offspring$LEP_by_site$LEP_R)
-# LEP_R_best_est_max <- max(best_est_metrics_mean_offspring$LEP_by_site$LEP_R)
-# LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
-# NP_best_est <- best_est_metrics_mean_offspring$NP
-# SP_best_est <- best_est_metrics_mean_offspring$SP
-# LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local_mean
-# 
-# LEP_best_est_DD <- mean(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)  # how to deal with, show site variation?
-# LEP_best_est_min_DD <- min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)
-# LEP_best_est_max_DD <- max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)
-# LEP_R_best_est_min_DD <- min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R)
-# LEP_R_best_est_max_DD <- max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R)
-# LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_mean
-# NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
-# SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
-# LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local_mean
-# 
-# LEP_R_oursites <- recruits_per_egg_oursites*LEP_best_est
-# LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
-
-#################### Generate sets of parameters for uncertainty: ####################
-
-##### Growth - NEED TO DECIDE HOW DOING GROWTH UNCERTAINTY!
-Linf_set = growth_info_estimate$Linf_est  # growth (Linf)
-k_growth_set = growth_info_estimate$k_est  # growth (k)
-
-### Create better growth estimate parameter sets
-growth_set_intercept_est_mean <- mean(growth_info_estimate$intercept_est)  # mean of the intercept estimates from the fits with different growth pairs for fish with multiple
-growth_set_intercept_se_mean <- mean(growth_info_estimate$intercept_se)  # mean of intercept se estimates
-growth_set_slope_est_mean <- mean(growth_info_estimate$slope_est)  # mean of slope estimates from the fits with different growth pairs randomly chosen for fish with multiple
-growth_set_slope_se_mean <- mean(growth_info_estimate$slope_se)
-
-# Select 1000 slopes and intercepts using the mean and se from the fits, then find k and Linf from that
-growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-growth_set_slope_se_mean, growth_set_slope_est_mean+growth_set_slope_se_mean),  # choose slope values from within mean+-SE range
-                                intercept_est = runif(n_runs, growth_set_intercept_est_mean-growth_set_intercept_se_mean, growth_set_intercept_est_mean+growth_set_intercept_se_mean))  # choose intercept values from within mean+-SE range
-growth_set_params <- growth_set_params %>%
-  mutate(k_est = -log(slope_est),
-         Linf_est = intercept_est/(1-slope_est))
-
-# mutate(k_est = -log(slope_est),
-#        Linf_est = intercept_est/(1 - slope_est))
-
-
-#Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
-#Sl_set = rnorm(n_runs, mean = Sl_mean, sd = Sl_se)  # adult size-survival relationship
-#k_connectivity_set = k_connectivity_values$V1
-
-##### Dispersal
-# Select values from the 95% CI, weighted by log-likelihood
-min_LL <- min(k_theta_allyear_95CI_values$log_like)
-dispersal_sample_set <- k_theta_allyear_95CI_values %>%
-  mutate(deviation = min_LL/log_like) %>%
-  sample_n(size = n_runs, weight = deviation, replacement = T) 
-k_connectivity_set <- dispersal_sample_set$k_eval
-theta_connectivity_set <- dispersal_sample_set$theta_eval
-
-# # KC weighting code
-# minall <- min(mddall_df$log_like)
-# mddall_weighted <- mddall_df %>%
-#   mutate(deviation=minall/log_like) %>%
-#   sample_n(size=1000, weight=deviation, replacement=T) %>%
-#   mutate(Year="2012-18")
-# 
-# # Old method
-# k_theta_indices = sample(1:length(k_theta_allyear_95CI_values$k_eval), size=n_runs, replace=FALSE)
-# k_connectivity_set = k_theta_allyear_95CI_values$k_eval[k_theta_indices]
-# theta_connectivity_set = k_theta_allyear_95CI_values$theta_eval[k_theta_indices]
-
-##### Create survival parameter sets, sampling from within 95% confidence bounds for Cabatoan intercept, addition for each site, and size effect 
-site_surv_param_sets <- list()
-
-# Cabatoan first
-site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
-                           Sint_site = 0, 
-                           Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
-  mutate(Sint = Sint_C + Sint_site)
-site_surv_param_sets[[1]] <- site_surv_df
-
-# then rest of sites where survival was estimated
-for(i in 2:length(no_space_sites_revisited)) {
-  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
-                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[i], max=best_fit_model_dfs$results$ucl[i]), 
-                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
-    mutate(Sint = Sint_C + Sint_site)
-  site_surv_param_sets[[i]] <- site_surv_df
-}
-
-# then for the three that use average (Caridad Proper, Sitio Lonas, Sitio Tugas)
-median_site_Sint_lcl = best_fit_model_dfs$results$lcl[median_site_pos]
-median_site_Sint_ucl = best_fit_model_dfs$results$ucl[median_site_pos]
-
-for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
-  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
-                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[median_site_pos], max=best_fit_model_dfs$results$ucl[median_site_pos]), 
-                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
-    mutate(Sint = Sint_C + Sint_site)
-  site_surv_param_sets[[i]] <- site_surv_df
-}
-
-# avg_Sint_lcl = sum(best_fit_model_dfs$results$lcl[1]*16, best_fit_model_dfs$results$lcl[2:16])/16  # avg Sint lcl, all sites included
-# avg_Sint_ucl = sum(best_fit_model_dfs$results$ucl[1]*16, best_fit_model_dfs$results$ucl[2:16])/16  # avg Sint ucl, all sites included
-# avg_Sint_lcl_withoutCC = sum(best_fit_model_dfs$results$lcl[1]*15, best_fit_model_dfs$results$lcl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
-# avg_Sint_ucl_withoutCC = sum(best_fit_model_dfs$results$ucl[1]*15, best_fit_model_dfs$results$ucl[3:16])/15  # avg Sint lcl of all sites except Caridad Cemetery  
-# 
-# for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
-#   site_surv_df <- data.frame(Sint_C = NA, 
-#                              Sint_site = NA, 
-#                              Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC),
-#                              Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
-#   site_surv_param_sets[[i]] <- site_surv_df
-# }
-
-# Make one with median Sint for all sites to use for what-if simulations
-site_surv_median_Sint_param_sets <- list()
-for(i in 1:length(site_vec_order$site_name)) {
-  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
-                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[median_site_pos], max=best_fit_model_dfs$results$ucl[median_site_pos]), 
-                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
-    mutate(Sint = Sint_C + Sint_site)
-  site_surv_median_Sint_param_sets[[i]] <- site_surv_df
-}
-
-# # Make one with average Sint (without CC) for all sites
-# site_surv_avg_Sint_param_sets <- list()
-# for(i in 1:length(site_vec_order$site_name)) {
-#   site_surv_df <- data.frame(Sint_C = NA, Sint_site = NA, Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos]),
-#                              Sint = runif(n=n_runs, min=avg_Sint_lcl_withoutCC, max=avg_Sint_ucl_withoutCC))
-#   site_surv_avg_Sint_param_sets[[i]] <- site_surv_df
-# }
-
-# Make one for best ests too so can use same code
-site_surv_best_est_sets <- list()
-# Cabatoan first
-site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
-                           Sint_site = rep(0, n_runs), 
-                           Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
-  mutate(Sint = Sint_C + Sint_site)
-site_surv_best_est_sets[[1]] <- site_surv_df
-# then rest of sites that are revisited
-for(i in 2:length(no_space_sites_revisited)) {
-  site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
-                             Sint_site = rep(best_fit_model_dfs$results$estimate[i], n_runs), 
-                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
-    mutate(Sint = Sint_C + Sint_site)
-  site_surv_best_est_sets[[i]] <- site_surv_df
-}
-# then three that use average
-for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
-  site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
-                             Sint_site = rep(best_fit_model_dfs$results$estimate[median_site_pos], n_runs), 
-                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
-    mutate(Sint = Sint_C + Sint_site)
-  site_surv_best_est_sets[[i]] <- site_surv_df
-}
-
-# # Make one for best ests too so can use same code
-# site_surv_best_est_sets <- list()
-# # Cabatoan first
-# site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
-#                            Sint_site = rep(0, n_runs), 
-#                            Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
-#   mutate(Sint = Sint_C + Sint_site)
-# site_surv_best_est_sets[[1]] <- site_surv_df
-# # then rest of sites that are revisited
-# for(i in 2:length(no_space_sites_revisited)) {
-#   site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
-#                              Sint_site = rep(best_fit_model_dfs$results$estimate[i], n_runs), 
-#                              Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
-#     mutate(Sint = Sint_C + Sint_site)
-#   site_surv_best_est_sets[[i]] <- site_surv_df
-# }
-# # then three that use average
-# for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
-#   site_surv_df <- data.frame(Sint_C = NA, 
-#                              Sint_site = NA, 
-#                              Sint = rep(avg_Sint, n_runs),
-#                              Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs))
-#   site_surv_best_est_sets[[i]] <- site_surv_df
-# }
-
-##### Breeding size (transition to female)
-#breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
-breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
-
-##### Probability of capturing a fish (Pc)
-prob_r_beta_params = findBetaDistParams(mean(prob_r), var(prob_r))  # find beta distribution parameters for prob r distrubtion from normal mean and variance
-prob_r_set_fodder = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # should the non-centrality parameter be 0?
-prob_r_set_truncated = prob_r_set_fodder[prob_r_set_fodder >= min(prob_r)]  # get rid of any values lower than the lowest observed value, then re-sample from that truncated vector... removes about 100 obs (down to 898 in one case)
-prob_r_set = sample(prob_r_set_truncated, n_runs, replace = TRUE)  # sample from that truncated set
-
-##### Recruit size (SHOULD I PULL FROM THE ACTUAL OFFSPRING SIZES, LIKE FOR FEMALE SIZE?)
-start_recruit_size_set <- runif(n_runs, min = 3.5, max = 6.0)  # pull from range of offspring sizes
-# start_recruit_size_options <- data.frame(recruit_size = c('3.5cm', '4.75cm', '6.0cm', 'mean offspring'),
-#                                          size = c(3.5, 4.75, 6.0, mean_sampled_offspring_size), stringsAsFactors = FALSE)
-
-###### Uncertainty in the number of offspring that get matched through parentage analysis (feeds into uncertainty in recruits-per-egg)
-n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotyped, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not), for recruits-per-egg est
-
-#################### Generate sets of parameters for uncertainty and do uncertainty runs: ####################
-### Make parameter set with different kinds of uncertainty included 
-
-# Uncertainty in start recruit size only
-param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
-         # Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, 
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in growth only (both Linf and k)
-param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         #k_growth = k_growth_set, s = s, Linf = Linf_set, 
-         k_growth = growth_set_params$k_est, s=s, Linf = growth_set_params$Linf_est,
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, 
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in survival only
-param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
-         #Sl = Sl_set, , Sint = Sint_set,
-         breeding_size = breeding_size_mean, 
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in breeding size only
-param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_set, 
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in offspring assigned to parents (affects recruits-per-egg)
-param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in probability catching a fish (affects recruits-per-egg)
-param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in both offspring assigned to parents and probability catching a fish (affects recruits-per-egg)
-param_set_prob_r_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in dispersal only
-param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
-         #Sl = Sl_mean, Sint = Sint_mean,
-         breeding_size = breeding_size_mean, 
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Uncertainty in all parameters included for now 
-param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = growth_set_params$k_est, s = s, Linf = growth_set_params$Linf_est,
-         #k_growth = k_growth_set, s = s, Linf = Linf_set, 
-         #Sl = Sl_set,  Sint = Sint_set,
-         breeding_size = breeding_size_set,
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
-
-### Run metrics for a bunch of different types of uncertainty - No DD
-output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
-output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
-output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", FALSE)
-output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
-output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
-output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
-#output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
-output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
-output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
-
-# output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
-# output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
-# output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
-
-
-# # Join them together for plotting purposes - DO I NEED THIS?
-# LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
-#                  output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
-#                  output_uncert_offspring_assigned$LEP_out_df,output_uncert_prob_r$LEP_out_df,
-#                  #output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
-#                  output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
-# 
-# LEP_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_by_site_out_df, output_uncert_growth$LEP_by_site_out_df,
-#                                output_uncert_survival$LEP_by_site_out_df, output_uncert_breeding_size$LEP_by_site_out_df,
-#                                output_uncert_offspring_assigned$LEP_by_site_out_df, output_uncert_prob_r$LEP_by_site_out_df,
-#                                output_uncert_dispersal$LEP_by_site_out_df, output_uncert_all$LEP_by_site_out_df)
-# 
-# LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
-#                     output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
-#                     output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
-#                     #output_uncert_prob_r_and_offspring_assigned$LEP_R,
-#                     output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
-# 
-# LEP_R_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_R_by_site_out_df, output_uncert_growth$LEP_R_by_site_out_df,
-#                                  output_uncert_survival$LEP_R_by_site_out_df, output_uncert_breeding_size$LEP_R_by_site_out_df,
-#                                  output_uncert_offspring_assigned$LEP_R_by_site_out_df, output_uncert_prob_r$LEP_R_by_site_out_df,
-#                                  output_uncert_dispersal$LEP_R_by_site_out_df, output_uncert_all$LEP_R_by_site_out_df)
-# 
-# RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
-#                     output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
-#                     output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
-#                     #output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
-#                     output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
-# 
-# NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
-#                    output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
-#                    output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
-#                    #output_uncert_prob_r_and_offspring_assigned$NP_out_df,
-#                    output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
-
-###### Now run with DD
-### Run metrics for a bunch of different types of uncertainty
-output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
-output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
-output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", TRUE)
-output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
-output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
-output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
-#output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
-output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
-output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
-
-#################### Analyze output, prepare for plotting: ####################
-# Join together DD runs with different types of uncertainty for plotting purposes (FIGURE OUT WHICH ONES TO KEEP!)
-LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
-                    output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
-                    output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
-                    #output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
-                    output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
-
-LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
-                       output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
-                       output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
-                       output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
-
-LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
-                      output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
-                      output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
-                      #output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
-                      output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
-
-LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
-                               output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
-                               output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
-                               output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
-
-RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
-                      output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
-                      output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
-                      #output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
-                      output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
-
-NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
-                   output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
-                   output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
-                   #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
-                   output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
-
-##### Find 95% range for estimates 
-## NP with DD
-NP_decimal_points <- 2  # bin size of 0.01
-lower_edge <- 0.025
-upper_edge <- 0.975
-lower_index = 25
-upper_index = 975
-
-NP_values_rounded <- data.frame(NP_raw = output_uncert_all_DD$NP_out_df$value) %>% 
-  mutate(NP_bin = round(NP_raw, 2))
-NP_range <- data.frame(table(NP_values_rounded$NP_bin)) %>%
-  mutate(rel_freq = Freq/sum(Freq),
-         cum_freq = cumsum(rel_freq))
-NP_lower <- NP_range$Var1[NP_range$cum_freq >= 0.025][1]
-
-NP_vec <- sort(output_uncert_all_DD$NP_out_df$value)
-NP_lower <- round(NP_vec[25], 2)
-NP_upper <- round(NP_vec[975], 2)
-
-## NP without DD compensation
-NP_vec_noDD <- sort(output_uncert_all$NP_out_df$value)
-NP_lower_noDD <- round(NP_vec_noDD[25], 2)
-NP_upper_noDD <- round(NP_vec_noDD[975], 2)
-
-## LEP averaged across sites
-LEP_avg_vec <- sort(output_uncert_all_DD$LEP_out_df$value)
-LEP_avg_lower <- round(LEP_avg_vec[lower_index])
-LEP_avg_upper <- round(LEP_avg_vec[upper_index])
-
-## LEP at each site
-LEP_site_limits <- data.frame(site = site_vec_order$site_name, lower = NA, upper = NA)
-for(i in 1:n_sites) {
-  LEP_site_vec <- sort((output_uncert_all_DD$LEP_by_site_out_df %>% filter(site == i))$value) 
-  LEP_site_limits$lower[i] <- LEP_site_vec[lower_index]
-  LEP_site_limits$upper[i] <- LEP_site_vec[upper_index]
-}
-
-## Egg-recruit survival with DD compensation
-egg_recruit_survival_vec <- sort(output_uncert_all_DD$RperE_out_df$value)
-egg_recruit_survival_lower <- egg_recruit_survival_vec[lower_index]
-egg_recruit_survival_upper <- egg_recruit_survival_vec[upper_index]
-
-## Egg-recruit survival without DD compensation
-egg_recruit_survival_vec_noDD <- sort(output_uncert_all$RperE_out_df$value)
-egg_recruit_survival_lower_noDD <- egg_recruit_survival_vec_noDD[lower_index]
-egg_recruit_survival_upper_noDD <- egg_recruit_survival_vec_noDD[upper_index]
-
-## LEP R averaged across sites with DD compensation
-LRP_average_vec <- sort(output_uncert_all_DD$LEP_R_out_df$value)
-LRP_average_lower <- LRP_average_vec[lower_index]
-LRP_average_upper <- LRP_average_vec[upper_index]
-
-## LEP R averaged across sites without DD compensation
-LRP_average_vec_noDD <- sort(output_uncert_all$LEP_R_out_df$value)
-LRP_average_lower_noDD <- LRP_average_vec_noDD[lower_index]
-LRP_average_upper_noDD <- LRP_average_vec_noDD[upper_index]
-
-## LRP local averaged across sites
-LRP_local_average_vec <- sort(output_uncert_all_DD$LEP_R_local_out_df$value)
-LRP_local_average_lower <- LRP_local_average_vec[lower_index]
-LRP_local_average_upper <- LRP_local_average_vec[upper_index]
-
-## LRP local averaged across sites without DD compensation
-LRP_local_average_vec_noDD <- sort(output_uncert_all$LEP_R_local_out_df$value)
-LRP_local_average_lower_noDD <- LRP_local_average_vec_noDD[lower_index]
-LRP_local_average_upper_noDD <- LRP_local_average_vec_noDD[upper_index]
-
-# LRP averaged across sites values above 1
-LRP_avg_ests_above_1 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-LR_est_DD_above_1 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-LRP_avg_noDD_ests_above_1 <- output_uncert_all$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-NP_est_noDD_above_1 <- output_uncert_all$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-
-#LRP_local_avg_noDD_all_offspring_above_1 <- output
-
-# Haina SP
-Haina_SP_vec <- sort((output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina"))$SP)
-Haina_SP_lower <- Haina_SP_vec[lower_index]
-Haina_SP_upper <- Haina_SP_vec[upper_index]
-
-# NP_vec <- output_uncert_all_DD$NP_out_df$value
-# NP_breaks <- seq(0, 1, by = 0.)
-# > breaks = seq(1.5, 5.5, by=0.5) 
-# > duration.cut = cut(duration, breaks, right=FALSE) 
-# > duration.freq = table(duration.cut) 
-
-##### Find best estimates
-LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # mean LEP across sites
-LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
-LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local_mean
-NP_best_est <- best_est_metrics_mean_offspring$NP
-SP_best_est <- best_est_metrics_mean_offspring$SP
-
-LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_mean  # mean LRP across sites
-LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local_mean
-NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
-SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
-
-# # Do I need any of these? maybe not...
-# LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # how to deal with site variation?
-# LEP_best_est_min <- min(best_est_metrics_mean_offspring$LEP_by_site$LEP)
-# LEP_best_est_max <- max(best_est_metrics_mean_offspring$LEP_by_site$LEP)
-# LEP_R_best_est_min <- min(best_est_metrics_mean_offspring$LEP_by_site$LEP_R)
-# LEP_R_best_est_max <- max(best_est_metrics_mean_offspring$LEP_by_site$LEP_R)
-# LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
-# NP_best_est <- best_est_metrics_mean_offspring$NP
-# SP_best_est <- best_est_metrics_mean_offspring$SP
-# LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local_mean
-# 
-# LEP_best_est_DD <- mean(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)  # how to deal with, show site variation?
-# LEP_best_est_min_DD <- min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)
-# LEP_best_est_max_DD <- max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP)
-# LEP_R_best_est_min_DD <- min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R)
-# LEP_R_best_est_max_DD <- max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R)
-# LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_mean
-# NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
-# SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
-# LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local_mean
-# 
-# LEP_R_oursites <- recruits_per_egg_oursites*LEP_best_est
-# LEP_R_oursites_DD <- recruits_per_egg_oursites_DD*LEP_best_est
-
-# ##### Find range of uncertainty for LEP average and LRP average (with DD)
-# LRP_best_est_avg_DD_min <- min(output_uncert_all_DD$LEP_R_out_df$value)
-# LRP_best_est_avg_DD_max <- max(output_uncert_all_DD$LEP_R_out_df$value)
-# 
-# LEP_best_est_avg_min <- min(output_uncert_all_DD$LEP_out_df$value)
-# LEP_best_est_avg_max <- max(output_uncert_all_DD$LEP_out_df$value)
-# 
-# ##### Find range of LR estimates with uncertainty (with DD)
-# LR_DD_min <- min(output_uncert_all_DD$LEP_R_local_out_df$value)
-# LR_DD_max <- max(output_uncert_all_DD$LEP_R_local_out_df$value)
-# 
-# #### Find range of LR with all recruits estimates with uncertainty (with DD)
-# LR_all_recruits_DD_min <- min(output_uncert_all_offspring_all_DD$LEP_R_local_out_df$value)
-# LR_all_recruits_DD_max <- max(output_uncert_all_offspring_all_DD$LEP_R_local_out_df$value)
-# 
-# # ##### SP estimate range and % > 1 for Haina and Wangag
-# SP_Haina_min <- min(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
-# SP_Haina_max <- max(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
-# SP_Wangag_min <- min(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Wangag") %>% select(SP))
-# SP_Wangag_max <- max(output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Wangag") %>% select(SP))
-# 
-# SP_Haina_perc_above_1 <- output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina") %>% filter(SP >= 0.5) %>% summarize(n_estimates = n()) 
-# SP_Wangag_perc_above_1 <- output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Wangag") %>% filter(SP >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# 
-# ##### Find % of metrics above persistence thresholds
-# LRP_est_avg_DD_above_1 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# LR_est_DD_above_1 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# 
-# LR_all_recruits_est_DD_above_1 <- output_uncert_all_offspring_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-
-# ########## Find range and % above threshold of values without DD
-# # Find range of uncertainty for LEP average and LRP average (without DD)
-# LRP_best_est_avg_min <- min(output_uncert_all$LEP_R_out_df$value)
-# LRP_best_est_avg_max <- max(output_uncert_all$LEP_R_out_df$value)
-# 
-# # Find range of Se (without DD)
-# RperE_min <- min(output_uncert_all$RperE_out_df$value)
-# RperE_max <- max(output_uncert_all$RperE_out_df$value)
-# 
-# # Find range of LR estimates with uncertainty (without DD)
-# LR_min <- min(output_uncert_all$LEP_R_local_out_df$value)
-# LR_max <- max(output_uncert_all$LEP_R_local_out_df$value)
-# 
-# # Find range of NP
-# NP_min <- min(output_uncert_all$NP_out_df$value)
-# NP_max <- max(output_uncert_all$NP_out_df$value)
-# 
-# # Find range of LR with all recruits estimates with uncertainty (with DD)
-# LR_all_recruits_min <- min(output_uncert_all_offspring_all$LEP_R_local_out_df$value)
-# LR_all_recruits_max <- max(output_uncert_all_offspring_all$LEP_R_local_out_df$value)
-# 
-# # SP estimate range and % > 1 for Haina 
-# SP_Haina_min_noDD <- min(output_uncert_all$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
-# SP_Haina_max_noDD <- max(output_uncert_all$SP_vals_with_params %>% filter(site == "Haina") %>% select(SP))
-# 
-# SP_Haina_perc_above_1_noDD <- output_uncert_all$SP_vals_with_params %>% filter(site == "Haina") %>% filter(SP >= 0.5) %>% summarize(n_estimates = n()) 
-# 
-# # Find % of metrics above persistence thresholds
-# LRP_est_avg_above_1 <- output_uncert_all$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# LR_est_above_1 <- output_uncert_all$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# NP_est_above_1 <- output_uncert_all$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-# 
-# LR_all_recruits_est_above_1 <- output_uncert_all_offspring_all$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-
-####### NEED TO EDIT GROWTH UNCERTAINTY INPUTS IN PARAMS AND RE-RUN THESE WHAT-IFS WITH THOSE!!
-#################### What-if calculations: ####################
-##### What-if calculation 1) what if all genotyped offspring came from the population?
-
-# # Find egg-recruit survival if all offspring we genotyped are included (say they all came from this pop)
-# recruits_per_egg_all_offspring <- n_offspring_genotyped/tagged_eggs_6cm
-
-# start at mean size of actual offspring collected (about 4.45)
-param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_tsteps) %>%
-  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
-         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
-         #Sl = Sl_mean, , Sint = Sint_mean,
-         breeding_size = breeding_size_mean, #recruits_per_egg = recruits_per_egg_all_offspring,
-         k_connectivity = k_allyears, theta_connectivity = theta_allyears, # dispersal kernel parameters
-         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area (right?)
-         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# # NOT SURE WHY THE ONE ABOVE IS WRONG BUT IT GIVES A LOWER NP THAN THE USUAL BEST ESTIMATE!
-# param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_tsteps) %>%
-#   mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
-#          eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year_mean = clutches_per_year_mean,  # average fecundity info
-#          egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
-#          start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-#          k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
-#          #Sl = Sl_mean, Sint = Sint_mean,
-#          breeding_size = breeding_size_mean, #recruits_per_egg = recruits_per_egg_best_est,
-#          k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
-#          prob_r = prob_r_mean, offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-#          total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
-#          perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
-
-# Calculate the metrics for the best estimates
-best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_surv_best_est, site_dist_info, site_vec_order, FALSE)
-best_est_metrics_mean_offspring_all_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_surv_best_est, site_dist_info, site_vec_order, TRUE)
-
-# Save as separate items, for plotting ease
-# LEP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-#                            LEP = c(best_est_metrics_3.5cm_all_offspring$LEP, best_est_metrics_4.75cm_all_offspring$LEP, best_est_metrics_6.0cm_all_offspring$LEP, best_est_metrics_mean_offspring_all_offspring$LEP), stringsAsFactors = FALSE)
-# LEP_R_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-#                              LEP_R = c(best_est_metrics_3.5cm_all_offspring$LEP_R, best_est_metrics_4.75cm_all_offspring$LEP_R, best_est_metrics_6.0cm_all_offspring$LEP_R, best_est_metrics_mean_offspring_all_offspring$LEP_R), stringsAsFactors = FALSE)
-# NP_best_est_all_offspring <- data.frame(recruit_size = c("3.5cm", "4.75cm", "6.0cm", "mean offspring"),
-#                           NP = c(best_est_metrics_3.5cm_all_offspring$NP, best_est_metrics_4.75cm_all_offspring$NP, best_est_metrics_6.0cm_all_offspring$NP, best_est_metrics_mean_offspring_all_offspring$NP), stringsAsFactors = FALSE)
-# SP_best_est_all_offspring <- rbind(best_est_metrics_3.5cm_all_offspring$SP %>% mutate(recruit_size = "3.5cm"),
-#                                    best_est_metrics_4.75cm_all_offspring$SP %>% mutate(recruit_size = "4.75cm"),
-#                                    best_est_metrics_6.0cm_all_offspring$SP %>% mutate(recruit_size = "6.0cm"),
-#                                    best_est_metrics_mean_offspring_all_offspring$SP %>% mutate(recruit_size = "mean offspring"))
-
-# Do uncertainty run with those parameters
-# Uncertainty in all parameters included for now 
-param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
-  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
-         eggs_per_clutch = mean_eggs_per_clutch_from_counts, clutches_per_year = clutches_per_year_mean,  # fecundity info
-         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
-         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
-         #k_growth = k_growth_set, s = s, Linf = Linf_set,
-         k_growth = growth_set_params$k_est, s = s, Linf = growth_set_params$Linf_est,
-         #Sl = Sl_set, , Sint = Sint_set,
-         breeding_size = breeding_size_set,
-         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
-         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
-         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,
-         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
-
-output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
-output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
-
-##### What-if calculation 2) What would LRP need to be for NP to be 1? 
-#egg_recruit_survival_vec_WI2 <- seq(from = recruits_per_egg_best_est, to = 0.001, by = 0.00001)
-LRP_vec_WI2 = seq(from=0.1, to=10.0, by=0.01)  # used to only go up to 5....
-NP_output_vec_WI2  <- rep(NA, length(LRP_vec_WI2))
-
-for(i in 1:length(NP_output_vec_WI2)) {
-  conn_matR_WI2 = best_est_metrics_mean_offspring$conn_matrix*LRP_vec_WI2[i]
-  eig_CR_WI2 = eigen(conn_matR_WI2)
-  #NP_WI2 = Re(eig_cR_WI2$values[1])
-  #NP_output_vec_WI2[i] = eig_CR_WI2$values[1]
-  NP_output_vec_WI2[i] = Re(eig_CR_WI2$values[1])
-}
-
-LRP_for_NP = LRP_vec_WI2[which(NP_output_vec_WI2 >= 1)[1]]  # 8.84 on 12/10/19 (3.99 (earlier), 8.64 for WSN)
-
-##### What-if calculation 3) To get the required LRP for NP, what do egg-recruit survival (for our LEP) and LEP (for our egg-recruit-survival) need to be?
-#egg_recruit_survival_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$LEP
-egg_recruit_survival_for_NP <- LRP_for_NP/mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)
-
-LEP_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$recruits_per_egg
-
-LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
-
-# % of estimates of LRP (with DD) that are >= LRP_for_NP
-LRP_ests_above_LRP_for_NP <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= LRP_for_NP) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-
-##### What-if calculation 4) - how much habitat would we need for the sampling region to be persistent? (code from Sensitivity_to_site_size.R)
-# Set width of region
-region_width_km <- total_range_of_sampling_area/1000  # length of region (if it was a straight line...)
-
-# Go through different habitat percentages and find site locations, distances, etc. for equally sized and spaced sites  
-site_dist_info_habperc <- list()
-for(i in 1:length(perc_hab_vals)) {
-  site_dist_out_df <- make_output_with_dist(n_sites, perc_hab_vals[i], region_width_km)
-  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
-  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
-  site_dist_info_habperc[[i]] <- site_dist_out_df
-}
-
-# Make site-survs use numbers as names to match
-median_site_Sint <- (site_surv_best_est %>% filter(site == "Elementary School"))$Sint
-site_surv_best_est_med_Sint <- site_surv_best_est %>%
-  mutate(Sint = median_site_Sint)
-# site_surv_best_est_avg_Sint <- site_surv_best_est %>%
-#   mutate(Sint = avg_Sint_withoutCC)
-#site_surv_best_est_hab_sens$site <- c(5,6,10,15,18,8,3,1,14,13,12,19,4,17,15,2,7,11,9)  # geographical order no. of sites, in the order they are in site_surv_best_est listing
-
-# Find best estimate and uncertainty metrics for those habitat configurations with real site-specific survs (and including compensation for density-dependence)
-# perc_hab_best_ests_realSurvs <- list()
-# perc_hab_uncertainty_realSurvs <- list()
-# for(i in 1:length(perc_hab_vals)) {
-#   perc_hab_best_ests_realSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info_habperc[[i]], site_vec_order, TRUE)
-#   perc_hab_uncertainty_realSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens", TRUE)
-# }
-# 
-# # Make a data frame to plot - actual site-specific survs
-# NP_vec_perc_hab_realSurvs_best_est <- perc_hab_best_ests_realSurvs[[1]]$NP  # best estimate NP
-# NP_vec_perc_hab_realSurvs_sd <- sd(perc_hab_uncertainty_realSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
-# NP_vec_perc_hab_realSurvs_min <- min(perc_hab_uncertainty_realSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
-# NP_vec_perc_hab_realSurvs_max <- max(perc_hab_uncertainty_realSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
-# 
-# for(i in 2:length(perc_hab_vals)) {
-#   NP_vec_perc_hab_realSurvs_best_est <- c(NP_vec_perc_hab_realSurvs_best_est, perc_hab_best_ests_realSurvs[[i]]$NP)
-#   NP_vec_perc_hab_realSurvs_sd <- c(NP_vec_perc_hab_realSurvs_sd, sd(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value))
-#   NP_vec_perc_hab_realSurvs_min <- c(NP_vec_perc_hab_realSurvs_min, min(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value))
-#   NP_vec_perc_hab_realSurvs_max <- c(NP_vec_perc_hab_realSurvs_max, max(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value))
-# }
-# 
-# NP_by_perc_hab_realSurvs <- data.frame(perc_hab = perc_hab_vals,
-#                                        NP = NP_vec_perc_hab_realSurvs_best_est,
-#                                        NP_sd = NP_vec_perc_hab_realSurvs_sd,
-#                                        NP_min = NP_vec_perc_hab_realSurvs_min,
-#                                        NP_max = NP_vec_perc_hab_realSurvs_max, stringsAsFactors = FALSE)
-# 
-# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
-perc_hab_best_ests_avgSurvs <- list()
-perc_hab_uncertainty_avgSurvs <- list()
-for(i in 1:length(perc_hab_vals)) {
-  perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_habperc[[i]], site_vec_order, TRUE)
-  perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_median_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
-}
-
-# ###### 
-# # Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
-# NP_vec_perc_hab_avgSurvs_best_est <- perc_hab_best_ests_avgSurvs[[1]]$NP  # best estimate NP
-# NP_vec_perc_hab_avgSurvs_sd <- sd(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
-# NP_vec_perc_hab_avgSurvs_min <- min(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
-# NP_vec_perc_hab_avgSurvs_max <- max(perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
-# 
-# for(i in 2:(length(perc_hab_vals))) {
-#   NP_vec_perc_hab_avgSurvs_best_est <- c(NP_vec_perc_hab_avgSurvs_best_est, perc_hab_best_ests_avgSurvs[[i]]$NP)
-#   NP_vec_perc_hab_avgSurvs_sd <- c(NP_vec_perc_hab_avgSurvs_sd, sd(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-#   NP_vec_perc_hab_avgSurvs_min <- c(NP_vec_perc_hab_avgSurvs_min, min(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-#   NP_vec_perc_hab_avgSurvs_max <- c(NP_vec_perc_hab_avgSurvs_max, max(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-# }
-# 
-# NP_by_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals,
-#                                        NP = NP_vec_perc_hab_avgSurvs_best_est,
-#                                        NP_sd = NP_vec_perc_hab_avgSurvs_sd,
-#                                        NP_min = NP_vec_perc_hab_avgSurvs_min,
-#                                        NP_max = NP_vec_perc_hab_avgSurvs_max, stringsAsFactors = FALSE)
-# 
-# # Find percent above 1 for what-if
-# NP_above1_perc_hab_realSurvs <- data.frame(perc_hab = perc_hab_vals, perc_persistent = NA)
-# NP_above1_perc_hab_avgSurvs <- data.frame(perc_hab = perc_hab_vals, perc_persistent = NA)
-# 
-# for(i in 1:(length(perc_hab_vals))) {
-#   #NP_above1_perc_hab_realSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_realSurvs[[i]]$NP_out_df$value >= 1)/n_runs
-#   NP_above1_perc_hab_avgSurvs$perc_persistent[i] = sum(perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
-# }
-
-# Make dfs for plot where each run is its own line - perc hab on x axis, NP on y axis
-perc_hab_plot_df <- perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[1])  # one for uncertainty runs
-for(i in 2:length(perc_hab_vals)) {
-  perc_hab_plot_df <- rbind(perc_hab_plot_df, perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[i]))
-}
-perc_hab_best_est_NP_df <- data.frame(perc_hab = rep(NA,length(perc_hab_vals)), value = rep(NA,length(perc_hab_vals)))  # and one for best ests
-for(i in 1:length(perc_hab_vals)) {
-  perc_hab_best_est_NP_df$perc_hab[i] = perc_hab_vals[i]
-  perc_hab_best_est_NP_df$value[i] = perc_hab_best_ests_avgSurvs[[i]]$NP
-}
-
-# Find number of runs with NP >=1 at perc_hab = 0.9 (where NP is > 1) (not sure why filtering for == 0.9 doesn't work)
-perc_hab_plot_df %>% filter(0.88 < perc_hab & perc_hab < 0.92) %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
-
-##### What if - same habitat density, wider region - should re-do this so the patches stay in the center, just extend the region!!
-region_width_list <- c(region_width_km, 35, 40, 45, 50, 55)
-
-# Go through different region widths for the real habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
-site_dist_info_wider_region <- list()
-for(i in 1:length(region_width_list)) {
-  site_dist_out_df <- make_output_with_dist(n_sites, Ps, region_width_list[i])
-  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
-  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
-  site_dist_info_wider_region[[i]] <- site_dist_out_df
-}
-
-# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
-wider_region_best_ests_avgSurvs <- list()
-wider_region_uncertainty_avgSurvs <- list()
-for(i in 1:length(region_width_list)) {
-  wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
-  wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_median_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
-}
-
-# # Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
-# NP_vec_wider_region_avgSurvs_best_est <- wider_region_best_ests_avgSurvs[[1]]$NP  # best estimate NP
-# NP_vec_wider_region_avgSurvs_sd <- sd(wider_region_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
-# NP_vec_wider_region_avgSurvs_min <- min(wider_region_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
-# NP_vec_wider_region_avgSurvs_max <- max(wider_region_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
-# 
-# for(i in 2:(length(region_width_list))) {
-#   NP_vec_wider_region_avgSurvs_best_est <- c(NP_vec_wider_region_avgSurvs_best_est, wider_region_best_ests_avgSurvs[[i]]$NP)
-#   NP_vec_wider_region_avgSurvs_sd <- c(NP_vec_wider_region_avgSurvs_sd, sd(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-#   NP_vec_wider_region_avgSurvs_min <- c(NP_vec_wider_region_avgSurvs_min, min(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-#   NP_vec_wider_region_avgSurvs_max <- c(NP_vec_wider_region_avgSurvs_max, max(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-# }
-# 
-# NP_by_wider_region_avgSurvs <- data.frame(region_width = region_width_list,
-#                                       NP = NP_vec_wider_region_avgSurvs_best_est,
-#                                       NP_sd = NP_vec_wider_region_avgSurvs_sd,
-#                                       NP_min = NP_vec_wider_region_avgSurvs_min,
-#                                       NP_max = NP_vec_wider_region_avgSurvs_max, stringsAsFactors = FALSE)
-# 
-# # Find percent above 1 for what-if
-# NP_above1_wider_region_realSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
-# NP_above1_wider_region_avgSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
-# 
-# for(i in 1:(length(region_width_list))) {
-#   NP_above1_wider_region_avgSurvs$perc_persistent[i] = sum(wider_region_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
-# }
-
-# Make dfs for plot where each run is it's own line - region width on x axis, NP on y axis
-wider_region_plot_df <- wider_region_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[1])  # one for uncertainty runs
-for(i in 2:length(region_width_list)) {
-  wider_region_plot_df <- rbind(wider_region_plot_df, wider_region_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[i]))
-}
-wider_region_best_est_NP_df <- data.frame(region_width = rep(NA,length(region_width_list)), value = rep(NA,length(region_width_list)))  # and one for best ests
-for(i in 1:length(region_width_list)) {
-  wider_region_best_est_NP_df$region_width[i] = region_width_list[i]
-  wider_region_best_est_NP_df$value[i] = wider_region_best_ests_avgSurvs[[i]]$NP
-}
-
-##### What if - 100% habitat, wider region
-# Go through different region widths for the real habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
-site_dist_info_wider_region_all_hab <- list()
-for(i in 1:length(region_width_list)) {
-  site_dist_out_df <- make_output_with_dist(n_sites, 1.0, region_width_list[i])
-  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
-  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
-  site_dist_info_wider_region_all_hab[[i]] <- site_dist_out_df
-}
-
-# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
-wider_region_all_hab_best_ests_avgSurvs <- list()
-wider_region_all_hab_uncertainty_avgSurvs <- list()
-for(i in 1:length(region_width_list)) {
-  wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
-  wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_median_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
-}
-
-# # Make a data frame to plot - avg survs (all sites have the same surv, pulled from range each run in uncertainty runs)
-# NP_vec_wider_region_all_hab_avgSurvs_best_est <- wider_region_all_hab_best_ests_avgSurvs[[1]]$NP  # best estimate NP
-# NP_vec_wider_region_all_hab_avgSurvs_sd <- sd(wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # sd of NP values with uncertainty
-# NP_vec_wider_region_all_hab_avgSurvs_min <- min(wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # min of NP values with uncertainty
-# NP_vec_wider_region_all_hab_avgSurvs_max <- max(wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df$value)  # max of NP values with uncertainty
-# 
-# for(i in 2:(length(region_width_list))) {
-#   NP_vec_wider_region_all_hab_avgSurvs_best_est <- c(NP_vec_wider_region_all_hab_avgSurvs_best_est, wider_region_all_hab_best_ests_avgSurvs[[i]]$NP)
-#   NP_vec_wider_region_all_hab_avgSurvs_sd <- c(NP_vec_wider_region_all_hab_avgSurvs_sd, sd(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-#   NP_vec_wider_region_all_hab_avgSurvs_min <- c(NP_vec_wider_region_all_hab_avgSurvs_min, min(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-#   NP_vec_wider_region_all_hab_avgSurvs_max <- c(NP_vec_wider_region_all_hab_avgSurvs_max, max(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value))
-# }
-# 
-# NP_by_wider_region_all_hab_avgSurvs <- data.frame(region_width = region_width_list,
-#                                           NP = NP_vec_wider_region_all_hab_avgSurvs_best_est,
-#                                           NP_sd = NP_vec_wider_region_all_hab_avgSurvs_sd,
-#                                           NP_min = NP_vec_wider_region_all_hab_avgSurvs_min,
-#                                           NP_max = NP_vec_wider_region_all_hab_avgSurvs_max, stringsAsFactors = FALSE)
-# 
-# # Find percent above 1 for what-if
-# NP_above1_wider_region_all_hab_realSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
-# NP_above1_wider_region_all_hab_avgSurvs <- data.frame(region_width = region_width_list, perc_persistent = NA)
-# 
-# for(i in 1:(length(region_width_list))) {
-#   NP_above1_wider_region_all_hab_avgSurvs$perc_persistent[i] = sum(wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df$value >= 1)/n_runs
-# }
-
-# Make dfs for plot where each run is it's own line - region width on x axis, NP on y axis
-wider_region_all_hab_plot_df <- wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[1])  # one for uncertainty runs
-for(i in 2:length(region_width_list)) {
-  wider_region_all_hab_plot_df <- rbind(wider_region_all_hab_plot_df, wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[i]))
-}
-wider_region_all_hab_best_est_NP_df <- data.frame(region_width = rep(NA,length(region_width_list)), value = rep(NA,length(region_width_list)))  # and one for best ests
-for(i in 1:length(region_width_list)) {
-  wider_region_all_hab_best_est_NP_df$region_width[i] = region_width_list[i]
-  wider_region_all_hab_best_est_NP_df$value[i] = wider_region_all_hab_best_ests_avgSurvs[[i]]$NP
-}
-
-##### What if for % habitat and region width combined
-# Find the site dist info
-perc_hab_vals_long_form <- seq(from=0.01, to=1.0, by = 0.01)
-region_width_list_long_form <- seq(from = 20, to = 55, by = 1)
-
-site_dist_info_wider_region_perc_hab <- list()
-list_val = 1
-for(i in 1:length(region_width_list_long_form)) {
-  for(j in 1:length(perc_hab_vals_long_form)) {
-    site_dist_out_df <- make_output_with_dist(n_sites, perc_hab_vals_long_form[j], region_width_list_long_form[i])
-    site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
-    site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
-    site_dist_info_wider_region_perc_hab[[list_val]] <- site_dist_out_df
-    list_val = list_val + 1
-  }
-}
-
-# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
-wider_region_perc_hab_best_ests_avgSurvs <- list()
-#wider_region_perc_hab_uncertainty_avgSurvs <- list()
-for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
-  wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
-  #  wider_region_perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, "all: region sens, perc hab sens, avg surv", TRUE)
-  print(i)
-}
-
-# Make dfs for plot where region width, perc hab, and NP all listed
-wider_region_perc_hab_plot_df <- data.frame(NP = rep(NA, length(region_width_list_long_form)*length(perc_hab_vals_long_form)))
-for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
-  wider_region_perc_hab_plot_df$NP[i] = wider_region_perc_hab_best_ests_avgSurvs[[i]]$NP
-}
-wider_region_perc_hab_plot_df$region_width = (as.data.frame(region_width_list_long_form, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each = length(perc_hab_vals_long_form))))$region_width_list_long_form
-wider_region_perc_hab_plot_df$perc_hab = rep(perc_hab_vals_long_form, length(region_width_list_long_form))
-
-# Put NP into categories: 0-.2, 0.2-0.4, 0.4-0.6, 0.6-0.8, 0.8-1.0, >1.0
-wider_region_perc_hab_plot_df_categories <- wider_region_perc_hab_plot_df %>%
-  mutate(NP_category = case_when(NP < 0.2 ~ "< 0.2",
-                                 (0.2 <= NP & NP < 0.4) ~ "[0.2 - 0.4)",
-                                 (0.4 <= NP & NP < 0.6) ~ "[0.4 - 0.6)",
-                                 (0.6 <= NP & NP < 0.8) ~ "[0.6 - 0.8)",
-                                 (0.8 <= NP & NP < 1) ~ "[0.8 - 1)",
-                                 (NP >= 1) ~ ">= 1")) %>%
-  mutate(order_6 = case_when(NP < 0.2 ~ 1,
-                           (0.2 <= NP & NP < 0.4) ~ 2,
-                           (0.4 <= NP & NP < 0.6) ~ 3,
-                           (0.6 <= NP & NP < 0.8) ~ 4,
-                           (0.8 <= NP & NP < 1) ~ 5,
-                           (NP >= 1) ~ 6)) %>%
-  mutate(NP_two_category = case_when(NP < 1 ~ "< 1",
-                                     NP >= 1 ~ ">= 1")) %>%
-  mutate(order_2 = case_when(NP < 1 ~ 1,
-                             NP >= 1 ~ 2)) %>%
-  mutate(NP_categories = case_when(NP < 0.25 ~ "< 0.25",
-                                 (0.25 <= NP & NP < 0.5) ~ "[0.25 - 0.5)",
-                                 (0.5 <= NP & NP < 0.75) ~ "[0.5 - 0.75)",
-                                 (0.75 <= NP & NP < 1) ~ "[0.75 - 1)",
-                                 (NP >= 1) ~ ">= 1")) %>%
-  mutate(order_5 = case_when(NP < 0.25 ~ 1,
-                                   (0.25 <= NP & NP < 0.5) ~ 2,
-                                   (0.5 <= NP & NP < 0.75) ~ 3,
-                                   (0.75 <= NP & NP < 1) ~ 4,
-                                   (NP >= 1) ~ 5))
-
-save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgSurvs.RData"))
-save(wider_region_perc_hab_plot_df, file=here::here("Data/Script_outputs","wider_region_perc_hab_plot_df.RData"))
-#save(wider_region_perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_uncertainty_avgSurvs.RData"))
-#save(site_surv_avg_Sint_param_sets, file=here::here("Data/Script_outputs","site_surv_avg_Sint_param_sets.RData"))
-
-##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
-# Load generated parameter sets
-load(file = here::here("Data/Script_outputs", "param_set_full.RData"))
-load(file = here::here("Data/Script_outputs","site_surv_param_sets.RData"))
-
-# # Re-estimate number of offspring, where scaling for loss to dispersal to non-habitat is altered for the amount of navigation
+# Find proportion habitat when including buffers for larval navigation, includes re-estimating number of scaled offspring, where scaling for loss to dispersal to non-habitat is altered for the amount of navigation
 findPropHabWithLarvalNav <- function(nav_buffer, site_buffer_info_df, site_width_info_df, sampling_range) {  # nav_buffer = distance larvae can navigate in m, site_buffer_info_df = site_buffer_info, site_width_info_df = site_width_info, sampling_range = total_range_of_sampling_area
   # total sum of site widths without buffer
   sum_of_site_widths <- sum(site_width_info_df$width_m)
   buffer_to_add_N <- rep(NA, length(site_width_info_df$site))
   buffer_to_add_S <- rep(NA, length(site_width_info_df$site))
   
-  # go through sites, check if buffer is less than max amount, then add either buffer or max
+  # go through sites, check if buffer is less than max amount (where max is half the distance between sites, to avoid patch shadow overlap), then add either buffer or max
   for(i in 1:length(site_width_info$site)){
     site_val <- site_width_info$site[i]
     max_buffer_N <- (site_buffer_info_df %>% filter(site == site_val))$max_buffer_N_m
@@ -1887,26 +517,21 @@ findPropHabWithLarvalNav <- function(nav_buffer, site_buffer_info_df, site_width
     }
   }
   
-  total_hab <- sum_of_site_widths + sum(buffer_to_add_N) + sum(buffer_to_add_S)
+  total_hab <- sum_of_site_widths + sum(buffer_to_add_N) + sum(buffer_to_add_S)  # total "habitat" including patches and their buffers
   
   prop_hab <- total_hab/total_range_of_sampling_area
   
   return(prop_hab)
 }
 
-# Make new param set
+# Make new param set for new proportion hab including larval navigation buffers
 makeParamSetWithSampledHab <- function(param_set, Ps) {  # param_set is param_best_est_mean_collected_offspring, Ps is prop_hab from findPropHabWithLarvalNav
- param_set_out <- param_set
- param_set_out$prop_hab <- Ps
- return(param_set_out)
+  param_set_out <- param_set
+  param_set_out$prop_hab <- Ps
+  return(param_set_out)
 }
 
-# # (Rough) proportion of sampling area that is habitat
-# total_sum_of_site_widths <- sum(site_width_info$width_m)
-# prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_area
-# Ps <- prop_sampling_area_habitat
-
-# Re-estimate the distances data frames
+# Re-estimate the distances data frames including navigation buffer
 findSiteDistsWithNavBuffer <- function(nav_buffer, site_dist_info_df, site_buffer_info_df) {  # nav_buffer = distance larvae can navigate in km, site_dist_info_df = site_dist_info, site_buffer_info_df = site_buffer_info
   site_dist_info_out <- site_dist_info_df  # modify existing site_dist_info with buffers built into d1 and d2
   # Go through site combos (one row in site_dist_info)
@@ -1969,6 +594,707 @@ findSiteDistsWithNavBuffer <- function(nav_buffer, site_dist_info_df, site_buffe
   
   return(site_dist_info_out %>% select(-dist_mid_to_S_m, -dist_mid_to_S_km, -dist_mid_to_N_m, -dist_mid_to_N_km))
 }
+
+
+#################### Running things: ####################
+
+########## Find number of tagged fish, genotyped fish, fish that are marked somehow (to report in paper)
+n_fish_genotyped <- allfish_caught %>%
+  filter(!is.na(gen_id)) %>%
+  distinct(gen_id) %>%
+  summarize(nfish = n())
+
+n_fish_PIT_tagged <- allfish_caught %>%
+  filter(!is.na(tag_id)) %>%
+  distinct(tag_id) %>%
+  summarize(nfish = n())
+
+n_fish_marked <- allfish_caught %>%
+  filter(!is.na(fish_indiv)) %>%
+  distinct(fish_indiv) %>%
+  summarize(nfish = n())
+
+#################### Find "best estimates" of input parameters if additional calculations needed before use in finding metrics ####################
+
+##### Growth (for LEP)
+k_growth_mean = mean(growth_info_estimate$k_est)  # mean of various estimates from different pairs of recaptures for fish caught multiple times
+Linf_growth_mean = mean(growth_info_estimate$Linf_est)  # mean of various estimates from different pairs of recaptures for fish caught multiple times
+
+mean_L1_size <- mean(recap_pairs_year$L1)  # mean size of first recapture of a fish for those caught a year apart, use as the starting size to estimate the sd of the size the fish will be in a year
+s <- sd((recap_pairs_year %>% filter(mean_L1_size - size_around_mean_L1_size <= L1 & L1 <= mean_L1_size + size_around_mean_L1_size))$L2)  # find the sd of the L2 size of fish that start at size mean_L1_size, within a buffer of +- size_around_mean_L1_size (defined above in Set-up parameters section)
+
+##### Breeding size (used in LEP)
+breeding_size_mean <- mean(recap_first_female$size)
+
+##### Recruit size - use mean size of potential (genotyped) offspring
+mean_sampled_offspring_size <- mean(all_offspring$size, na.rm = TRUE)  
+
+##### Scaling factors recruits to find egg-recruit survival
+
+### Probability of capturing a fish (Pc)
+prob_r_mean <- mean(prob_r)  # average value of prob r from each recap dive
+
+### Proportion of sampling area that is habitat (Ps) (to scale egg-recruit survival to avoid counting mortality from dispersal to non-habitat twice)
+# Find total length of sampling area from N to S (assumes sites are all in a line)
+total_range_of_sampling_area <- geosphere::distHaversine(c((sampling_area_edges %>% filter(edge == "north"))$lon, (sampling_area_edges %>% filter(edge == "north"))$lat),
+                                                         c((sampling_area_edges %>% filter(edge == "south"))$lon, (sampling_area_edges %>% filter(edge == "south"))$lat))
+# Total area covered by sites (sum of site widths)
+total_sum_of_site_widths <- sum(site_width_info$width_m)
+
+# (Rough) proportion of sampling area that is habitat
+prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_area
+Ps <- prop_sampling_area_habitat
+
+### (Pd) How much of the dispersal kernel area from each site did we actually sample? (So can scale up "tagged" recruits found to account for areas they might have gone that weren't in our sites)
+# Find the number and proportion of total parents at each site       
+all_parents_site <- all_parents_by_site %>%
+  group_by(site) %>%
+  summarize(nparents = n()) %>%
+  mutate(prop_parents = nparents/sum(nparents))
+
+# Add in site info
+all_parents_site <- left_join(all_parents_site, site_width_info %>% select(site, site_geo_order, dist_to_N_edge_km, dist_to_S_edge_km), by = "site")
+
+# Find area of dispersal kernel from middle of each site within sampling area to the north and south of each site
+all_parents_site <- all_parents_site %>%
+  mutate(disp_area_N_within_sites = NA,
+         disp_area_S_within_sites = NA)
+
+for(i in 1:length(all_parents_site$site)) {
+  all_parents_site$disp_area_N_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_N_edge_km[i])$value
+  all_parents_site$disp_area_S_within_sites[i] = integrate(disp_allyears_d, 0, all_parents_site$dist_to_S_edge_km[i])$value
+}
+
+# Find proportion of total area under dispersal kernel
+all_parents_site <- all_parents_site %>%
+  mutate(total_disp_area_within_sites = disp_area_N_within_sites + disp_area_S_within_sites,
+         prop_disp_area_within_sites = total_disp_area_within_sites,  # now, dispersal kernel normalized to 0.5 so total to N and S to infinity in each direction combined is 1
+         total_parent_area_sampled = total_disp_area_within_sites*nparents)
+
+all_parents_site_summarized <- all_parents_site %>%
+  summarize(total_parent_kernel_area = sum(nparents),  
+            sampled_parent_kernel_area = sum(total_parent_area_sampled),
+            prop_parent_kernel_area_sampled = sampled_parent_kernel_area/total_parent_kernel_area)
+
+prop_total_disp_area_sampled_best_est <- all_parents_site_summarized$prop_parent_kernel_area_sampled
+Pd <- prop_total_disp_area_sampled_best_est
+
+### (Ph) What proportion of habitat at our sites did we sample over time? (to scale up to account for habitat areas we didn't sample)
+total_prop_hab_sampled_through_time <- (total_area_sampled_through_time %>% filter(method == "metal tags", time_frame == "2012-2018"))$total_prop_hab_sampled_area  # use proportion of metal-tagged anemones sampled at each site
+Ph <- total_prop_hab_sampled_through_time
+
+##### Survival by site (here, using median site survival for the three sites that weren't resampled and don't have survival estimates)
+
+# Set up data frame for best-estimate survival parameters by site, for sites that were revisisted and have survival estimates
+site_surv_best_est <- data.frame(site = no_space_sites_revisited, Sint = NA, 
+                                 lcl = NA, ucl = NA,
+                                 Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], 
+                                 stringsAsFactors = FALSE)
+
+# Cabatoan is the first intercept
+site_surv_best_est$Sint[1] = best_fit_model_dfs$results$estimate[1]
+site_surv_best_est$lcl[1] = best_fit_model_dfs$results$lcl[1]
+site_surv_best_est$ucl[1] = best_fit_model_dfs$results$ucl[1]
+
+# fill in rest of sites, which are additions to the intercept for Cabatoan
+for(i in 2:length(no_space_sites_revisited)) {
+  site_surv_best_est$Sint[i] = best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[i]
+  site_surv_best_est$lcl[i] = best_fit_model_dfs$results$lcl[i]
+  site_surv_best_est$ucl[i] = best_fit_model_dfs$results$ucl[i]
+}
+
+# Fill in median of estimated sites for sites not revisited so not estimated (Caridad Proper, Sitio Lonas, Sitio Tugas)
+median_site_pos = 3
+site_surv_notrevisited = data.frame(site = sites_not_revisited, Sint = (best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[median_site_pos]),
+                                    lcl = best_fit_model_dfs$results$lcl[median_site_pos], ucl = best_fit_model_dfs$results$ucl[median_site_pos],
+                                    Sl = best_fit_model_dfs$results$estimate[Phi_size_pos], stringsAsFactors = FALSE)
+
+# Bind them together
+site_surv_best_est <- rbind(site_surv_best_est, site_surv_notrevisited)
+
+##### Parentage assignment rate
+assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of genotyped offspring that were assigned to parents in parentage analysis
+
+
+#################### Estimate point estimates of metrics ####################
+
+# Put best-estimate intput parameters into one data frame (where starting recruit size is mean size of actual offspring collected ~ 4.38)
+param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # for LEP-IPM matrix
+         clutches_per_year_mean = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,  # growth info
+         breeding_size = breeding_size_mean,  # size of transition to female 
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time,  # Pc, Ph (for scaling up recruits)
+         prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est, prop_hab = prop_sampling_area_habitat,  # Ps, Pd (for scaling up recruits)
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,  # number of offspring and parents genotyped
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val)  # proportion APCL-occupied anemones and unoccupied anemones for density dependence compensation
+
+# Calculate the metrics for the best estimates, without and with (_DD) density-dependence compensated for
+best_est_metrics_mean_offspring <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info, site_vec_order, "FALSE")
+best_est_metrics_mean_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est, site_dist_info, site_vec_order, "TRUE")
+
+#################### Generate sets of parameters for uncertainty: ####################
+
+##### Growth 
+growth_set_intercept_est_mean <- mean(growth_info_estimate$intercept_est)  # mean of the intercept estimates from the fits with different growth pairs for fish with multiple recaptures
+growth_set_intercept_se_mean <- mean(growth_info_estimate$intercept_se)  # mean of intercept se estimates
+growth_set_slope_est_mean <- mean(growth_info_estimate$slope_est)  # mean of slope estimates from the fits with different growth pairs randomly chosen for fish with multiple recaptures
+growth_set_slope_se_mean <- mean(growth_info_estimate$slope_se)  # mean of slope se estimates
+
+# Select 1000 slopes and intercepts using the mean and se from the fits, then find k and Linf from that
+growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-growth_set_slope_se_mean, growth_set_slope_est_mean+growth_set_slope_se_mean),  # choose slope values from within mean+-SE range
+                                intercept_est = runif(n_runs, growth_set_intercept_est_mean-growth_set_intercept_se_mean, growth_set_intercept_est_mean+growth_set_intercept_se_mean))  # choose intercept values from within mean+-SE range
+growth_set_params <- growth_set_params %>%
+  mutate(k_est = -log(slope_est),
+         Linf_est = intercept_est/(1-slope_est))
+
+##### Dispersal
+# Select values from the 95% CI, weighted by log-likelihood
+min_LL <- min(k_theta_allyear_95CI_values$log_like)
+dispersal_sample_set <- k_theta_allyear_95CI_values %>%
+  mutate(deviation = min_LL/log_like) %>%
+  sample_n(size = n_runs, weight = deviation, replacement = T)
+
+k_connectivity_set <- dispersal_sample_set$k_eval
+theta_connectivity_set <- dispersal_sample_set$theta_eval
+
+##### Create survival parameter sets, sampling from within 95% confidence bounds for Cabatoan intercept, addition for each site, and size effect 
+site_surv_param_sets <- list()
+
+# Cabatoan first
+site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]),  # Cabatoan intercept
+                           Sint_site = 0,  # site-specific addition to Catatoan intercept
+                           Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%  # size effect
+  mutate(Sint = Sint_C + Sint_site)  # add together to find site-specific intercept
+site_surv_param_sets[[1]] <- site_surv_df
+
+# then rest of sites where survival was estimated
+for(i in 2:length(no_space_sites_revisited)) {
+  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[i], max=best_fit_model_dfs$results$ucl[i]), 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_param_sets[[i]] <- site_surv_df
+}
+
+# then for the three that use median survival (Caridad Proper, Sitio Lonas, Sitio Tugas)
+median_site_Sint_lcl = best_fit_model_dfs$results$lcl[median_site_pos]  # median site is Elementary School
+median_site_Sint_ucl = best_fit_model_dfs$results$ucl[median_site_pos]
+
+for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
+  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[median_site_pos], max=best_fit_model_dfs$results$ucl[median_site_pos]), 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_param_sets[[i]] <- site_surv_df
+}
+
+# Make a list with median Sint for all sites to use for what-if simulations
+site_surv_median_Sint_param_sets <- list()
+for(i in 1:length(site_vec_order$site_name)) {
+  site_surv_df <- data.frame(Sint_C = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[median_site_pos], max=best_fit_model_dfs$results$ucl[median_site_pos]), 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_median_Sint_param_sets[[i]] <- site_surv_df
+}
+
+# Make one for best ests too so can use same code
+site_surv_best_est_sets <- list()
+# Cabatoan first
+site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+                           Sint_site = rep(0, n_runs), 
+                           Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+  mutate(Sint = Sint_C + Sint_site)
+site_surv_best_est_sets[[1]] <- site_surv_df
+# then rest of sites that are revisited
+for(i in 2:length(no_space_sites_revisited)) {
+  site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+                             Sint_site = rep(best_fit_model_dfs$results$estimate[i], n_runs), 
+                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_best_est_sets[[i]] <- site_surv_df
+}
+# then three that use average
+for(i in length(no_space_sites_revisited)+1:length(site_vec_order$site_name)) {
+  site_surv_df <- data.frame(Sint_C = rep(best_fit_model_dfs$results$estimate[1], n_runs),
+                             Sint_site = rep(best_fit_model_dfs$results$estimate[median_site_pos], n_runs), 
+                             Sl = rep(best_fit_model_dfs$results$estimate[Phi_size_pos], n_runs)) %>%
+    mutate(Sint = Sint_C + Sint_site)
+  site_surv_best_est_sets[[i]] <- site_surv_df
+}
+
+##### Breeding size (transition to female)
+breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at female for fish caught as both male and female
+
+##### Probability of capturing a fish (Pc)
+prob_r_beta_params = findBetaDistParams(mean(prob_r), var(prob_r))  # find beta distribution parameters for prob r distrubtion from normal mean and variance
+prob_r_set_fodder = rbeta(n_runs, prob_r_beta_params$alpha, prob_r_beta_params$beta, 0)  # generate a set of values from a beta distribution
+prob_r_set_truncated = prob_r_set_fodder[prob_r_set_fodder >= min(prob_r)]  # get rid of any values lower than the lowest observed value of prob_r, then re-sample from that truncated vector... removes about 100 obs 
+prob_r_set = sample(prob_r_set_truncated, n_runs, replace = TRUE)  # sample from that truncated set
+
+##### Recruit size 
+start_recruit_size_set <- runif(n_runs, min = 3.5, max = 6.0)  # pull from range of offspring sizes
+
+###### Uncertainty in the number of offspring that get matched through parentage analysis (feeds into uncertainty in recruits-per-egg)
+n_offspring_parentage_set <- rbinom(n_runs, n_offspring_genotyped, assignment_rate)  # number of assigned offspring using just uncertainty in binomial (assigned/not)
+
+#################### Generate sets of parameters for uncertainty and do uncertainty runs: ####################
+### Make parameter sets with different kinds of uncertainty included 
+
+# Uncertainty in start recruit size only
+param_set_start_recruit <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         breeding_size = breeding_size_mean, 
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in growth only (both Linf and k)
+param_set_growth <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = growth_set_params$k_est, s=s, Linf = growth_set_params$Linf_est,
+         breeding_size = breeding_size_mean, 
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in survival only (survival uncertainty enters the metrics function in a separate data frame)
+param_set_survival <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
+         breeding_size = breeding_size_mean, 
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in breeding size only
+param_set_breeding_size <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         breeding_size = breeding_size_set, 
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in offspring assigned to parents (affects recruits-per-egg)
+param_set_offspring_assigned <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         breeding_size = breeding_size_mean,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in probability catching a fish (affects recruits-per-egg)
+param_set_prob_r <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean, 
+         breeding_size = breeding_size_mean,
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in dispersal only
+param_set_dispersal <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         breeding_size = breeding_size_mean, 
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_matched, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Uncertainty in all parameters with uncertainty
+param_set_full <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = growth_set_params$k_est, s = s, Linf = growth_set_params$Linf_est,
+         breeding_size = breeding_size_set,
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = prop_total_disp_area_sampled_best_est,
+         offspring_assigned_to_parents = n_offspring_parentage_set, n_parents = n_parents_genotyped,
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
+
+### Run metrics for different types of uncertainty - no DD compensation
+output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
+output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
+output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", FALSE)
+output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
+output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
+output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
+output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
+output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
+
+### Run metrics for different types of uncertainty - with DD compensation
+output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
+output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
+output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", TRUE)
+output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
+output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
+output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
+output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
+output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
+
+#################### Analyze output, prepare for plotting: ####################
+##### Join together runs with DD compensation with different types of uncertainty for plotting purposes 
+# LEP averaged by site
+LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
+                    output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
+                    output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
+                    output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
+
+# LEP by site
+LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
+                       output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
+                       output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
+                       output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
+
+# LRP averaged across sites
+LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
+                      output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
+                      output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
+                      output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
+
+# LRP by site
+LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
+                               output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
+                               output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
+                               output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
+
+# Egg-recruit survival
+RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
+                      output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
+                      output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
+                      output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
+
+# Network persistence
+NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
+                   output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
+                   output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
+                   output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
+
+##### Find 95% range for estimates 
+
+### Estimates with DD compensation
+# NP with DD
+NP_vec <- sort(output_uncert_all_DD$NP_out_df$value)
+NP_lower <- round(NP_vec[25], 2)
+NP_upper <- round(NP_vec[975], 2)
+
+# LEP averaged across sites
+LEP_avg_vec <- sort(output_uncert_all_DD$LEP_out_df$value)
+LEP_avg_lower <- round(LEP_avg_vec[lower_index])
+LEP_avg_upper <- round(LEP_avg_vec[upper_index])
+
+# LEP at each site
+LEP_site_limits <- data.frame(site = site_vec_order$site_name, lower = NA, upper = NA)
+for(i in 1:n_sites) {
+  LEP_site_vec <- sort((output_uncert_all_DD$LEP_by_site_out_df %>% filter(site == i))$value) 
+  LEP_site_limits$lower[i] <- LEP_site_vec[lower_index]
+  LEP_site_limits$upper[i] <- LEP_site_vec[upper_index]
+}
+
+# Egg-recruit survival with DD compensation
+egg_recruit_survival_vec <- sort(output_uncert_all_DD$RperE_out_df$value)
+egg_recruit_survival_lower <- egg_recruit_survival_vec[lower_index]
+egg_recruit_survival_upper <- egg_recruit_survival_vec[upper_index]
+
+# LRP local averaged across sites
+LRP_local_average_vec <- sort(output_uncert_all_DD$LEP_R_local_out_df$value)
+LRP_local_average_lower <- LRP_local_average_vec[lower_index]
+LRP_local_average_upper <- LRP_local_average_vec[upper_index]
+
+# Estimates > 1
+LRP_avg_ests_above_1 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)  # LRP averaged across sites
+LR_est_DD_above_1 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)  # LR 
+NP_est_DD_above_1 <- output_uncert_all_DD$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+# Haina SP (site with highest SP)
+Haina_SP_vec <- sort((output_uncert_all_DD$SP_vals_with_params %>% filter(site == "Haina"))$SP)
+Haina_SP_lower <- Haina_SP_vec[lower_index]
+Haina_SP_upper <- Haina_SP_vec[upper_index]
+
+### Estimates without DD compensation
+# NP
+NP_vec_noDD <- sort(output_uncert_all$NP_out_df$value)
+NP_lower_noDD <- round(NP_vec_noDD[25], 2)
+NP_upper_noDD <- round(NP_vec_noDD[975], 2)
+
+# Egg-recruit survival without DD compensation
+egg_recruit_survival_vec_noDD <- sort(output_uncert_all$RperE_out_df$value)
+egg_recruit_survival_lower_noDD <- egg_recruit_survival_vec_noDD[lower_index]
+egg_recruit_survival_upper_noDD <- egg_recruit_survival_vec_noDD[upper_index]
+
+# LEP R averaged across sites with DD compensation
+LRP_average_vec <- sort(output_uncert_all_DD$LEP_R_out_df$value)
+LRP_average_lower <- LRP_average_vec[lower_index]
+LRP_average_upper <- LRP_average_vec[upper_index]
+
+# LEP R averaged across sites without DD compensation
+LRP_average_vec_noDD <- sort(output_uncert_all$LEP_R_out_df$value)
+LRP_average_lower_noDD <- LRP_average_vec_noDD[lower_index]
+LRP_average_upper_noDD <- LRP_average_vec_noDD[upper_index]
+
+## LRP local averaged across sites without DD compensation
+LRP_local_average_vec_noDD <- sort(output_uncert_all$LEP_R_local_out_df$value)
+LRP_local_average_lower_noDD <- LRP_local_average_vec_noDD[lower_index]
+LRP_local_average_upper_noDD <- LRP_local_average_vec_noDD[upper_index]
+
+# Estimates > 1
+LRP_avg_noDD_ests_above_1 <- output_uncert_all$LEP_R_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)  # LRP averaged across sites
+NP_est_noDD_above_1 <- output_uncert_all$NP_out_df %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+##### Find best estimates
+# With density dependence compensation
+LEP_best_est <- mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)  # mean LEP across sites
+LEP_R_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_mean  # mean LRP across sites
+LEP_R_local_best_est_DD <- best_est_metrics_mean_offspring_DD$LEP_R_local_mean
+NP_best_est_DD <- best_est_metrics_mean_offspring_DD$NP
+SP_best_est_DD <- best_est_metrics_mean_offspring_DD$SP
+
+# Without density dependence compensation
+LEP_R_best_est <- best_est_metrics_mean_offspring$LEP_R_mean
+LEP_R_local_best_est <- best_est_metrics_mean_offspring$LEP_R_local_mean
+NP_best_est <- best_est_metrics_mean_offspring$NP
+SP_best_est <- best_est_metrics_mean_offspring$SP
+
+#################### What-if calculations, including alternative geographies and larval navigation: ####################
+
+##### What-if calculation 1) what if all genotyped offspring came from the population? (Is the metapopulation persistent when we include immigrants)
+
+# Parameter set to do an estimate using all offspring genotyped, rather than just those matched
+param_best_est_mean_collected_offspring_all_offspring <- data.frame(t_steps = n_tsteps) %>%
+  mutate(min_size = min_size, max_size = max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year_mean = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect =  eyed_effect,  # size-dependent fecundity info
+         start_recruit_size = mean_sampled_offspring_size, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = k_growth_mean, s = s, Linf = Linf_growth_mean,
+         breeding_size = breeding_size_mean,  # size of transition to female
+         k_connectivity = k_allyears, theta_connectivity = theta_allyears,  # dispersal kernel parameters
+         prob_r = prob_r_mean, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled = 1,  # here, assuming all the offspring arriving came from these sites so don't need to scale it up for the dispersal kernel area 
+         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,  # offspring assigned are all offspring genotyped
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat) 
+
+# Calculate the metrics for the best estimates
+best_est_metrics_mean_offspring_all_offspring <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_surv_best_est, site_dist_info, site_vec_order, FALSE)  # without density dependence compensation
+best_est_metrics_mean_offspring_all_offspring_DD <- calcMetrics(param_best_est_mean_collected_offspring_all_offspring, site_surv_best_est, site_dist_info, site_vec_order, TRUE)  # with density dependence compensation
+
+# Do uncertainty run with all uncertainty included (except offspring assigned since using all genotyped offspring as matches in this estimate)
+param_set_full_all_offspring <- data.frame(t_steps = rep(n_tsteps, n_runs)) %>%
+  mutate(min_size = min_size, max_size=max_size, n_bins = n_bins,  # LEP-IPM matrix
+         clutches_per_year = clutches_per_year_mean,  # fecundity info
+         egg_size_slope = eggs_slope_log, egg_size_intercept = eggs_intercept_log, eyed_effect = eyed_effect, # size-dependent fecundity info
+         start_recruit_size = start_recruit_size_set, start_recruit_sd = start_recruit_sd,  # for initializing IPM with one recruit
+         k_growth = growth_set_params$k_est, s = s, Linf = growth_set_params$Linf_est,
+         breeding_size = breeding_size_set,
+         k_connectivity = k_connectivity_set, theta_connectivity = theta_connectivity_set,  # dispersal kernel parameters
+         prob_r = prob_r_set, total_prop_hab_sampled = total_prop_hab_sampled_through_time, prop_total_disp_area_sampled_best = 1,
+         offspring_assigned_to_parents = n_offspring_genotyped, n_parents = n_parents_genotyped,  # no uncertainty in offspring assigned this time
+         perc_APCL = perc_APCL_val, perc_UNOC = perc_UNOC_val, prop_hab = prop_sampling_area_habitat)  
+
+output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
+output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
+
+##### What-if calculation 2) What would LRP need to be for NP to be 1? 
+LRP_vec_WI2 = seq(from=0.1, to=10.0, by=0.01)  # vector of potential LRP values
+NP_output_vec_WI2  <- rep(NA, length(LRP_vec_WI2))
+
+# Find the NP value for those LRP values
+for(i in 1:length(NP_output_vec_WI2)) {
+  conn_matR_WI2 = best_est_metrics_mean_offspring$conn_matrix*LRP_vec_WI2[i]
+  eig_CR_WI2 = eigen(conn_matR_WI2)
+  NP_output_vec_WI2[i] = Re(eig_CR_WI2$values[1])
+}
+
+LRP_for_NP = LRP_vec_WI2[which(NP_output_vec_WI2 >= 1)[1]]  
+
+##### What-if calculation 3) To get the required LRP for NP, what do egg-recruit survival (for our LEP) and LEP (for our egg-recruit-survival) need to be?
+egg_recruit_survival_for_NP <- LRP_for_NP/mean(best_est_metrics_mean_offspring$LEP_by_site$LEP)
+
+LEP_for_NP <- LRP_for_NP/best_est_metrics_mean_offspring$recruits_per_egg
+
+LEP_for_NP_DD <- LRP_for_NP/best_est_metrics_mean_offspring_DD$recruits_per_egg
+
+# % of estimates of LRP (with DD) that are >= LRP_for_NP
+LRP_ests_above_LRP_for_NP <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= LRP_for_NP) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+##### Alternative geography - how much habitat would we need for the sampling region to be persistent?
+# Set width of region
+region_width_km <- total_range_of_sampling_area/1000  # length of region (if it was a straight line...)
+
+# Go through different habitat percentages and find site locations, distances, etc. for equally sized and spaced sites  
+site_dist_info_habperc <- list()
+for(i in 1:length(perc_hab_vals)) {
+  site_dist_out_df <- make_output_with_dist(n_sites, perc_hab_vals[i], region_width_km)
+  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+  site_dist_info_habperc[[i]] <- site_dist_out_df
+}
+
+# Make site-survs use numbers as names to match
+median_site_Sint <- (site_surv_best_est %>% filter(site == "Elementary School"))$Sint
+site_surv_best_est_med_Sint <- site_surv_best_est %>%
+  mutate(Sint = median_site_Sint)
+
+# Find best estimate and uncertainty metrics for those habitat configurations with median-site survs, including compensation for density-dependence
+perc_hab_best_ests_avgSurvs <- list()  # place to store point estimates
+perc_hab_uncertainty_avgSurvs <- list()  # place to store estimates from uncertainty runs
+for(i in 1:length(perc_hab_vals)) {
+  perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_habperc[[i]], site_vec_order, TRUE)
+  perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_median_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, med surv", TRUE)
+}
+
+# Make dfs for plotting where each run is its own line - perc hab on x axis, NP on y axis
+perc_hab_plot_df <- perc_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[1])  # one for uncertainty runs
+for(i in 2:length(perc_hab_vals)) {
+  perc_hab_plot_df <- rbind(perc_hab_plot_df, perc_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(perc_hab = perc_hab_vals[i]))
+}
+
+perc_hab_best_est_NP_df <- data.frame(perc_hab = rep(NA,length(perc_hab_vals)), value = rep(NA,length(perc_hab_vals)))  # and one for best ests
+for(i in 1:length(perc_hab_vals)) {
+  perc_hab_best_est_NP_df$perc_hab[i] = perc_hab_vals[i]
+  perc_hab_best_est_NP_df$value[i] = perc_hab_best_ests_avgSurvs[[i]]$NP
+}
+
+# Find number of runs with NP >=1 at perc_hab = 0.9 (where NP is > 1) (not sure why filtering for == 0.9 doesn't work)
+perc_hab_plot_df %>% filter(0.88 < perc_hab & perc_hab < 0.92) %>% filter(value >= 1) %>% summarize(n_estimates = n()) %>% select(n_estimates)
+
+##### Alternative geographic - same habitat density, wider region 
+region_width_list <- c(region_width_km, 35, 40, 45, 50, 55)
+
+# Go through different region widths for the real habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
+site_dist_info_wider_region <- list()
+for(i in 1:length(region_width_list)) {
+  site_dist_out_df <- make_output_with_dist(n_sites, Ps, region_width_list[i])
+  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+  site_dist_info_wider_region[[i]] <- site_dist_out_df
+}
+
+# Find best estimate and uncertainty metrics for those habitat configurations with median-site survs (and including compensation for density-dependence)
+wider_region_best_ests_avgSurvs <- list()
+wider_region_uncertainty_avgSurvs <- list()
+for(i in 1:length(region_width_list)) {
+  wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
+  wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_median_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
+}
+
+# Make dfs for plotting where each run is it's own line - region width on x axis, NP on y axis
+wider_region_plot_df <- wider_region_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[1])  # one for uncertainty runs
+for(i in 2:length(region_width_list)) {
+  wider_region_plot_df <- rbind(wider_region_plot_df, wider_region_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[i]))
+}
+wider_region_best_est_NP_df <- data.frame(region_width = rep(NA,length(region_width_list)), value = rep(NA,length(region_width_list)))  # and one for best ests
+for(i in 1:length(region_width_list)) {
+  wider_region_best_est_NP_df$region_width[i] = region_width_list[i]
+  wider_region_best_est_NP_df$value[i] = wider_region_best_ests_avgSurvs[[i]]$NP
+}
+
+##### Alternative geography - 100% habitat, wider region
+# Go through different region widths for 100% habitat percentage and find site locations, distances, etc. for equally sized and spaced sites
+site_dist_info_wider_region_all_hab <- list()
+for(i in 1:length(region_width_list)) {
+  site_dist_out_df <- make_output_with_dist(n_sites, 1.0, region_width_list[i])
+  site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+  site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+  site_dist_info_wider_region_all_hab[[i]] <- site_dist_out_df
+}
+
+# Find best estimate and uncertainty metrics for those habitat configurations with average-site survs (and including compensation for density-dependence)
+wider_region_all_hab_best_ests_avgSurvs <- list()
+wider_region_all_hab_uncertainty_avgSurvs <- list()
+for(i in 1:length(region_width_list)) {
+  wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
+  wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_median_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
+}
+
+# Make dfs for plot where each run is it's own line - region width on x axis, NP on y axis
+wider_region_all_hab_plot_df <- wider_region_all_hab_uncertainty_avgSurvs[[1]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[1])  # one for uncertainty runs
+for(i in 2:length(region_width_list)) {
+  wider_region_all_hab_plot_df <- rbind(wider_region_all_hab_plot_df, wider_region_all_hab_uncertainty_avgSurvs[[i]]$NP_out_df %>% select(value,run) %>% mutate(region_width = region_width_list[i]))
+}
+wider_region_all_hab_best_est_NP_df <- data.frame(region_width = rep(NA,length(region_width_list)), value = rep(NA,length(region_width_list)))  # and one for best ests
+for(i in 1:length(region_width_list)) {
+  wider_region_all_hab_best_est_NP_df$region_width[i] = region_width_list[i]
+  wider_region_all_hab_best_est_NP_df$value[i] = wider_region_all_hab_best_ests_avgSurvs[[i]]$NP
+}
+
+##### Alternative geography for % habitat and region width combined
+# Find the site dist info
+perc_hab_vals_long_form <- seq(from=0.01, to=1.0, by = 0.01)  # percent habitat values to use
+region_width_list_long_form <- seq(from = 20, to = 55, by = 1)  # region width values to use
+
+site_dist_info_wider_region_perc_hab <- list()
+list_val = 1
+for(i in 1:length(region_width_list_long_form)) {
+  for(j in 1:length(perc_hab_vals_long_form)) {
+    site_dist_out_df <- make_output_with_dist(n_sites, perc_hab_vals_long_form[j], region_width_list_long_form[i])
+    site_dist_out_df$org_site <- (as.data.frame(site_vec_NS, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each=n_sites)))$site_vec_NS  # replace numeric org_site with names
+    site_dist_out_df$dest_site <- rep(site_vec_NS, n_sites)  # replace numeric dest_site with names
+    site_dist_info_wider_region_perc_hab[[list_val]] <- site_dist_out_df
+    list_val = list_val + 1
+  }
+}
+
+# Find best estimate of metrics for those habitat configurations with median-site survs (and including compensation for density-dependence)
+wider_region_perc_hab_best_ests_avgSurvs <- list()
+for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
+  wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_med_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
+  print(i)
+}
+
+# Make dfs for plot where region width, perc hab, and NP all listed
+wider_region_perc_hab_plot_df <- data.frame(NP = rep(NA, length(region_width_list_long_form)*length(perc_hab_vals_long_form)))
+for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
+  wider_region_perc_hab_plot_df$NP[i] = wider_region_perc_hab_best_ests_avgSurvs[[i]]$NP
+}
+wider_region_perc_hab_plot_df$region_width = (as.data.frame(region_width_list_long_form, stringsAsFactors = FALSE) %>% slice(rep(1:n(), each = length(perc_hab_vals_long_form))))$region_width_list_long_form
+wider_region_perc_hab_plot_df$perc_hab = rep(perc_hab_vals_long_form, length(region_width_list_long_form))
+
+# Put NP into categories: 0-.25, 0.25-0.5, 0.5-0.75, 0.75<1.0, >=1.0
+wider_region_perc_hab_plot_df_categories <- wider_region_perc_hab_plot_df %>%
+  mutate(NP_categories = case_when(NP < 0.25 ~ "< 0.25",
+                                 (0.25 <= NP & NP < 0.5) ~ "[0.25 - 0.5)",
+                                 (0.5 <= NP & NP < 0.75) ~ "[0.5 - 0.75)",
+                                 (0.75 <= NP & NP < 1) ~ "[0.75 - 1)",
+                                 (NP >= 1) ~ ">= 1")) 
+
+##### What if larvae could navigate? Integrate kernel from 500 or 1000m on either side of each patch
+
 
 # Go through nav distances and find parameter sets and distance data frames
 nav_buffer_vec <- c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0)
@@ -2048,26 +1374,13 @@ for(i in 1:length(max_size_test_vec)) {
                                      param_best_est_mean_collected_offspring$n_bins, param_best_est_mean_collected_offspring$t_steps,
                                      site_surv_best_est_avg_Sint$Sint[1], site_surv_best_est_avg_Sint$Sl[1],
                                      param_best_est_mean_collected_offspring$s, param_best_est_mean_collected_offspring$Linf,
-                                     param_best_est_mean_collected_offspring$k_growth, param_best_est_mean_collected_offspring$eggs_per_clutch,
+                                     param_best_est_mean_collected_offspring$k_growth,
                                      param_best_est_mean_collected_offspring$clutches_per_year_mean,
                                      param_best_est_mean_collected_offspring$breeding_size, param_best_est_mean_collected_offspring$start_recruit_size,
                                      param_best_est_mean_collected_offspring$start_recruit_sd, param_best_est_mean_collected_offspring$egg_size_slope,
                                      param_best_est_mean_collected_offspring$egg_size_intercept, param_best_est_mean_collected_offspring$eyed_effect)
 }
   
-##### What is LRP if we include all the arriving offspring (not just those locally produced)?
-# LRP_all_offspring = LEP*Re (right?) # 10.43057 (best_est_metrics_mean_offspring_all_offspring$LEP_R_mean)
-
-
-# ##### What-if calculation 4) For the largest patch to be SP (highest p(i,i)), what would LRP need to be? And then what would LEP and egg-recruit survival need to be to acheive that LRP?
-# highest_self_disp <- max(best_est)
-
-##### What-if calculation 3) What would egg-recruit survival need to be for one of the patches to be SP? 
-
-##### What-if calculation 4) What would local retention need to be for one of the patches to be SP?
-
-##### What-if calculation 5) If we include the ghost population recruits too, is the population NP persistent?
-
 #################### Metrics and parameters summarized for easy access: ####################
 params_summary <- data.frame(param = c("k_disp","k_disp_lcl","k_disp_ucl",
                                         "theta_disp","theta_disp_lcl","theta_disp_ucl",
@@ -2141,266 +1454,80 @@ metrics_summary <- data.frame(metric = c("LEP avg best est", "LEP avg lower", "L
 #                                                (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
 
 #################### Save output: ####################
-# Runs without DD compensation
-save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
-save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
-save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
-save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
-save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
-save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
-save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
-save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
-save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
-#save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
-save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
-save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
 
-# Runs with DD compensation
-save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
+### Parameter sets
+save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))  # point estimates
+save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))  # parameter set with uncertainty values
+save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))  # survival parameter sets
+
+### Point estimates
+save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))  # point estimates with density dependence compensation (presented in main text)
+save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))  # point estimates without density dependence compensation (presented in appendix)
+
+### Uncertainty estimates with density dependence compensation (presented in main text)
 save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
 save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
 save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_uncert_survival_DD.RData"))
 save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
 save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
 save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
-#save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
 save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
 save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
 
-# Params
-save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
+### Uncertainty estimates without density dependence compensation (presented in appendix)
+save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
+save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
+save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
+save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
+save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
+save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
+save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
+save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
 
-# What-ifs
-save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
-save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
-#save(perc_hab_best_ests_realSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_realSurvs.RData"))
-#save(perc_hab_uncertainty_realSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_realSurvs.RData"))
-save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_avgSurvs.RData"))
-save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
-#save(NP_by_perc_hab_realSurvs, file=here::here("Data/Script_outputs","NP_by_perc_hab_realSurvs.RData"))
-#save(NP_by_perc_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_by_perc_hab_avgSurvs.RData"))
-#save(NP_above1_perc_hab_realSurvs, file=here::here("Data/Script_outputs","NP_above1_perc_hab_realSurvs.RData"))
-#save(NP_above1_perc_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_perc_hab_avgSurvs.RData"))
+### What-ifs
+# All arriving recruits considered offspring
+save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # all arriving recruits considered offspring, without DD compensation
+save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # all arriving recruits considered offspring, with DD compensation
 
-#save(NP_by_wider_region_avgSurvs, file=here::here("Data/Script_outputs","NP_by_wider_region_avgSurvs.RData"))
-#save(NP_above1_wider_region_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_wider_region_avgSurvs.RData"))
-#save(NP_by_wider_region_all_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_by_wider_region_all_hab_avgSurvs.RData"))
-#save(NP_above1_wider_region_all_hab_avgSurvs, file=here::here("Data/Script_outputs","NP_above1_wider_region_all_hab_avgSurvs.RData"))
+# Alternative geographies - sensitivity to percent habitat
+save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_avgSurvs.RData"))  # point estimates
+save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))  # uncertainty
 
-save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))
-save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))
+# Alternative geographies - sensitivity to wider region
+save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))  # point estimates
+save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))  # uncertainty
+
+# Alternative geographies - sensitivity to wider region at 100% habitat
 save(wider_region_all_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_best_ests_avgSurvs.RData"))
 save(wider_region_all_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_uncertainty_avgSurvs.RData"))
 
-# Larval navigation sensitivity
-save(larv_nav_prop_hab, file=here::here("Data/Script_outputs","larv_nav_prop_hab.RData"))
-save(larv_nav_params_list, file=here::here("Data/Script_outputs","larv_nav_params_list.RData"))
-save(larv_nav_best_ests, file=here::here("Data/Script_outputs","larv_nav_best_ests.RData"))
-save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert_all.RData"))
+# Alternative geographies - sensitivity to wider region and percent habitat simultaneously
+save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgSurvs.RData"))
+save(wider_region_perc_hab_plot_df, file=here::here("Data/Script_outputs","wider_region_perc_hab_plot_df.RData"))
 
-# # From older version...
-# save(best_est_metrics_larv_nav_200m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
-# save(best_est_metrics_larv_nav_200m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_200m_DD.RData"))  # 200m each side of patch, DD comp
-# save(best_est_metrics_larv_nav_500m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
-# save(best_est_metrics_larv_nav_500m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_500m_DD.RData"))  # 500m each side of patch, DD comp
-# save(best_est_metrics_larv_nav_1000m, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
-# save(best_est_metrics_larv_nav_1000m_DD, file=here::here("Data/Script_outputs","best_est_metrics_larv_nav_1000m_DD.RData"))  # 1000m each side of patch, DD comp
-# save(output_uncert_all_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_200m.RData"))  # 200m each side of patch, no DD comp
-# save(output_uncert_all_DD_larv_nav_200m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_200m.RData"))  # 200m each side of patch, DD comp
-# save(output_uncert_all_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_500m.RData"))  # 500m each side of patch, no DD comp
-# save(output_uncert_all_DD_larv_nav_500m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_500m.RData"))  # 500m each side of patch, DD comp
-# save(output_uncert_all_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_larv_nav_1000m.RData"))  # 1000m each side of patch, no DD comp
-# save(output_uncert_all_DD_larv_nav_1000m, file=here::here("Data/Script_outputs","output_uncert_all_DD_larv_nav_1000m.RData"))  # 1000m each side of patch, DD comp
+# Larval navigation sensitivity
+save(larv_nav_prop_hab, file=here::here("Data/Script_outputs","larv_nav_prop_hab.RData"))  # effective proportion habitat when consider larva navigation
+save(larv_nav_params_list, file=here::here("Data/Script_outputs","larv_nav_params_list.RData"))  # parameter sets that take into account effective proportion habitat
+save(larv_nav_best_ests, file=here::here("Data/Script_outputs","larv_nav_best_ests.RData"))  # point estimates
+save(larv_nav_uncert_all, file=here::here("Data/Script_outputs","larv_nav_uncert_all.RData"))  # uncertainty
 
 # Summary of parameters and metrics, for easy reference while writing
-#save(metrics_params_summary, file=here::here("Data/Script_outputs","metrics_params_summary.RData"))
 save(params_summary, file=here::here("Data/Script_outputs","params_summary.RData"))
 save(metrics_summary, file=here::here("Data/Script_outputs","metrics_summary.RData"))
 
-# ###################################### STUFF TO RUN OVERNIGHT!
-# ### Run metrics for a bunch of different types of uncertainty - No DD
-# output_uncert_start_recruit <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", FALSE)
-# output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
-# output_uncert_survival <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", FALSE)
-# output_uncert_breeding_size <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", FALSE)
-# output_uncert_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", FALSE)
-# output_uncert_prob_r <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", FALSE)
-# #output_uncert_prob_r_and_offspring_assigned <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", FALSE)
-# output_uncert_dispersal <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", FALSE)
-# output_uncert_all <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", FALSE)
-# 
-# # output_uncert_growth <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", FALSE)
-# # output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
-# # output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
-# 
-# 
-# # Join them together for plotting purposes
-# LEP_uncert <- rbind(output_uncert_start_recruit$LEP_out_df, output_uncert_growth$LEP_out_df,
-#                     output_uncert_survival$LEP_out_df, output_uncert_breeding_size$LEP_out_df,
-#                     output_uncert_offspring_assigned$LEP_out_df,output_uncert_prob_r$LEP_out_df,
-#                     #output_uncert_prob_r_and_offspring_assigned$LEP_out_df, 
-#                     output_uncert_dispersal$LEP_out_df, output_uncert_all$LEP_out_df)
-# 
-# LEP_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_by_site_out_df, output_uncert_growth$LEP_by_site_out_df,
-#                             output_uncert_survival$LEP_by_site_out_df, output_uncert_breeding_size$LEP_by_site_out_df,
-#                             output_uncert_offspring_assigned$LEP_by_site_out_df, output_uncert_prob_r$LEP_by_site_out_df,
-#                             output_uncert_dispersal$LEP_by_site_out_df, output_uncert_all$LEP_by_site_out_df)
-# 
-# LEP_R_uncert <- rbind(output_uncert_start_recruit$LEP_R_out_df, output_uncert_growth$LEP_R_out_df,
-#                       output_uncert_survival$LEP_R_out_df, output_uncert_breeding_size$LEP_R_out_df,
-#                       output_uncert_offspring_assigned$LEP_R_out_df, output_uncert_prob_r$LEP_R_out_df,
-#                       #output_uncert_prob_r_and_offspring_assigned$LEP_R,
-#                       output_uncert_dispersal$LEP_R_out_df, output_uncert_all$LEP_R_out_df)
-# 
-# LEP_R_by_site_uncert <- rbind(output_uncert_start_recruit$LEP_R_by_site_out_df, output_uncert_growth$LEP_R_by_site_out_df,
-#                               output_uncert_survival$LEP_R_by_site_out_df, output_uncert_breeding_size$LEP_R_by_site_out_df,
-#                               output_uncert_offspring_assigned$LEP_R_by_site_out_df, output_uncert_prob_r$LEP_R_by_site_out_df,
-#                               output_uncert_dispersal$LEP_R_by_site_out_df, output_uncert_all$LEP_R_by_site_out_df)
-# 
-# RperE_uncert <- rbind(output_uncert_start_recruit$RperE_out_df, output_uncert_growth$RperE_out_df,
-#                       output_uncert_survival$RperE_out_df, output_uncert_breeding_size$RperE_out_df,
-#                       output_uncert_offspring_assigned$RperE_out_df, output_uncert_prob_r$RperE_out_df,
-#                       #output_uncert_prob_r_and_offspring_assigned$RperE_out_df,
-#                       output_uncert_dispersal$RperE_out_df, output_uncert_all$RperE_out_df)
-# 
-# NP_uncert <- rbind(output_uncert_start_recruit$NP_out_df, output_uncert_growth$NP_out_df,
-#                    output_uncert_survival$NP_out_df, output_uncert_breeding_size$NP_out_df,
-#                    output_uncert_offspring_assigned$NP_out_df, output_uncert_prob_r$NP_out_df,
-#                    #output_uncert_prob_r_and_offspring_assigned$NP_out_df,
-#                    output_uncert_dispersal$NP_out_df, output_uncert_all$NP_out_df)
-# 
-# ###### Now run with DD
-# ### Run metrics for a bunch of different types of uncertainty
-# output_uncert_start_recruit_DD <- calcMetricsAcrossRuns(n_runs, param_set_start_recruit, site_surv_best_est_sets, site_dist_info, site_vec_order, "start recruit size", TRUE)
-# output_uncert_growth_DD <- calcMetricsAcrossRuns(n_runs, param_set_growth, site_surv_best_est_sets, site_dist_info, site_vec_order, "growth", TRUE)
-# output_uncert_survival_DD <- calcMetricsAcrossRuns(n_runs, param_set_survival, site_surv_param_sets, site_dist_info, site_vec_order, "survival", TRUE)
-# output_uncert_breeding_size_DD <- calcMetricsAcrossRuns(n_runs, param_set_breeding_size, site_surv_best_est_sets, site_dist_info, site_vec_order, "breeding size", TRUE)
-# output_uncert_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring", TRUE)
-# output_uncert_prob_r_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r, site_surv_best_est_sets, site_dist_info, site_vec_order, "prob r", TRUE)
-# #output_uncert_prob_r_and_offspring_assigned_DD <- calcMetricsAcrossRuns(n_runs, param_set_prob_r_offspring_assigned, site_surv_best_est_sets, site_dist_info, site_vec_order, "assigned offspring and prob r", TRUE)
-# output_uncert_dispersal_DD <- calcMetricsAcrossRuns(n_runs, param_set_dispersal, site_surv_best_est_sets, site_dist_info, site_vec_order, "dispersal k", TRUE)
-# output_uncert_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_param_sets, site_dist_info, site_vec_order, "all", TRUE)
-# 
-# # Join them together for plotting purposes
-# LEP_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_out_df, output_uncert_growth_DD$LEP_out_df,
-#                        output_uncert_survival_DD$LEP_out_df, output_uncert_breeding_size_DD$LEP_out_df,
-#                        output_uncert_offspring_assigned_DD$LEP_out_df, output_uncert_prob_r_DD$LEP_out_df,
-#                        #output_uncert_prob_r_and_offspring_assigned_DD$LEP_out_df, 
-#                        output_uncert_dispersal_DD$LEP_out_df, output_uncert_all_DD$LEP_out_df)
-# 
-# LEP_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_by_site_out_df, output_uncert_growth_DD$LEP_by_site_out_df,
-#                                output_uncert_survival_DD$LEP_by_site_out_df, output_uncert_breeding_size_DD$LEP_by_site_out_df,
-#                                output_uncert_offspring_assigned_DD$LEP_by_site_out_df, output_uncert_prob_r_DD$LEP_by_site_out_df,
-#                                output_uncert_dispersal_DD$LEP_by_site_out_df, output_uncert_all_DD$LEP_by_site_out_df)
-# 
-# LEP_R_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_out_df, output_uncert_growth_DD$LEP_R_out_df,
-#                          output_uncert_survival_DD$LEP_R_out_df, output_uncert_breeding_size_DD$LEP_R_out_df,
-#                          output_uncert_offspring_assigned_DD$LEP_R_out_df, output_uncert_prob_r_DD$LEP_R_out_df,
-#                          #output_uncert_prob_r_and_offspring_assigned_DD$LEP_R,
-#                          output_uncert_dispersal_DD$LEP_R_out_df, output_uncert_all_DD$LEP_R_out_df)
-# 
-# LEP_R_by_site_uncert_DD <- rbind(output_uncert_start_recruit_DD$LEP_R_by_site_out_df, output_uncert_growth_DD$LEP_R_by_site_out_df,
-#                                  output_uncert_survival_DD$LEP_R_by_site_out_df, output_uncert_breeding_size_DD$LEP_R_by_site_out_df,
-#                                  output_uncert_offspring_assigned_DD$LEP_R_by_site_out_df, output_uncert_prob_r_DD$LEP_R_by_site_out_df,
-#                                  output_uncert_dispersal_DD$LEP_R_by_site_out_df, output_uncert_all_DD$LEP_R_by_site_out_df)
-# 
-# RperE_uncert_DD <- rbind(output_uncert_start_recruit_DD$RperE_out_df, output_uncert_growth_DD$RperE_out_df,
-#                          output_uncert_survival_DD$RperE_out_df, output_uncert_breeding_size_DD$RperE_out_df,
-#                          output_uncert_offspring_assigned_DD$RperE_out_df, output_uncert_prob_r_DD$RperE_out_df,
-#                          #output_uncert_prob_r_and_offspring_assigned_DD$RperE_out_df,
-#                          output_uncert_dispersal_DD$RperE_out_df, output_uncert_all_DD$RperE_out_df)
-# 
-# NP_uncert_DD <- rbind(output_uncert_start_recruit_DD$NP_out_df, output_uncert_growth_DD$NP_out_df,
-#                       output_uncert_survival_DD$NP_out_df, output_uncert_breeding_size_DD$NP_out_df,
-#                       output_uncert_offspring_assigned_DD$NP_out_df, output_uncert_prob_r_DD$NP_out_df,
-#                       #output_uncert_prob_r_and_offspring_assigned_DD$NP_out_df,
-#                       output_uncert_dispersal_DD$NP_out_df, output_uncert_all_DD$NP_out_df)
-# 
-# output_uncert_all_offspring_all <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", FALSE)
-# output_uncert_all_offspring_all_DD <- calcMetricsAcrossRuns(n_runs, param_set_full_all_offspring, site_surv_param_sets, site_dist_info, site_vec_order, "all: alloff", TRUE)
-# 
-# perc_hab_best_ests_avgSurvs <- list()
-# perc_hab_uncertainty_avgSurvs <- list()
-# for(i in 1:length(perc_hab_vals)) {
-#   perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_habperc[[i]], site_vec_order, TRUE)
-#   perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_habperc[[i]], site_vec_order, "all: hab sens, avg surv", TRUE)
-# }
-# 
-# wider_region_best_ests_avgSurvs <- list()
-# wider_region_uncertainty_avgSurvs <- list()
-# for(i in 1:length(region_width_list)) {
-#   wider_region_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region[[i]], site_vec_order, TRUE)
-#   wider_region_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region[[i]], site_vec_order, "all: region sens, avg surv", TRUE)
-# }
-# 
-# wider_region_all_hab_best_ests_avgSurvs <- list()
-# wider_region_all_hab_uncertainty_avgSurvs <- list()
-# for(i in 1:length(region_width_list)) {
-#   wider_region_all_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_all_hab[[i]], site_vec_order, TRUE)
-#   wider_region_all_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_all_hab[[i]], site_vec_order, "all: region sens, all hab", TRUE)
-# }
-# 
-# wider_region_perc_hab_best_ests_avgSurvs <- list()
-# #wider_region_perc_hab_uncertainty_avgSurvs <- list()
-# for(i in 1:(length(region_width_list_long_form)*length(perc_hab_vals_long_form))) {
-#   wider_region_perc_hab_best_ests_avgSurvs[[i]] <- calcMetrics(param_best_est_mean_collected_offspring, site_surv_best_est_avg_Sint, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, TRUE)
-#   #  wider_region_perc_hab_uncertainty_avgSurvs[[i]] <- calcMetricsAcrossRuns(n_runs, param_set_full, site_surv_avg_Sint_param_sets, site_dist_info_wider_region_perc_hab[[i]], site_vec_order, "all: region sens, perc hab sens, avg surv", TRUE)
-#   print(i)
-# }
-# # Runs without DD compensation
-# save(param_best_est_mean_collected_offspring, file=here::here("Data/Script_outputs", "param_best_est_mean_collected_offspring.RData"))
-# save(best_est_metrics_mean_offspring, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring.RData"))
-# save(param_set_full, file=here::here("Data/Script_outputs", "param_set_full.RData"))
-# save(output_uncert_start_recruit, file=here::here("Data/Script_outputs", "output_uncert_start_recruit.RData"))
-# save(output_uncert_growth, file=here::here("Data/Script_outputs", "output_uncert_growth.RData"))
-# save(output_uncert_survival, file=here::here("Data/Script_outputs", "output_uncert_survival.RData"))
-# save(output_uncert_breeding_size, file=here::here("Data/Script_outputs", "output_uncert_breeding_size.RData"))
-# save(output_uncert_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned.RData"))
-# save(output_uncert_prob_r, file=here::here("Data/Script_outputs", "output_uncert_prob_r.RData"))
-# #save(output_uncert_prob_r_and_offspring_assigned, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring.RData"))
-# save(output_uncert_dispersal, file=here::here("Data/Script_outputs", "output_uncert_dispersal.RData"))
-# save(output_uncert_all, file=here::here("Data/Script_outputs", "output_uncert_all.RData"))
-# 
-# # Runs with DD compensation
-# save(best_est_metrics_mean_offspring_DD, file=here::here("Data/Script_outputs", "best_est_metrics_mean_offspring_DD.RData"))
-# save(output_uncert_start_recruit_DD, file=here::here("Data/Script_outputs", "output_uncert_start_recruit_DD.RData"))
-# save(output_uncert_growth_DD, file=here::here("Data/Script_outputs", "output_uncert_growth_DD.RData"))
-# save(output_uncert_survival_DD, file=here::here("Data/Script_outputs", "output_uncert_survival_DD.RData"))
-# save(output_uncert_breeding_size_DD, file=here::here("Data/Script_outputs", "output_uncert_breeding_size_DD.RData"))
-# save(output_uncert_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_offspring_assigned_DD.RData"))
-# save(output_uncert_prob_r_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_DD.RData"))
-# #save(output_uncert_prob_r_and_offspring_assigned_DD, file=here::here("Data/Script_outputs", "output_uncert_prob_r_and_assigned_offspring_DD.RData"))
-# save(output_uncert_dispersal_DD, file=here::here("Data/Script_outputs", "output_uncert_dispersal_DD.RData"))
-# save(output_uncert_all_DD, file=here::here("Data/Script_outputs", "output_uncert_all_DD.RData"))
-# 
-# # Params
-# save(site_surv_param_sets, file=here::here("Data/Script_outputs","site_surv_param_sets.RData"))
-# 
-# # What-ifs
-# save(best_est_metrics_mean_offspring_all_offspring, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring.RData"))  # without DD compensation
-# save(best_est_metrics_mean_offspring_all_offspring_DD, file=here::here("Data/Script_outputs","best_est_metrics_mean_offspring_all_offspring_DD.RData"))  # with DD compensation
-# save(perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_best_ests_avgSurvs.RData"))
-# save(perc_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","perc_hab_uncertainty_avgSurvs.RData"))
-# 
-# save(wider_region_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_best_ests_avgSurvs.RData"))
-# save(wider_region_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_uncertainty_avgSurvs.RData"))
-# save(wider_region_all_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_best_ests_avgSurvs.RData"))
-# save(wider_region_all_hab_uncertainty_avgSurvs, file=here::here("Data/Script_outputs","wider_region_all_hab_uncertainty_avgSurvs.RData"))
-# 
-# save(wider_region_perc_hab_best_ests_avgSurvs, file=here::here("Data/Script_outputs","wider_region_perc_hab_best_ests_avgsSurvs.RData"))
-
-
+ 
 #################### Plots: ####################
 
 ########## Main text figures ##########
 
-##### Figure 1 (schematic - made outside of R)
+##### Figure 1 (life cycle and metrics schematic - made outside of R)
+
 ##### Figure 2 (map + photo - made in SiteMap.R script)
 
-##### Figure 3 (demographic and dispersal inputs: survival curve, growth curve, dispersal kernel, transition size to female)
+##### Figure 3 - demographic and dispersal inputs: survival curve, growth curve, dispersal kernel, transition size to female)
 # Prep work for dispersal kernel figure
-distance_vec <- seq(from=0, to=50, by=0.01)
-connectivity_est_vec <- disp_kernel_all_years(distance_vec, k_allyears, theta_allyears) 
+distance_vec <- seq(from=0, to=50, by=0.01)  # distances to show
+connectivity_est_vec <- disp_kernel_all_years(distance_vec, k_allyears, theta_allyears)  # vector of dispersal probs to plot
 connectivity_sens <- matrix(ncol = length(distance_vec), nrow = n_runs)
 for(i in 1:n_runs) {
   connectivity_sens[i,] = disp_kernel_all_years(distance_vec, k_connectivity_set[i], theta_connectivity_set[i])
@@ -2413,19 +1540,18 @@ dispersal_df <- data.frame(distance = distance_vec, kernel_bestfit = connectivit
 dispersal_kernel_plot <- ggplot(data=dispersal_df, aes(x=distance, y=kernel_bestfit, ymin=kernel_CI1, ymax=kernel_CI2)) +
   geom_line(color='black') +
   geom_ribbon(alpha=0.5, color='gray') +
-  xlab('distance (km)') + ylab('dispersal probability') + #ggtitle('Dispersal kernel') +
+  xlab('Distance (km)') + ylab('Dispersal probability') +
   theme_bw() 
 
 # Growth curve - plot the data and linear model for fish caught about a year apart, models for only one recapture pair per fish, pairs selected randomly and models fit 1000x
 growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
   geom_point(shape = 1, color = "dark gray") +
-  #geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black", lwd = 1.5) +
   geom_abline(aes(intercept = 0, slope = 1), color = "black", lwd = 1.5, linetype = "dashed") +  #  1:1 line
   geom_ribbon(aes(x=seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
                   ymin = (min(growth_info_estimate$intercept_est) + min(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
                   ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "dark gray", alpha = 0.75) +
   geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black", lwd = 1.5) +
-  xlab("length (cm)") + ylab("length (cm) next year") + #ggtitle('Growth') +
+  xlab("Length (cm)") + ylab("Length (cm) next year") + 
   theme_bw()
 
 # Alternate version if want to do a VBL instead
@@ -2442,16 +1568,16 @@ growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
 breeding_size_plot <- ggplot(data = recap_first_female, aes(x=size)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept=breeding_size_mean, color='black') +
-  xlab('transition size (cm)') + #ggtitle('Female transition size') +
+  xlab('Transition size (cm)') + 
   theme_bw()
 
-# Survival plot (for now doing an example site - Palanas, but could change that...) - now doing Elementary School, which has median survival
+# Survival plot - Elementary School, which has median survival, as an example site
 survival_output_to_plot <- best_fit_model_dfs$surv_site_size %>% filter(site == "Elementary School")
 
 survival_plot <- ggplot(data = survival_output_to_plot, aes(size, estimate_prob)) +
   geom_ribbon(aes(ymin=lcl_prob,ymax=ucl_prob),color="gray",fill="gray") +
   geom_line(color="black") +
-  xlab("size (cm)") + ylab("probability of survival \n (ex. site: Elementary School)") + #ggtitle("Annual survival (ex. Palanas)") +
+  xlab("Size (cm)") + ylab("Probability of survival \n (ex. site: Elementary School)") + 
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 
