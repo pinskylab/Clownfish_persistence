@@ -1376,12 +1376,14 @@ metrics_summary <- data.frame(metric = c("LEP avg best est", "LEP avg lower", "L
                                          "LR avg best est DD", "LR avg lower DD", "LR avg upper DD",
                                          "LRP avg ests above 1 DD", "LR avg ests DD above 1", "NP ests DD above 1",
                                          "Haina SP", "Haina SP lower", "Haina SP upper",
-                                         "LRP with all offspring", "LR no DD",
+                                         "LRP with all offspring", "LR with all offspring", "LR no DD",
                                          "LRP no DD avg best est", "LRP no DD avg lower", "LRP no DD avg upper",
                                          "NP no DD best est", "NP no DD lower", "NP no DD upper",
                                          "LR avg best est no DD", "LR avg best est lower no DD", "LR avg best est upper no DD",
                                          "LRP needed for NP >= 1", "egg recruit surv for NP >=1", "LEP for NP >= 1",
-                                         "LRP ests above LRP for NP"
+                                         "LRP ests above LRP for NP",
+                                         "egg recruit surv best est no DD", "egg recruit surv lower no DD", "egg recruit surv upper no DD",
+                                         "LRP avg ests above 1 no DD"
                                          ),
                               value = c(LEP_best_est, LEP_avg_lower, LEP_avg_upper,
                                         LEP_R_best_est_DD, LRP_average_lower, LRP_average_upper,
@@ -1390,12 +1392,14 @@ metrics_summary <- data.frame(metric = c("LEP avg best est", "LEP avg lower", "L
                                         LEP_R_local_best_est_DD, LRP_local_average_lower, LRP_local_average_upper,
                                         LRP_avg_ests_above_1$n_estimates, LR_est_DD_above_1$n_estimates, NP_est_DD_above_1$n_estimates,
                                         (SP_best_est_DD %>% filter(site == "Haina"))$SP_value, Haina_SP_lower, Haina_SP_upper,
-                                        best_est_metrics_mean_offspring_all_offspring$LEP_R_mean, best_est_metrics_mean_offspring$LEP_R_local_mean,
+                                        best_est_metrics_mean_offspring_all_offspring_DD$LEP_R_mean, best_est_metrics_mean_offspring_all_offspring_DD$LEP_R_local_mean, best_est_metrics_mean_offspring$LEP_R_local_mean,
                                         LEP_R_best_est, LRP_average_lower_noDD, LRP_average_upper_noDD,
                                         NP_best_est, NP_lower_noDD, NP_upper_noDD,
                                         LEP_R_local_best_est, LRP_local_average_lower_noDD, LRP_local_average_upper_noDD,
                                         LRP_for_NP, egg_recruit_survival_for_NP, LEP_for_NP_DD,
-                                        LRP_ests_above_LRP_for_NP$n_estimates
+                                        LRP_ests_above_LRP_for_NP$n_estimates,
+                                        best_est_metrics_mean_offspring$recruits_per_egg, egg_recruit_survival_lower_noDD, egg_recruit_survival_upper_noDD,
+                                        LRP_avg_noDD_ests_above_1$n_estimates
                                         ))
                               
 

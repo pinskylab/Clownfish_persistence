@@ -117,7 +117,7 @@ pdf(file=here::here("Plots/FigureDrafts","Abundance_through_time.pdf"))
 ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
   geom_line(color="grey") +
   geom_line(data=site_trends_all, aes(x=year, y=mean_nF), color = "black", size=1.5) +
-  xlab("year") + ylab("# females") +
+  xlab("Year") + ylab("# Females") +
   scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017"))
 dev.off()
 
@@ -151,7 +151,7 @@ for(i in 1:length(site_vec_NS_TD)) {  # works for the first sixteen, then has an
     geom_point() +
     geom_line(data=site_trends_time %>% filter(site==site_i), aes(x=year, y=mean_nF)) +
     ggtitle(site_i) +
-    ylab("# females") +  xlab("year") + 
+    ylab("# Females") +  xlab("Year") + 
     scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017")) +
     theme_bw() +
     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
@@ -160,7 +160,7 @@ for(i in 1:length(site_vec_NS_TD)) {  # works for the first sixteen, then has an
 sites_together <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
   geom_line(color="grey") +
   geom_line(data=site_trends_all, aes(x=year, y=mean_nF), color = "black", size=1.5) +
-  xlab("year") + ylab("# females") +
+  xlab("Year") + ylab("# Females") +
   scale_x_continuous(breaks=c(2,4,6), labels=c("2013","2015","2017")) +
   theme_bw()
 
