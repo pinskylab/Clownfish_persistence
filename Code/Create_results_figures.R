@@ -135,7 +135,7 @@ growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
 breeding_size_plot <- ggplot(data = recap_first_female, aes(x=size)) +
   geom_histogram(bins=40, color='gray', fill='gray') +
   geom_vline(xintercept=param_best_est_mean_collected_offspring$breeding_size, color='black') +
-  xlab('Transition size (cm)') + 
+  xlab('Transition size (cm)') + ylab("Count") +
   theme_bw()
 
 # Survival plot - Elementary School, which has median survival, as an example site
@@ -206,7 +206,7 @@ best_est_metrics_mean_offspring_DD$SP$site <- replace(best_est_metrics_mean_offs
 SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = best_est_metrics_mean_offspring_DD$SP, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nPatch") + ylab(bquote("Self persistence (SP)")) + 
+  xlab("\nPatch") + ylab(bquote("Self persistence (SP"[i]~")")) + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
 
@@ -388,7 +388,7 @@ pdf(file = here::here("Plots/FigureDrafts", "APP_FIG_recap_effects_Phisiteplussi
 plot_grid(p_by_dist_plot, p_by_size_plot, labels=c("a","b"), nrow=1)
 dev.off()
 
-##### D7 - abundance trends by patch
+##### D7 - abundance trends by patch, produced in TimeSeriesPersistence.R
 
 ##### D8 - patch-specific LRP
 # Join so have site name rather than just number
@@ -408,14 +408,14 @@ dev.off()
 LRP_plot_freq <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = 'gray', fill = 'gray') +
   geom_vline(xintercept = best_est_metrics_mean_offspring$LEP_R_mean, color = "black") +
-  xlab(expression("Lifetime recruit production (LRP"[DD]~")")) + ylab("Relative frequency") + 
+  xlab(expression("Lifetime recruit production (LRP"[D]~")")) + ylab("Relative frequency") + 
   theme_bw()
 
 # LR without DD
 LR_plot_freq <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
   geom_vline(xintercept = best_est_metrics_mean_offspring$LEP_R_local_mean, color = "black") +
-  xlab(expression("Local replacement (LR"[DD]~")")) + ylab("Relative frequency") + 
+  xlab(expression("Local replacement (LR"[D]~")")) + ylab("Relative frequency") + 
   theme_bw()
 
 # Put them together - frequencies
@@ -440,7 +440,7 @@ best_est_metrics_mean_offspring$SP$site <- replace(best_est_metrics_mean_offspri
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
   geom_violin(fill="grey") +
   geom_point(data = best_est_metrics_mean_offspring$SP, aes(x = site, y = SP_value), color = "black") +
-  xlab("\nPatch") + ylab(expression("Self persistence (SP"[DD]~")")) + 
+  xlab("\nPatch") + ylab(expression("Self persistence (SP"[i[D]]~")")) + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  
 
@@ -448,13 +448,13 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(si
 NP_plot_freq <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
   geom_vline(xintercept = best_est_metrics_mean_offspring$NP, color = "black") +
-  xlab(expression(lambda[c[DD]])) + ylab("Relative frequency") + 
+  xlab(expression(lambda[c[D]])) + ylab("Relative frequency") + 
   theme_bw()
 
 # realized connectivity matrix (not accounting for DD)
 realized_C_plot <- ggplot(data = best_est_metrics_mean_offspring$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
   geom_tile(aes(fill=prob_disp_R)) +
-  scale_fill_gradient(high='black', low='white', breaks=c(0,0.02,0.04), name=expression('Recruits'[DD])) +
+  scale_fill_gradient(high='black', low='white', breaks=c(0,0.02,0.04), name=expression('Recruits'[D])) +
   xlab('\nOrigin') + ylab('Destination') + 
   theme_bw() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
