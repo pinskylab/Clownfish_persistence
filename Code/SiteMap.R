@@ -47,6 +47,8 @@ kmlen = 1/111.12  # length of a km, in °N
 xlims = c(124.64, 124.80) # site areas
 ylims = c(10.63, 10.87)
 xlims_Palanas = c(124.709, 124.7143)
+xlims_Palanas = c(124.7095, 124.7135)
+xlims_Palanas = c(124.710, 124.713)
 ylims_Palanas = c(10.872, 10.875)
 xlims_Alb = c(124.708, 124.7174) # Albuera patch 
 ylims_Alb = c(10.867, 10.875)
@@ -81,7 +83,7 @@ colslist = brewer.pal(3, name="Dark2")  # checked on colorbrewer2 website, is co
 colslist[3] = "grey35"  # probably can't see blue patches on a blue background
 
 # Sites in zoom box
-zoom_site = c("Palanas", "Wangag")
+#zoom_site = c("Palanas", "Wangag")
 zoom_site = "Palanas"
 
 # Other clownfish species
@@ -180,7 +182,7 @@ inset_map <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
   annotate(geom = 'text', x = 121.8, y = 8.3, label = 'Philippines', cex=5) 
 
 ##### Example habitat in a site
-# Filter out anems in the example sites, 
+# Filter out anems in the example sites
 anems_to_plot <- data_anems %>%
   #filter(Name %in% c("Palanas", "Wangag")) %>%
   #filter(Spp %in% c("","APCL")) %>%
@@ -201,13 +203,14 @@ Albuera_patch <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
   geom_polygon(data = patches[[Palanas_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Palanas
   #geom_polygon(data = patches[[Wangag_patch]], aes(x = long, y = lat, group = group), color = patch_color, fill = patch_color, alpha = 0.2) +  # Wangag
   #geom_polygon(data = red_box_coords, aes(x = long, y = lat, group = group), fill = NA, color = "red", lwd = 1) +
-  geom_point(data = anems_to_plot, aes(x = lon, y = lat, group = group, color = species), alpha=0.7, size=1) +
+  geom_point(data = anems_to_plot, aes(x = lon, y = lat, group = group, color = species), alpha=0.7, size=0.5) +
   scale_color_manual(values = colslist[1:3]) +
   theme(legend.position = c(0.1, 0.25)) + 
   theme(legend.position = "none") +
   guides(colour = guide_legend(override.aes = list(size=2, alpha=1))) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  xlab("") + ylab("") 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size=8), axis.text.y = element_text(size=8)) +
+  xlab("") + ylab("") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
 
 ##### Clownfish photo
 photo_plot <- ggdraw() +
