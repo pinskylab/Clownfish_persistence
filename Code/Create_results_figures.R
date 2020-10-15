@@ -10,8 +10,8 @@ library(gridExtra)
 library(cowplot)
 
 ##### Load input from other analyses outside this repository
-# Size transition info (Michelle analysis in genomics repo) 
-recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
+# # Size transition info (Michelle analysis in genomics repo) 
+# recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
 
 ##### Needed functions (from Metrics_with_uncertainty_site_specific.R)
 # For flexible theta and k, function of d, k, and theta
@@ -21,6 +21,13 @@ disp_kernel_all_years <- function(d, k, theta) {  # generalization of equation f
   disp = (z_front/2)*exp(-(z*d)^(theta))
   return(disp)
 }
+
+# # Growth (in case want to show a VBL growth plot)
+# VBL_growth <- function(Linf, k_growth, length) {
+#   Ls = Linf - (Linf - length)*exp(-k_growth)
+#   return(Ls)
+# }
+
 
 ##### Load analyses and parameters from within this repository
 
@@ -81,6 +88,10 @@ load(file=here::here("Data/Script_outputs","wider_region_perc_hab_plot_df_catego
 load(file=here::here("Data/Script_outputs","larv_nav_plot_df.RData"))  # in an easy-to-plot form
 load(file=here::here("Data/Script_outputs","larv_nav_best_est_NP_df.RData"))
 
+# Load params and metrics summaries
+load(file=here::here("Data/Script_outputs","params_summary.RData"))
+load(file=here::here("Data/Script_outputs","metrics_summary.RData"))
+
 ### Vectors and values useful for producing figures, like region widths for sensitivity, etc. (from Metrics_with_uncertainty_site_specific.R)
 load(file=here::here("Data/Script_outputs","figure_vectors_and_values.RData"))
 
@@ -88,7 +99,7 @@ load(file=here::here("Data/Script_outputs","figure_vectors_and_values.RData"))
 
 ########## Main text figures ##########
 
-##### Figure 1 - life cycle and metrics schematic - made outside of R
+##### Figure 1 - life cycle and metrics schematic - made in SiteMap.R script
 
 ##### Figure 2 - map + photo - made in SiteMap.R script
 
@@ -113,21 +124,23 @@ dispersal_kernel_plot <- ggplot(data=dispersal_df, aes(x=distance, y=kernel_best
 # Growth curve - plot the data and linear model for fish caught about a year apart, models for only one recapture pair per fish, pairs selected randomly and models fit 1000x
 growth_curve_plot <- ggplot(data = recap_pairs_year, aes(x = L1, y = L2)) +
   geom_point(shape = 1, color = "dark gray") +
-  geom_abline(aes(intercept = 0, slope = 1), color = "black", lwd = 1.5, linetype = "dashed") +  #  1:1 line
+  geom_abline(aes(intercept = 0, slope = 1), color = "black", lwd = 0.5, linetype = "dashed") +  #  1:1 line
   geom_ribbon(aes(x=seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
-                  ymin = (min(growth_info_estimate$intercept_est) + min(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
-                  ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "dark gray", alpha = 0.75) +
+                  ymin = (params_summary %>% filter(param == "growth_intercept_est_lower"))$value + (params_summary %>% filter(param == "growth_slope_est_lower"))$value*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)),
+                  ymax = (params_summary %>% filter(param == "growth_intercept_est_upper"))$value + (params_summary %>% filter(param == "growth_slope_est_upper"))$value*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))), fill = "dark gray", alpha = 0.75) +
+                  #ymin = (min(growth_info_estimate$intercept_est) + min(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1))),
+                  #ymax = (max(growth_info_estimate$intercept_est) + max(growth_info_estimate$slope_est)*seq(from=2.5, to=12.5,length.out = length(recap_pairs_year$L1)))), fill = "dark gray", alpha = 0.75) +
   geom_abline(aes(intercept = mean(growth_info_estimate$intercept_est), slope = mean(growth_info_estimate$slope_est)), color = "black", lwd = 1.5) +
   xlab("Length (cm)") + ylab("Length (cm) next year") + 
   theme_bw()
 
-# Alternate version if want to do a VBL instead
-# growth_df <- data.frame(length1 = seq(min_size, max_size, length.out = n_bins*10)) %>%
-#   mutate(length2 = VBL_growth(Linf_growth_mean, k_growth_mean, length1))
+# # Alternate version if want to do a VBL instead
+# growth_df <- data.frame(length1 = seq(min_size, max_size, length.out = 100)) %>%
+#   mutate(length2 = VBL_growth(param_best_est_mean_collected_offspring$Linf, param_best_est_mean_collected_offspring$k_growth, length1))
 # 
 # growth_curve_plot <- ggplot(data=growth_df, aes(x=length1, y=length2)) +
 #   geom_point(color='black') +
-#   xlab('Size (cm)') + ylab('Size next year') + 
+#   xlab('Size (cm)') + ylab('Size next year') +
 #   ylim(0,13) +
 #   theme_bw()
 

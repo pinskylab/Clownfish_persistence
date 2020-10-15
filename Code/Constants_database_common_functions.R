@@ -29,6 +29,10 @@ load(file = here::here("Data/From_other_analyses", "all_offspring.RData"))  # al
 load(file = here::here("Data/From_other_analyses", "k_theta_allyear_95CI_values.RData"))  # 95% k and theta fits (https://github.com/katcatalano/parentage/blob/master/kernel_fitting/1340_loci/final_results/likelihood_profiles_grid_search/profile95CI_AllYears.csv)
 load(file = here::here("Data/From_other_analyses", "length_count8llEA.RData"))  # size-fecundity model (from Adam Yawdoszyn work)
 
+# Size transition info (Michelle analysis in genomics repo) 
+recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))  # sizes of fish when they were first caught as males
+recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
+
 #################### Set constants and parameters: ####################
 
 ##### Sampling information
@@ -385,4 +389,3 @@ save(anems_Processed, file = here::here("Data/Script_outputs", "anems_Processed.
 save(anems_Processed_all, file = here::here("Data/Script_outputs", "anems_Processed_all.RData"))  # times processed for all anems, even without ids
 save(all_parents_by_site, file = here::here("Data/Script_outputs", "all_parents_by_site.RData"))  # number of parents by site
 save(site_edge_anems, file = here::here("Data/Script_outputs", "site_edge_anems.RData"))  # anem ids at edges and middle of each site (eyeballed)
-

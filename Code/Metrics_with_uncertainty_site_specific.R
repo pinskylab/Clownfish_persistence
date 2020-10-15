@@ -41,11 +41,11 @@ p_dist_pos = 20  # placement of distance effect for recap prob
 load(file = here::here("Data/Script_outputs", "site_trends_all.RData"))
 load(file = here::here("Data/Script_outputs", "site_trends_time.RData"))
 
-##### Load input from other analyses outside this repository
-
-# Size transition info (Michelle analysis in genomics repo) 
-recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))  # sizes of fish when they were first caught as males
-recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
+# ##### Load input from other analyses outside this repository
+# 
+# # Size transition info (Michelle analysis in genomics repo) 
+# recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))  # sizes of fish when they were first caught as males
+# recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
 
 ##### Set parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
 
@@ -745,11 +745,31 @@ growth_set_slope_est_mean <- mean(growth_info_estimate$slope_est)  # mean of slo
 growth_set_slope_se_mean <- mean(growth_info_estimate$slope_se)  # mean of slope se estimates
 
 # Select 1000 slopes and intercepts using the mean and se from the fits, then find k and Linf from that
-growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-growth_set_slope_se_mean, growth_set_slope_est_mean+growth_set_slope_se_mean),  # choose slope values from within mean+-SE range
-                                intercept_est = runif(n_runs, growth_set_intercept_est_mean-growth_set_intercept_se_mean, growth_set_intercept_est_mean+growth_set_intercept_se_mean))  # choose intercept values from within mean+-SE range
-growth_set_params <- growth_set_params %>%
+# growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-growth_set_slope_se_mean, growth_set_slope_est_mean+growth_set_slope_se_mean),  # choose slope values from within mean+-SE range
+#                                 intercept_est = runif(n_runs, growth_set_intercept_est_mean-growth_set_intercept_se_mean, growth_set_intercept_est_mean+growth_set_intercept_se_mean))  # choose intercept values from within mean+-SE range
+# growth_set_params <- growth_set_params %>%
+#   mutate(k_est = -log(slope_est),
+#          Linf_est = intercept_est/(1-slope_est))
+
+# growth_set_params <- data.frame(slope_est = rnorm(n_runs, mean=growth_set_slope_est_mean, sd=growth_set_slope_se_mean),
+#                                 intercept_est = rnorm(n_runs, mean=growth_set_intercept_est_mean, sd=growth_set_intercept_se_mean)) %>%
+#   mutate(k_est = -log(slope_est),
+#          Linf_est = intercept_est/(1-slope_est))
+
+growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-1.96*growth_set_slope_se_mean, growth_set_slope_est_mean+1.96*growth_set_slope_se_mean),
+                                 intercept_est = runif(n_runs, growth_set_intercept_est_mean-1.96*growth_set_intercept_se_mean, growth_set_intercept_est_mean+1.96*growth_set_intercept_se_mean)) %>%
   mutate(k_est = -log(slope_est),
          Linf_est = intercept_est/(1-slope_est))
+
+# Find mean 95% upper and lower limits - hmm, these seem off compared to growth_set_params... check?
+growth_slope_est_lower = growth_set_slope_est_mean-1.96*growth_set_slope_se_mean
+growth_slope_est_upper = growth_set_slope_est_mean+1.96*growth_set_slope_se_mean
+growth_intercept_est_lower = growth_set_intercept_est_mean-1.96*growth_set_intercept_se_mean
+growth_intercept_est_upper = growth_set_intercept_est_mean+1.96*growth_set_intercept_se_mean
+k_growth_upper = -log(growth_slope_est_lower)
+k_growth_lower = -log(growth_slope_est_upper)
+Linf_growth_lower = growth_intercept_est_lower/(1-growth_slope_est_lower)
+Linf_growth_upper = growth_intercept_est_upper/(1-growth_slope_est_upper)
 
 ##### Dispersal
 # Select values from the 95% CI, weighted by log-likelihood
@@ -760,6 +780,12 @@ dispersal_sample_set <- k_theta_allyear_95CI_values %>%
 
 k_connectivity_set <- dispersal_sample_set$k_eval
 theta_connectivity_set <- dispersal_sample_set$theta_eval
+
+# Find 2.5th and 97.5th quantiles
+k_connectivity_lower <- sort(k_connectivity_set)[quantile_lower_index]
+k_connectivity_upper <- sort(k_connectivity_set)[quantile_upper_index]
+theta_connectivity_lower <- sort(theta_connectivity_set)[quantile_lower_index]
+theta_connectivity_upper <- sort(theta_connectivity_set)[quantile_upper_index]
 
 ##### Create survival parameter sets, sampling from within 95% confidence bounds for Cabatoan intercept, addition for each site, and size effect 
 site_surv_param_sets <- list()
@@ -1356,18 +1382,22 @@ params_summary <- data.frame(param = c("k_disp","k_disp_lcl","k_disp_ucl",
                                         "theta_disp","theta_disp_lcl","theta_disp_ucl",
                                         "Linf","Linf_lcl","Linf_ucl",
                                         "k_growth","k_growth_lcl","k_growth_ucl",
+                                        "growth_slope_est_lower","growth_slope_est_upper",
+                                        "growth_intercept_est_lower","growth_intercept_est_upper",
                                         "n_parents_genotyped","n_offspring_genotyped",
                                         "n_offspring_matched","assignment_rate",
                                         "Ph","Pc","Ps","Pd",
                                         "p_APCL","p_UNOC"),
                               value = c(k_allyears, min(k_theta_allyear_95CI_values$k_eval), max(k_theta_allyear_95CI_values$k_eval),
                                         theta_allyears, min(k_theta_allyear_95CI_values$theta_eval), max(k_theta_allyear_95CI_values$theta_eval),
-                                        Linf_growth_mean, min(growth_set_params$Linf_est), max(growth_set_params$Linf_est),
-                                        k_growth_mean, min(growth_set_params$k_est), max(growth_set_params$k_est),
+                                        Linf_growth_mean, Linf_growth_lower, Linf_growth_upper,
+                                        k_growth_mean, k_growth_lower, k_growth_upper,
+                                        growth_slope_est_lower, growth_slope_est_upper,
+                                        growth_intercept_est_lower, growth_intercept_est_upper,
                                         n_parents_genotyped, n_offspring_genotyped, 
                                         n_offspring_matched, assignment_rate,
                                         Ph, prob_r_mean, Ps, Pd,
-                                        perc_APCL_val, perc_UNOC_val))
+                                        perc_APCL_val, perc_UNOC_val), stringsAsFactors = FALSE)
 
 metrics_summary <- data.frame(metric = c("LEP avg best est", "LEP avg lower", "LEP avg upper",
                                          "LRP_DD avg best est", "LRP_DD avg lower", "LRP_DD avg upper",
@@ -1400,7 +1430,7 @@ metrics_summary <- data.frame(metric = c("LEP avg best est", "LEP avg lower", "L
                                         LRP_ests_above_LRP_for_NP$n_estimates,
                                         best_est_metrics_mean_offspring$recruits_per_egg, egg_recruit_survival_lower_noDD, egg_recruit_survival_upper_noDD,
                                         LRP_avg_noDD_ests_above_1$n_estimates
-                                        ))
+                                        ), stringsAsFactors = FALSE)
                               
 
 # metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_disp_lcl","k_disp_ucl","theta_disp_lcl","theta_disp_ucl",

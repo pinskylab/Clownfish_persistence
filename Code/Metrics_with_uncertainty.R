@@ -9,6 +9,7 @@
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R')) # Just running manually for the day so can load saved allfish_caught file while data base getting reconfigured with gen_id
 
+##### Load libraries
 library(ggplot2)
 library(grid)
 library(gridExtra)
@@ -17,7 +18,7 @@ library(cowplot)
 ##### Load files from other scripts within this repository or source those scripts (below, commented out)
 
 ## NEED TO THINK OF A BETTER WAY THAN HAVING ALL OF THESE FILES SOURCE THE Common constants one - IF THEY EDIT OUTPUT FROM THERE, COULD GET OVERWRITTEN EACH TIME ONE OF THESE OUTPUTS IS SOURCED!
-# Load file with proportion habitat sampled estimates
+# Load file with proportion habitat sampled estimates (from Total_anems_proportion_hab_sampled.R)
 load(file = here::here("Data/Script_outputs", "anems_visited_by_year.RData"))  # has total anems at each site and proportion habitat sampled at each site in each year
 load(file = here::here("Data/Script_outputs", "total_area_sampled_through_time.RData"))  # has total area sampled across time (for egg-recruit survival estimate)
 # source(here::here("Code", "Total_anems_proportion_hab_sampled.R"))
@@ -28,23 +29,28 @@ load(file = here::here("Data/Script_outputs", "site_dist_info.RData"))
 load(file = here::here("Data/Script_outputs", "sampling_area_edges.RData"))
 # source(here::here("Code", "Site_widths_and_distances.R"))
 
-# Load density dependence estimates
+# Load density dependence estimates (from Density_dependence_scaling.R)
 anems_APCL_and_not = readRDS(file=here::here("Data/Script_outputs", "anems_APCL_and_not.RData"))
 perc_APCL_val = (anems_APCL_and_not %>% filter(perc_hab == "APCL"))$value
 perc_UNOC_val = (anems_APCL_and_not %>% filter(perc_hab == "UNOC"))$value
 
-# Load simple VBL growth analysis
+# Load simple VBL growth analysis (from Growth_analysis.R)
 load(file = here::here("Data/Script_outputs", "growth_info_estimate.RData"))
 load(file = here::here("Data/Script_outputs", "recap_pairs_year.RData"))  # all recap pairs a year apart, for plotting purposes
 #source(here::here("Code", "Growth_analysis.R"))  # this script needs to be cleaned up before it would be reasonble to actually source it here
 
-# Load survival from MARK models
-survival_output = readRDS(file=here::here("Data/Script_outputs", "eall_mean_Phi_size_p_size_plus_dist.RData"))  # MARK output (lowest AICc model)
-Phi_int_pos = 1  # placement of intercept for survival
-Phi_size_pos = 2  # placement of size effect for survival
-p_int_pos = 3  # placement of intercept for recap prob
-p_size_pos = 4  # placement of size effect for recap prob
-p_dist_pos = 5  # placement of distance effect for recap prob
+# Load survival and recap from MARK models
+best_MARK_model <- load(file = here::here("Data/Script_outputs", "best_fit_model_dfs.RData"))
+Phi_size_pos = 20  # placement of size effect for survival
+p_int_pos = 21  # placement of intercept for recap prob
+p_size_pos = 22  # placement of size effect for recap prob
+p_dist_pos = 23  # placement of distance effect for recap prob
+# survival_output = readRDS(file=here::here("Data/Script_outputs", "eall_mean_Phi_size_p_size_plus_dist.RData"))  # MARK output (lowest AICc model)
+# Phi_int_pos = 1  # placement of intercept for survival
+# Phi_size_pos = 2  # placement of size effect for survival
+# p_int_pos = 3  # placement of intercept for recap prob
+# p_size_pos = 4  # placement of size effect for recap prob
+# p_dist_pos = 5  # placement of distance effect for recap prob
 
 # # Figure out where these outputs came from so can source those scripts too!
 # # Should have two options: source the files that create these outputs or load them from Data folder
@@ -86,11 +92,12 @@ eggs_intercept_log = size_fecundity_model$coefficients[1]  # on log-scale
 eggs_slope_log = size_fecundity_model$coefficients[2]
 eyed_effect = size_fecundity_model$coefficients[3]
 
-# Survival (for LEP)
-Sint_mean = survival_output$estimate[Phi_int_pos]
-Sint_se = survival_output$se[Phi_int_pos]
-Sl_mean = survival_output$estimate[Phi_size_pos]
-Sl_se = survival_output$se[Phi_size_pos]
+# # Survival (for LEP)
+# Sint_mean = survival_output$estimate[Phi_int_pos]
+# Sint_se = survival_output$se[Phi_int_pos]
+# Sl_mean = survival_output$estimate[Phi_size_pos]
+# Sl_se = survival_output$se[Phi_size_pos]
+
 
 # eall_mean.Phi.size.p.size.plus.dist.results <- as.data.frame(eall_mean.Phi.size.p.size.plus.dist$results$beta)
 # Sint_mean = eall_mean.Phi.size.p.size.plus.dist.results$estimate[1]  # survival intercept (on logit scale)
@@ -431,6 +438,15 @@ prop_sampling_area_habitat <- total_sum_of_site_widths/total_range_of_sampling_a
 breeding_size_mean <- mean(recap_first_female$size)
 prob_r_mean <- mean(prob_r)  # average value of prob r from each recap dive
 
+### Best-estimate survival parameters by site
+site_surv_best_est <- data.frame(site = no_space_sites_alpha, Sint = NA, Sl = best_fit_model_dfs$results$estimate[Phi_size_pos])
+# Cabatoan
+site_surv_best_est$Sint[1] = best_fit_model_dfs$results$estimate[1]
+# fill in rest of sites
+for(i in 2:length(no_space_sites_alpha)) {
+  site_surv_best_est$Sint[i] = best_fit_model_dfs$results$estimate[1] + best_fit_model_dfs$results$estimate[i]
+}
+
 # LEP, starting at different sizes
 # Starting from mean transition to female size
 LEP_breeding_size_mean <- findLEP(min_size, max_size, n_bins, t_steps, Sint_mean, Sl_mean,
@@ -582,6 +598,22 @@ k_growth_set = growth_info_estimate$k_est  # growth (k)
 Sint_set = rnorm(n_runs, mean = Sint_mean, sd = Sint_se)  # adult survival 
 Sl_set = rnorm(n_runs, mean = Sl_mean, sd = Sl_se)  # adult size-survival relationship
 k_connectivity_set = k_connectivity_values$V1
+
+### Create survival parameter sets 
+site_surv_param_sets <- list()
+# Cabatoan first
+site_surv_df <- data.frame(Sint = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                           Sint_site = 0, 
+                           Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
+site_surv_param_sets[[1]] <- site_surv_df
+# then rest of sites
+for(i in 2:length(no_space_sites_alpha)) {
+  site_surv_df <- data.frame(Sint = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[1], max=best_fit_model_dfs$results$ucl[1]), 
+                             Sint_site = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[i], max=best_fit_model_dfs$results$ucl[i]), 
+                             Sl = runif(n=n_runs, min=best_fit_model_dfs$results$lcl[Phi_size_pos], max=best_fit_model_dfs$results$ucl[Phi_size_pos])) 
+  site_surv_param_sets[[i]] <- site_surv_df
+}
+
 
 #breeding_size_set = sample(female_sizes$size, n_runs, replace=TRUE)  # transition to female size (replace should be true, right?)
 breeding_size_set = sample(recap_first_female$size, n_runs, replace = TRUE)  # transition to female size, pulled from first-observed sizes at F for recaught fish, shoud I make this more of a distribution?
