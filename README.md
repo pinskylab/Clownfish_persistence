@@ -1,25 +1,27 @@
 # Clownfish_persistence
 
-Add an explanation about what this repository does at the top. Also add a "how to interact with this repository if you wanted to run the analyses" bit.
+This repository assesses metapopulation persistence for yellowtail anemonefish (*Amphiprion clarkii*) on a set of patch reefs along the coast of Leyte, Philippines. It provides the data, scripts, and figures for the analyses in "Persistence of a reef fish metapopulation via network connectivity: theory and data." 
 
 All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed XXXX. 
+
+To run the analyses, use the script Metrics_with_uncertainty_site_specific.R, which will source outputs from analyses done in the other scripts. To recreate the figures, use the script Create_results_figures.R, which will source outputs from Metrics_with_uncertainty_site_specific.R.
 
 Repository contents and explanation:
 
 **Code** - holds scripts
-* *Pull_data_from_database*: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses from GitHub and saves as RData files in Data/From_other_analyses
-* *Constants_database_common_functions*: processes data from database into useable dataframes and saves as RData in Data/Script_outputs, sets constants
+* *Pull_data_from_database.R*: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses from GitHub and saves as RData files in Data/From_other_analyses
+* *Constants_database_common_functions.R*: processes data from database into useable dataframes and saves as RData in Data/Script_outputs, sets constants
   * When run the script, get two errors saying "2 failed to parse" and "3 failed to parse". Nothing to worry about, just means that the lat/lon coordinates couldn't be matched to two anemone observations because they don't have times associated with them (2 anems AGD found while snorkeling after running out of air in 2018) (and then one more when all anems, including those without ids, are included)
-* *Total_anems_proportion_hab_sampled*: finds the total number anems at a site (we used metal tagged anems as best estimate of total), calculates proportion habitat sampled at each site in each sampling year, calculates total area sampled across time (for use in egg-recruit survival estimate and as an input into the parentage analyses)
+* *Total_anems_proportion_hab_sampled.R*: finds the total number anems at a site (we used metal tagged anems as best estimate of total), calculates proportion habitat sampled at each site in each sampling year, calculates total area sampled across time (for use in egg-recruit survival estimate and as an input into the parentage analyses)
 * *Site_widths_and_distances.R*: finds the width of each site, the distance between sites (including possible buffer to site edges to account for larval navigation), and the distance from each site to the northern and southern edges of the sampling area. 
-* *Density_dependence_scaling.R*: finds the number of anemones occupied by APCL, occupied by other clownfish, and unoccupied during the two seasons when anemones were reasonably comprehensively surveyed, 2015 winter and 2017, for use in scaling up recruits to account for effects of density-dependence in settlement
-* *Growth_analysis*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
-* *Clownfish_encounters*: makes encounter histories for all fish marked, fills in missing sizes by projecting using growth curve (and adding mean size or 0 for years pre-capture)
+* *Density_dependence_scaling.R*: finds the number of anemones occupied by *A. clarkii* (APCL), occupied by other clownfish, and unoccupied during the two seasons when anemones were reasonably comprehensively surveyed, 2015 winter and 2017, for use in scaling up recruits to account for effects of density-dependence in settlement
+* *Growth_analysis.R*: estimates parameters for a von-Bertalanffy growth curve using marked fish captured approximately one year apart
+* *Clownfish_encounters.R*: makes encounter histories for all fish marked, fills in missing sizes by projecting using growth curve (and adding mean size or 0 for years pre-capture)
 * *AnemDistFromDiveTrack.R*: finds the lat and lon coordinates of the first capture anemone for each marked fish and the minimum distance from that anemone to the sampling dive tracks each year, in preparation for mark-recapture analyses in ClownfishMarkRecap.R
 * *ClownfishMarkRecap.R*: runs mark-recapture analysis using MARK (via RMark) to estimate survival and recapture probabilities
-
-* *TimeSeriesPersistence*: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
-* Metrics_with_uncertainty: estimates the persistence metrics, including best estimates and distributions with uncertainty. Makes plots.
+* *TimeSeriesPersistence.R*: estimates abundance of females at each site through time, fits a mixed-effects model to assess population trend over sampling time period
+* *Metrics_with_uncertainty_site_specific.R*: estimates the persistence metrics, including best estimates and distributions with uncertainty
+* *Create_results_figures.R*: uses saved outputs from Metrics_with_uncertainty_site_specific and other scripts to create figures
 
 **Data** - holds raw and processed data files and outputs of analyses
 * *Data_from_database* (all loaded in Pull_data_from_database.R)
