@@ -30,10 +30,14 @@ Repository contents and explanation:
   * fish_db.RData - clownfish table from leyte database
   * fish_seen_db.RData - clown_sightings table from leyte database
   * gps_db.RData - GPX table from leyte database
+* *Database_backups* - holds backups of older versions of database data
 * *From_other_analyses* (all loaded in Pull_data_from_database.R, either from GitHub or downloaded file)
-  * all_offspring.RData - info on all offspring included in parentage analysis 
-  * all_parents.RData - info on all parents included in parentage analysis 
+  * all_offspring.RData - info on all offspring included in parentage analysis (from Catalano et al.)
+  * all_parents.RData - info on all parents included in parentage analysis (from Catalano et al.)
   * fish-obs.RData - info on individual fish, tying their genetic and tag ids together 
+  * k_theta_allyear_95CI_values.RData - 95% confidence bounds on k and theta distributions for dispersal kernel (from Catalano et al.)
+  * kernel_summary.RData - dispersal kernel fit information (from Catalano et al.)
+  * length_count8llEA.RData - egg count and female length model fit (work done by Adam Yawdoszyn)
 * *Script_outputs*
   * site_vec_order.RData - vector of site names and their alphabetical order and geographic order (north to south) (produced by Constants_database_common_functions.R)
   * allfish_caught.RData - all APCL caught, with dive and anemone info appended (produced by Constants_database_common_functions.R)
@@ -66,7 +70,6 @@ Repository contents and explanation:
   * encounters_dist_mean_by_year.RData - same as encounter_dist but with mean distance by year filled in for NAs (produced by AnemDistFromDiveTrack.R)
   * best_fit_model_dfs - best fit model from mark-recapture analysis and data frames for plotting (produced by ClownfishMarkRecap.R)
   * model_comp_meanYsize_meanYdist - model comparison for mark-recapture models (produced by ClownfishMarkRecap.R)
-
   * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
   
 **Plots** - holds plots
