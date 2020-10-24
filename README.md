@@ -2,9 +2,31 @@
 
 This repository assesses metapopulation persistence for yellowtail anemonefish (*Amphiprion clarkii*) on a set of patch reefs along the coast of Leyte, Philippines. It provides the data, scripts, and figures for the analyses in "Persistence of a reef fish metapopulation via network connectivity: theory and data." 
 
-All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed XXXX. 
+All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database. 
 
 To run the analyses, use the script Metrics_with_uncertainty_site_specific.R, which will source outputs from analyses done in the other scripts. To recreate the figures, use the script Create_results_figures.R, which will source outputs from Metrics_with_uncertainty_site_specific.R.
+
+The figures in the manuscript are located in Plots/
+* Figure 1: LifeCycleSchematic/metrics_life_cycle_schematics.pdf
+* Figure 2: FigureDrafts/Map_and_photo_2.pdf
+* Figure 3: FigureDrafts/Parameter_inputs.pdf
+* Figure 4: FigureDrafts/Abundance_LEP_LRP_LocalReplacement_FreqPlots.pdf
+* Figure 5: FigureDrafts/SP_NP_connMatrixR_freq.pdf
+* Figure 6: Figure/Drafts/What_if_4_panels_3D.pdf
+* Appendix Figure D.1: Schematic/Schematic.pdf
+* Appendix Figure D.2: UndercountingRecruits/RecruitScalingSchematic.pdf
+* Appendix Figure D.3: FigureDrafts/APP_FIG_Parameter_inputs.pdf
+* Appendix Figure D.4: FigureDrafts/Prop_of_kernel_sampled_by_site.pdf
+* Appendix Figure D.5: FigureDrafts/APP_FIG_surv_by_size_and_site_Phisiteplussize_psizeplusdist.pdf
+* Appendix Figure D.6: FigureDrafts/APP_FIG_recap_effects_Phisiteplussize_psizeplusdist.pdf
+* Appendix Figure D.7: FigureDrafts/Time_series_scaled_F_by_site_with_lines.pdf
+* Appendix Figure D.8: FigureDrafts/LRP_by_site.pdf
+* Appendix Figure D.9: FigureDrafts/APP_FIG_LRP_LocalReplacement_withoutDDconsidered_freq.pdf
+* Appendix Figure D.10: FigureDrafts/APP_FIG_SP_NP_connMatrixR_withoutDDcompensation_freq.pdf
+* Appendix Figure D.11: FigureDrafts/LEP_uncertainty_by_param.pdf
+* Appendix Figure D.12: FigureDrafts/LRP_uncertainty_by_param.pdf
+* Appendix Figure D.13: FigureDrafts/RperE_uncertainty_by_param.pdf
+* Appendix Figure D.14: FigureDrafts/NP_uncertainty_by_param.pdf
 
 Repository contents and explanation:
 
@@ -101,9 +123,13 @@ List of manuscript figures:
 * Appendix Figure D.13: FigureDrafts/RperE_uncertainty_by_param.pdf
 * Appendix Figure D.14: FigureDrafts/NP_uncertainty_by_param.pdf
 
-Notes on other figures:
+Notes on other plots:
+* *AnemLocations* - old plots looking at GPS locations of anems sampled multiple times
+* *DataCharacteristics* - data summary plots, not necessarily up to date
 * *DistFromTrackToAnems/Distance_to_marked_fish_capture_anems_allyears.pdf* - histograms by year of minimum distance from divers to capture anems for marked fish (produced by AnemDistFromDiveTrack.R)
+* *FigureDrafts* - contains other versions of results plots
 * *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
 * *Growth* - plots that show sizes of fish recaptured after a year with the von Bertalanffy growth curve fit and distributions of von Bertalanffy parameters (produced by Growth_analysis.R)
 * *PhiandpEstimates* - plots showing survival and recapture probabilities (ones starting with surv_ or recap_ are most recent) (produced by ClownfishMarkRecap.R)
+* *LifeCycleSchematic*, *Schematic*, *UndercountingRecruits* - schematic figures
 
