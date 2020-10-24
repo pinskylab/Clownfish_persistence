@@ -38,6 +38,7 @@ Repository contents and explanation:
   * k_theta_allyear_95CI_values.RData - 95% confidence bounds on k and theta distributions for dispersal kernel (from Catalano et al.)
   * kernel_summary.RData - dispersal kernel fit information (from Catalano et al.)
   * length_count8llEA.RData - egg count and female length model fit (work done by Adam Yawdoszyn)
+* *Map_data/Site_hulls* - shapefiles of the sites, used in SiteMap.R to make maps
 * *Script_outputs*
   * site_vec_order.RData - vector of site names and their alphabetical order and geographic order (north to south) (produced by Constants_database_common_functions.R)
   * allfish_caught.RData - all APCL caught, with dive and anemone info appended (produced by Constants_database_common_functions.R)
@@ -71,8 +72,36 @@ Repository contents and explanation:
   * best_fit_model_dfs - best fit model from mark-recapture analysis and data frames for plotting (produced by ClownfishMarkRecap.R)
   * model_comp_meanYsize_meanYdist - model comparison for mark-recapture models (produced by ClownfishMarkRecap.R)
   * females_df_F.RData - raw and estimated scaled number of females at each site through time (produced by TimeSeriesPersistence.R)
+  * output_uncert files - output from 1000 metric calculations with uncertainty, list the uncertainty considered (output_uncert_all includes all uncertainty, output_uncert_growth includes uncertainty only in growth), DD indicates that density dependence was compensated for in the early life stages (produced by Metrics_with_uncertainty_site_specific.R)
+  * param_set_full.RData - full set of parameters for 1000 metric calculations (produced by Metrics_with_uncertainty_site_specific.R)
+  * params_summary.RData - parameter summary to make writing easier (produced by Metrics_with_uncertainty_site_specific.R)
+  * metrics_summary.RData - metrics summary to make writing easier (produced by Metrics_with_uncertainty_site_specific.R)
+  * perc_hab and wider_region and larv_nav files - results of the simulations for sensitivity to percent of the region that is habitat, region width, and larval navigation (produced by Metrics_with_uncertainty_site_specific.R)
   
 **Plots** - holds plots
+List of manuscript figures:
+* Figure 1: LifeCycleSchematic/metrics_life_cycle_schematics.pdf
+* Figure 2: FigureDrafts/Map_and_photo_2.pdf
+* Figure 3: FigureDrafts/Parameter_inputs.pdf
+* Figure 4: FigureDrafts/Abundance_LEP_LRP_LocalReplacement_FreqPlots.pdf
+* Figure 5: FigureDrafts/SP_NP_connMatrixR_freq.pdf
+* Figure 6: Figure/Drafts/What_if_4_panels_3D.pdf
+* Appendix Figure D.1: Schematic/Schematic.pdf
+* Appendix Figure D.2: UndercountingRecruits/RecruitScalingSchematic.pdf
+* Appendix Figure D.3: FigureDrafts/APP_FIG_Parameter_inputs.pdf
+* Appendix Figure D.4: FigureDrafts/Prop_of_kernel_sampled_by_site.pdf
+* Appendix Figure D.5: FigureDrafts/APP_FIG_surv_by_size_and_site_Phisiteplussize_psizeplusdist.pdf
+* Appendix Figure D.6: FigureDrafts/APP_FIG_recap_effects_Phisiteplussize_psizeplusdist.pdf
+* Appendix Figure D.7: FigureDrafts/Time_series_scaled_F_by_site_with_lines.pdf
+* Appendix Figure D.8: FigureDrafts/LRP_by_site.pdf
+* Appendix Figure D.9: FigureDrafts/APP_FIG_LRP_LocalReplacement_withoutDDconsidered_freq.pdf
+* Appendix Figure D.10: FigureDrafts/APP_FIG_SP_NP_connMatrixR_withoutDDcompensation_freq.pdf
+* Appendix Figure D.11: FigureDrafts/LEP_uncertainty_by_param.pdf
+* Appendix Figure D.12: FigureDrafts/LRP_uncertainty_by_param.pdf
+* Appendix Figure D.13: FigureDrafts/RperE_uncertainty_by_param.pdf
+* Appendix Figure D.14: FigureDrafts/NP_uncertainty_by_param.pdf
+
+Notes on other figures:
 * *DistFromTrackToAnems/Distance_to_marked_fish_capture_anems_allyears.pdf* - histograms by year of minimum distance from divers to capture anems for marked fish (produced by AnemDistFromDiveTrack.R)
 * *TotalAnemsandProbHabSampled* - plots that show anemone counts across years, sites, and methods of assessing anemones; also shows plots of proportion habitat sampled (produced by Total_anems_proportion_hab_sampled.R)
 * *Growth* - plots that show sizes of fish recaptured after a year with the von Bertalanffy growth curve fit and distributions of von Bertalanffy parameters (produced by Growth_analysis.R)
