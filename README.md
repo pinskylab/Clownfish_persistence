@@ -45,7 +45,7 @@ Repository contents and explanation:
 * *Metrics_with_uncertainty_site_specific.R*: estimates the persistence metrics, including best estimates and distributions with uncertainty
 * *Create_results_figures.R*: uses saved outputs from Metrics_with_uncertainty_site_specific and other scripts to create figures
 
-**Data** - holds raw and processed data files and outputs of analyses
+**Data** - holds raw and processed data files and outputs of analyses (any files not within a subfolder in the Data folder are old unused versions or files from abandoned analyses and should be ignored).
 * *Data_from_database* (all loaded in Pull_data_from_database.R)
   * anem_db.RData - anemones table from leyte database
   * dives_db.RData - diveinfo table from leyte database
