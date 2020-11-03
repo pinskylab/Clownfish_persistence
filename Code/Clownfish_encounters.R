@@ -1,4 +1,4 @@
-# Prep for mark-recap analysis - create set of encountered fish, projects their growth to fill in years where fish was un-caught
+# Prep for mark-recap analysis - create set of encountered fish, projects their growth to fill in years where fish was un-caught, feeds into ClownfishMarkRecap.R
 
 #################### Set-up: ####################
 source(here::here('Code', 'Constants_database_common_functions.R'))

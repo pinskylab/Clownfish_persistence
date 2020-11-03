@@ -41,12 +41,6 @@ p_dist_pos = 20  # placement of distance effect for recap prob
 load(file = here::here("Data/Script_outputs", "site_trends_all.RData"))
 load(file = here::here("Data/Script_outputs", "site_trends_time.RData"))
 
-# ##### Load input from other analyses outside this repository
-# 
-# # Size transition info (Michelle analysis in genomics repo) 
-# recap_first_male = readRDS(file=here::here("Data/From_other_analyses", "recap_first_male.RData"))  # sizes of fish when they were first caught as males
-# recap_first_female = readRDS(file=here::here("Data/From_other_analyses", "recap_first_female.RData"))  # sizes of fish when they were first caught as females
-
 ##### Set parameters (for running IPM, for calculating connectivity, for uncertainty runs, etc.)
 
 # Fecundity (for LEP) 
@@ -131,11 +125,6 @@ scaleTaggedRecruitsDD = function(recruited_tagged_offspring, perc_UNOC, perc_APC
   recruited_tagged_offspring_total_DD = ((perc_APCL+perc_UNOC)/perc_UNOC)*recruited_tagged_offspring  # scale as if currently-occupied APCL habitat is open
   return(recruited_tagged_offspring_total_DD)
 }
-
-# # Find recruits per "tagged" egg, which are eggs produced by genotyped parents (using Johnson et al. like method)
-# findRecruitsPerTaggedEgg = function(tagged_recruits, tagged_eggs) {
-#   tagged_recruits/tagged_eggs
-# }
 
 # Find LEP - use an IPM to find LEP 
 findLEP = function(min_size, max_size, n_bins, t_steps, Sint, Sl, s, Linf, k_growth, clutches_per_year,
@@ -745,23 +734,12 @@ growth_set_slope_est_mean <- mean(growth_info_estimate$slope_est)  # mean of slo
 growth_set_slope_se_mean <- mean(growth_info_estimate$slope_se)  # mean of slope se estimates
 
 # Select 1000 slopes and intercepts using the mean and se from the fits, then find k and Linf from that
-# growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-growth_set_slope_se_mean, growth_set_slope_est_mean+growth_set_slope_se_mean),  # choose slope values from within mean+-SE range
-#                                 intercept_est = runif(n_runs, growth_set_intercept_est_mean-growth_set_intercept_se_mean, growth_set_intercept_est_mean+growth_set_intercept_se_mean))  # choose intercept values from within mean+-SE range
-# growth_set_params <- growth_set_params %>%
-#   mutate(k_est = -log(slope_est),
-#          Linf_est = intercept_est/(1-slope_est))
-
-# growth_set_params <- data.frame(slope_est = rnorm(n_runs, mean=growth_set_slope_est_mean, sd=growth_set_slope_se_mean),
-#                                 intercept_est = rnorm(n_runs, mean=growth_set_intercept_est_mean, sd=growth_set_intercept_se_mean)) %>%
-#   mutate(k_est = -log(slope_est),
-#          Linf_est = intercept_est/(1-slope_est))
-
 growth_set_params <- data.frame(slope_est = runif(n_runs, growth_set_slope_est_mean-1.96*growth_set_slope_se_mean, growth_set_slope_est_mean+1.96*growth_set_slope_se_mean),
                                  intercept_est = runif(n_runs, growth_set_intercept_est_mean-1.96*growth_set_intercept_se_mean, growth_set_intercept_est_mean+1.96*growth_set_intercept_se_mean)) %>%
   mutate(k_est = -log(slope_est),
          Linf_est = intercept_est/(1-slope_est))
 
-# Find mean 95% upper and lower limits - hmm, these seem off compared to growth_set_params... check?
+# Find mean 95% upper and lower limits 
 growth_slope_est_lower = growth_set_slope_est_mean-1.96*growth_set_slope_se_mean
 growth_slope_est_upper = growth_set_slope_est_mean+1.96*growth_set_slope_se_mean
 growth_intercept_est_lower = growth_set_intercept_est_mean-1.96*growth_set_intercept_se_mean
@@ -1432,46 +1410,6 @@ metrics_summary <- data.frame(metric = c("LEP avg best est", "LEP avg lower", "L
                                         LRP_avg_noDD_ests_above_1$n_estimates
                                         ), stringsAsFactors = FALSE)
                               
-
-# metrics_params_summary <- data.frame(metric_param = c("k_disp","theta_disp","k_disp_lcl","k_disp_ucl","theta_disp_lcl","theta_disp_ucl",
-#                                                       "L_inf","L_inf_lcl","Linf_ucl","k_growth","k_growth_lcl","k_growth_ucl",
-#                                                       "n_parents_genotyped","n_offspring_genotyped","n_offspring_matched", "assignment_rate",
-#                                                       "Ph","Pc","Ps","Pd",
-#                                                       "best_est_NP_DD","NP_DD_lcl","NP_DD_ucl",
-#                                                       "best_est_LEP_avg","best_est_LEP_site_min","best_est_LEP_site_max",
-#                                                       "best_est_LRP_avg","best_est_LRP_site_min","best_est_LRP_site_max",
-#                                                       "best_est_local_replacement_avg","best_est_local_replacement_site_min","best_est_local_replacement_site_max",
-#                                                       "best_est_recruits_per_egg_avg","rperE_avg_lcl","rperE_avg_ucl",
-#                                                       "WI_all_offs_NP_DD","WI_all_offs_NP",
-#                                                       "WI_LRP_for_NP","WI_LEP_for_NP","WI_LEP_for_NP_DD","WI_RperE_for_NP",
-#                                                       "breeding_size_mean", "min_breeding_transition_size", "max_breeding_transition_size",
-#                                                       "P_DD"),
-#                                      type = c("param","param","param","param","param","param",
-#                                               "param","param","param","param","param","param",
-#                                               "param","param","param","param",
-#                                               "param","param","param","param",
-#                                               "metric","metric","metric",
-#                                               "metric","metric","metric",
-#                                               "metric","metric","metric",
-#                                               "metric","metric","metric",
-#                                               "metric","metric","metric",
-#                                               "metric","metric",
-#                                               "metric","metric","metric","metric",
-#                                               "param","param","param",
-#                                               "param"),
-#                                      value = c(k_allyears, theta_allyears, min(k_connectivity_set), max(k_connectivity_set), min(theta_connectivity_set), max(theta_connectivity_set),
-#                                                Linf_growth_mean, min(Linf_set), max(Linf_set), k_growth_mean, min(k_growth_set), max(k_growth_set),
-#                                                n_parents_genotyped, n_offspring_genotyped, n_offspring_matched, assignment_rate,
-#                                                Ph, prob_r_mean, Ps, Pd,
-#                                                best_est_metrics_mean_offspring_DD$NP, min(output_uncert_all_DD$NP_out_df$value), max(output_uncert_all_DD$NP_out_df$value),
-#                                                LEP_best_est, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP),
-#                                                best_est_metrics_mean_offspring_DD$LEP_R_mean, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R),
-#                                                best_est_metrics_mean_offspring_DD$LEP_R_local_mean, min(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R_local), max(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP_R_local),
-#                                                best_est_metrics_mean_offspring_DD$recruits_per_egg, min(output_uncert_all_DD$RperE_out_df$value), max(output_uncert_all_DD$RperE_out_df$value),
-#                                                best_est_metrics_mean_offspring_all_offspring_DD$NP, best_est_metrics_mean_offspring_all_offspring$NP,
-#                                                LRP_for_NP,LEP_for_NP,LEP_for_NP_DD,egg_recruit_survival_for_NP,
-#                                                breeding_size_mean, min(recap_first_female$size), max(recap_first_female$size),
-#                                                (perc_APCL_val+perc_UNOC_val)/perc_UNOC_val))
 
 #################### Figure prep work - vectors and values needed: ####################
 # Dispersal kernel

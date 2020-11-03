@@ -52,7 +52,7 @@ min_clip_size <- 3.5  # minimum size for fin-clip
 min_size = 0  # minimum fish size 
 max_size = 15  # largest fish we've seen
 
-# #size thresholds for determining stage - CHECK IF THESE ARE ACTUALLY STILL USED!!
+# #size thresholds for determining stage - no longer used
 # min_breeding_F_size <- 6  # size thresholds for determining stage (made up based on gut for now, should update based on data - Michelle boxplot?)
 # min_breeding_M_size <- 6  # size thresholds for determining stage (made up based on gut for now, should update based on data - Michelle boxplot?)
 # breeding_F_YR_cutoff <- 9  # for now, saying if a fish is greater than 9cm but marked YR, probably a female
@@ -134,7 +134,7 @@ Magbangon_S_N <- 1113  # 209 is another option
 Magbangon_S_mid <- 2437
 Magbangon_S_S <- 213  # 214, 215 other options 
 Palanas_N <- 2001  # 1030 also quite close
-Palanas_mid <- 2632  # totally eyeballed...
+Palanas_mid <- 2632  # eyeballed...
 Palanas_S <- 876  # 426 also a good end point
 PorocRose_N <- 24  # 2650
 PorocRose_mid <- 2310
@@ -368,11 +368,6 @@ gps_Info <- gps_db %>%
 # Make fish_indiv a character so can mesh with allfish_caught
 all_parents_edited <- all_parents %>%
   mutate(fish_indiv = as.character(fish_indiv))  # not sure this is necessary any more...
-
-# Then join the two so parents have site assigned to them - hmm, why was this joining by sample_id? Hold over from previous parent file?
-# all_parents_by_site <- left_join(all_parents_edited %>% dplyr::rename(fish_indiv_parent = fish_indiv, gen_id_parent = gen_id), 
-#                                  allfish_caught %>% select(fish_indiv, site, gen_id, sample_id), by = "sample_id") %>%
-#   distinct(fish_indiv, .keep_all = TRUE)  # this doesn't actually remove any for now, think about whether it should be included
 
 all_parents_by_site <- left_join(all_parents, 
                                  allfish_caught %>% select(fish_indiv, site), by = "fish_indiv") %>%

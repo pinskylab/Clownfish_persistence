@@ -43,7 +43,6 @@ k_theta_allyear_95CI_values <- read.csv(text = getURL("https://raw.githubusercon
 
 # List of all parents put into parentage analysis (so can match to site)
 all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_parents_corrected.txt"), header = TRUE, stringsAsFactors = FALSE)
-#all_parents <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/3ea1083c1dc111a67f462c8893970dfd53ce574b/colony2/20190523_1340loci/input/all_parents_corrected.txt"), header = TRUE, stringsAsFactors = FALSE)  # pull from older version of file because new one contains three fish that aren't in the parentage analysis
 
 # List of all offspring put into parentage analysis
 all_offspring <- read.table(text = getURL("https://raw.githubusercontent.com/katcatalano/parentage/master/colony2/20190523_1340loci/input/all_offspring_corrected.txt"), header = TRUE, stringsAsFactors = FALSE)

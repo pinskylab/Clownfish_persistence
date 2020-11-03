@@ -91,7 +91,7 @@ encounters_dist$capture_anem_lon <- capture_lon_vec
 # replace the NA in site_visits with 0s
 site_visits$sampled[is.na(site_visits$sampled)] <- 0  
 
-# Calculate the distances from tracks in each year to the capture anem (NA for years prior to first capture year) - at some point, should check into why they're not all 0 or NA in 2012...
+# Calculate the distances from tracks in each year to the capture anem (NA for years prior to first capture year) 
 encounters_dist$dist2012 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2012, site_visits)
 encounters_dist$dist2013 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2013, site_visits)
 encounters_dist$dist2014 <- findDist(encounters_dist$site, encounters_dist$capture_anem_lat, encounters_dist$capture_anem_lon, encounters_dist$first_capture_year, gps_Info, dives_db_processed, 2014, site_visits)
@@ -104,7 +104,7 @@ encounters_dist$dist2018 <- findDist(encounters_dist$site, encounters_dist$captu
 min_survey_dist_to_anems <- encounters_dist %>% select(first_capture_year, capture_anem_id, capture_anem_obs, capture_anem_table_id, capture_anem_lat, capture_anem_lon,
                                                       dist2012, dist2013, dist2014, dist2015, dist2016, dist2017, dist2018)
 
-##### Fill in the mean distance for pre-capture year anems (b/c cant have NAs in covariate columns)
+##### Fill in the mean distance for pre-capture year anems (b/c can't have NAs in covariate columns)
 mean2012 <- mean(encounters_dist$dist2012, na.rm=TRUE)  # do I need this?
 mean2013 <- mean(encounters_dist$dist2013, na.rm=TRUE)
 mean2014 <- mean(encounters_dist$dist2014, na.rm=TRUE)
