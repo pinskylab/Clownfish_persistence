@@ -2,7 +2,7 @@
 
 This repository assesses metapopulation persistence for yellowtail anemonefish (*Amphiprion clarkii*) on a set of patch reefs along the coast of Leyte, Philippines. It provides the data, scripts, and figures for the analyses in "Persistence of a reef fish metapopulation via network connectivity: theory and data." 
 
-All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database. 
+All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder.
 
 To run the analyses, use the script Metrics_with_uncertainty_site_specific.R, which will source outputs from analyses done in the other scripts. To recreate the figures, use the script Create_results_figures.R, which will source outputs from Metrics_with_uncertainty_site_specific.R.
 
