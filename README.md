@@ -1,6 +1,6 @@
 # Clownfish_persistence
 
-This repository assesses metapopulation persistence for yellowtail anemonefish (*Amphiprion clarkii*) on a set of patch reefs along the coast of Leyte, Philippines. It provides the data, scripts, and figures for the analyses in "Persistence of a reef fish metapopulation via network connectivity: theory and data." 
+This repository provides the data, scripts, and figures for the analyses in "Persistence of a reef fish metapopulation via network connectivity: theory and data," which assesses metapopulation persistence for yellowtail anemonefish (*Amphiprion clarkii*) on a set of patch reefs along the coast of Leyte, Philippines.
 
 All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder.
 
@@ -31,7 +31,7 @@ The figures in the manuscript are located in Plots/
 Repository contents and explanation:
 
 **Code** - holds scripts
-* *Pull_data_from_database.R*: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses from GitHub and saves as RData files in Data/From_other_analyses
+* *Pull_data_from_database.R*: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses (like the parentage analysis and dispersal kernel fitting) from GitHub and saves as RData files in Data/From_other_analyses
 * *Constants_database_common_functions.R*: processes data from database into useable dataframes and saves as RData in Data/Script_outputs, sets constants
   * When run the script, get two errors saying "2 failed to parse" and "3 failed to parse". Nothing to worry about, just means that the lat/lon coordinates couldn't be matched to two anemone observations because they don't have times associated with them (2 anems AGD found while snorkeling after running out of air in 2018) (and then one more when all anems, including those without ids, are included)
 * *Total_anems_proportion_hab_sampled.R*: finds the total number anems at a site (we used metal tagged anems as best estimate of total), calculates proportion habitat sampled at each site in each sampling year, calculates total area sampled across time (for use in egg-recruit survival estimate and as an input into the parentage analyses)
@@ -101,6 +101,7 @@ Repository contents and explanation:
   * perc_hab and wider_region and larv_nav files - results of the simulations for sensitivity to percent of the region that is habitat, region width, and larval navigation (produced by Metrics_with_uncertainty_site_specific.R)
   
 **Plots** - holds plots
+
 List of manuscript figures:
 * Figure 1: LifeCycleSchematic/metrics_life_cycle_schematics.pdf
 * Figure 2: FigureDrafts/Map_and_photo_2.pdf
