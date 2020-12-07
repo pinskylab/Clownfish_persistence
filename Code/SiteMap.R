@@ -219,6 +219,61 @@ pdf(file=here::here("Plots/FigureDrafts","Map_and_photo_2.pdf"), height=6)
 plot_grid(sites_with_inset, NULL, right_side, labels=c("a","",""), ncol=3, rel_widths = c(1.5,0.02,1))
 dev.off()
 
+##### Map for connectivity paper - shrink to one column width, adjust text size
+width_1_column = 80  # mm
+
+# Map of sites
+site_area_connectivity <- ggplot(data = coast, aes(x = long, y = lat, group = group)) +
+  coord_fixed(xlim = xlims, ylim = ylims, 1) +  # had 1.3 earlier, depends where you are on the globe?
+  geom_polygon(colour = land_color, fill = land_color) +
+  geom_polygon(data = corner_coords, aes(x = long, y = lat, group = group), fill = land_color, colour = land_color) +
+  geom_polygon(data = patches[[1]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[2]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[3]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[4]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[5]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[6]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[7]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[8]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[9]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[10]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[11]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[12]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[13]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[14]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[15]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_polygon(data = patches[[16]], aes(x = long, y = lat, group = group), fill = patch_color, colour = patch_color) +
+  geom_line(data = km_line_coords, aes(x = long, y = lat, group = group), color = "black", lwd = 2) +
+  annotate(geom = 'text', x = xlims[1]+0.003, y = 10.65, label = '5 km', size = 3, hjust = 0) +  # 5 km scale bar
+  xlab("Longitude (°E)") + ylab('Latitude (°N)') +
+  theme(axis.text=element_text(size=rel(0.5)),axis.title=element_text(size=rel(0.5)))
+ 
+# Add in site id numbers
+for(i in 1:length(patch_id_coords$site)) {
+  site_area_connectivity <- site_area_connectivity +
+    annotate("text", x=patch_id_coords$id_lon[i], y=patch_id_coords$id_lat[i], label=patch_id_coords$patch_id[i], size=2.8)
+}
+
+# Inset map of Philippines
+inset_map_connectivity <- ggplot(data =  country, aes(x = long, y = lat, group = group)) +
+  coord_fixed(xlim = xlims_PHL, ylim = ylims_PHL, 1) +  # had 1.3 for ratio earlier, depends where you are on the globe?
+  geom_polygon(colour = "dark grey", fill = "light grey") +
+  panel_border(colour = "black", size = 1, linetype = 1, remove = FALSE) +  # this is from cowplot, not sure why it didn't work with theme commands...
+  theme(axis.title=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.line=element_blank()) +
+  geom_polygon(data = zoomed_area_coords, aes(x = long, y = lat, group = group), fill = NA, color = "black", lwd = 0.75) +
+  annotate(geom = 'text', x = 120.8, y = 8.7, label = 'Philippines', cex=3.5) 
+
+# Add inset to edited site map
+sites_with_inset_connectivity <- ggdraw(site_area_connectivity) +
+  draw_plot(inset_map_connectivity + theme(legend.justification = "top"), 0.27, 0.27, 0.5, 0.5)
+
+# Save plot as png, then pdf
+ggsave(sites_with_inset_connectivity, filename=here::here("Plots","Site_map_connectivity.pdf"), dpi=300, device=cairo_pdf, width=width_1_column, units = "mm")
+
+
 #################### Figure D2 (map for scaling up recruits schematic): ####################
 
 ##### Map of just sites for scaling-up-recruits figure
