@@ -33,10 +33,25 @@ metrics_schematic <- plot_grid(LRP_schematic_plot, NULL, SP_schematic_plot, NULL
                                rel_heights = c(1, 0.1, 1, 0.1, 1, 0.1, 1),
                                labels = c("a","","b","","c","","d"), nrow=7)
 
+metrics_schematic_row_1 <- plot_grid(LRP_schematic_plot, SP_schematic_plot, labels = c("a","b"), ncol=2)
+metrics_schematic_row_2 <- plot_grid(NP_schematic_plot, LR_schematic_plot, labels = c("c","d"), ncol=2)
+metrics_schematic_rows <- plot_grid(metrics_schematic_row_1, metrics_schematic_row_2, rel_heights = c(1,1), nrow=2)
+
+# Data and analyses schematic (formerly Fig D.1)
+data_analyses_schematic <- ggdraw() +
+  draw_image(here::here("Plots/Schematic", "Schematic.png"))
+
 # Put them together
-pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height=6)
-plot_grid(metrics_schematic, NULL, life_cycle_plot, labels=c("","","e"), ncol=3, rel_widths = c(1,0.02,1))
+right_columns <- plot_grid(life_cycle_plot, data_analyses_schematic, labels=c("e","f"), ncol=2)
+
+pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height = 6)
+plot_grid(metrics_schematic_rows, right_columns, nrow = 2, rel_heights = c(1.2,3))  # but the heights are all messed up!
 dev.off()
+
+# # Put them together
+# pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height=6)
+# plot_grid(metrics_schematic, NULL, life_cycle_plot, labels=c("","","e"), ncol=3, rel_widths = c(1,0.02,1))
+# dev.off()
 
 #################### Figure 2 (map + photo): ####################
 ############### Figure 2 set-up: ###############
