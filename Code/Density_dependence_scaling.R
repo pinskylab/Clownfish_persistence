@@ -144,6 +144,18 @@ all_anems_with_fish <- left_join(all_anems_with_fish, dives_db_processed, by = "
 anemOcc_2015_W <- anemOcupancyByYear(2015, winter_months, anem_occ_dives, all_anems_with_fish)
 anemOcc_2017 <- anemOcupancyByYear(2017, all_months, anem_occ_dives, all_anems_with_fish)
 
+# For revisions, find perc UNOC, perc occupied by non-APCL clownfish, and perc occupied by APCL clownfish in 2015 and 2017
+APCL_list <- c("APCL","APCL+APFR","APCL+APPE","APCL+APSA")
+other_clown_list <- c("APFR","APFR+APPE","APOC","APPE","APPO","APSA","PRBI")
+
+perc_APCL_2015 <- anemOcc_2015_W$anems_Cspp %>% filter(Var1 %in% APCL_list) %>% summarize(sumAPCL = sum(Perc))
+perc_otherclown_2015 <- anemOcc_2015_W$anems_Cspp %>% filter(Var1 %in% other_clown_list) %>% summarize(sumOther = sum(Perc))
+perc_UNOC_2015 <- anemOcc_2015_W$anems_Cspp %>% filter(Var1 == "UNOC") %>% summarize(sumUNOC = sum(Perc))
+
+perc_APCL_2017 <- anemOcc_2017$anems_Cspp %>% filter(Var1 %in% APCL_list) %>% summarize(sumAPCL = sum(Perc))
+perc_otherclown_2017 <- anemOcc_2017$anems_Cspp %>% filter(Var1 %in% other_clown_list) %>% summarize(sumOther = sum(Perc))
+perc_UNOC_2017 <- anemOcc_2017$anems_Cspp %>% filter(Var1 == "UNOC") %>% summarize(sumUNOC = sum(Perc))
+
 # Convert into available habitat just considering UNOC as available and considering all non-APCL anems available
 non_APCL_clown <- c("APFR","APOC","APPE","APSE","PRBI","APSA","APPO","APFR+APPE")
 non_APCL_clown_and_UNOC <- c(non_APCL_clown, "UNOC")
