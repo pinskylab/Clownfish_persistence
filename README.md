@@ -4,10 +4,11 @@ This repository provides the data, scripts, and figures for the analyses in "Per
 
 Authors: 
 Allison G. Dedrick<sup>a,b</sup>, Katrina A. Catalano<sup>a</sup>, Michelle R. Stuart<sup>a</sup>, J. Wilson White<sup>c</sup>, Humberto R. Montes, Jr.<sup>d</sup>, Malin L. Pinsky<sup>a</sup>
-<sup>a</sup>Department of Ecology, Evolution, and Natural Resources, Rutgers University, 14 College Farm Road, New Brunswick, NJ 08901 USA
-<sup>b</sup>Corresponding author: adedrick@stanford.edu. Current address: Stanford Woods Institute for the Environment, Stanford University, Stanford, CA 94305 USA
-<sup>c</sup>Department of Fisheries and Wildlife, Coastal Oregon Marine Experiment Station, Oregon State University, Newport, OR 97365 USA
-<sup>d</sup>Visayas State University, Pangasugan, Baybay City, 6521 Leyte, Philippines
+
+<sup>a</sup>Department of Ecology, Evolution, and Natural Resources, Rutgers University, 14 College Farm Road, New Brunswick, NJ 08901 USA<br>
+<sup>b</sup>Corresponding author: adedrick@stanford.edu. Current address: Stanford Woods Institute for the Environment, Stanford University, Stanford, CA 94305 USA<br>
+<sup>c</sup>Department of Fisheries and Wildlife, Coastal Oregon Marine Experiment Station, Oregon State University, Newport, OR 97365 USA<br>
+<sup>d</sup>Visayas State University, Pangasugan, Baybay City, 6521 Leyte, Philippines<br>
 
 All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder.
 
