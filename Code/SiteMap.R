@@ -42,10 +42,10 @@ data_analyses_schematic <- ggdraw() +
   draw_image(here::here("Plots/Schematic", "Schematic.png"))
 
 # Put them together
-right_columns <- plot_grid(life_cycle_plot, data_analyses_schematic, labels=c("e","f"), ncol=2)
+right_columns <- plot_grid(life_cycle_plot, data_analyses_schematic, labels=c("e","f"), ncol=2, rel_widths = c(1, 1.2))
 
 pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height = 6)
-plot_grid(metrics_schematic_rows, right_columns, nrow = 2, rel_heights = c(1.2,3))  # but the heights are all messed up!
+plot_grid(metrics_schematic_rows, NULL, right_columns, nrow = 3, rel_heights = c(1.2,0.3,3))  # but the heights are all messed up!
 dev.off()
 
 # # Put them together
