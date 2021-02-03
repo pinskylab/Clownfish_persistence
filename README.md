@@ -2,6 +2,14 @@
 
 This repository provides the data, scripts, and figures for the analyses in "Persistence of a reef fish metapopulation via network connectivity: theory and data," which assesses metapopulation persistence for yellowtail anemonefish (*Amphiprion clarkii*) on a set of patch reefs along the coast of Leyte, Philippines.
 
+Authors: 
+Allison G. Dedrick<sup>a,b</sup>, Katrina A. Catalano<sup>a</sup>, Michelle R. Stuart<sup>a</sup>, J. Wilson White<sup>c</sup>, Humberto R. Montes, Jr.<sup>d</sup>, Malin L. Pinsky<sup>a</sup>
+
+<sup>a</sup>Department of Ecology, Evolution, and Natural Resources, Rutgers University, 14 College Farm Road, New Brunswick, NJ 08901 USA<br>
+<sup>b</sup>Corresponding author: adedrick@stanford.edu. Current address: Stanford Woods Institute for the Environment, Stanford University, Stanford, CA 94305 USA<br>
+<sup>c</sup>Department of Fisheries and Wildlife, Coastal Oregon Marine Experiment Station, Oregon State University, Newport, OR 97365 USA<br>
+<sup>d</sup>Visayas State University, Pangasugan, Baybay City, 6521 Leyte, Philippines<br>
+
 All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder.
 
 To run the analyses, use the script Metrics_with_uncertainty_site_specific.R, which will source outputs from analyses done in the other scripts. To recreate the figures, use the script Create_results_figures.R, which will source outputs from Metrics_with_uncertainty_site_specific.R.
@@ -33,7 +41,7 @@ Repository contents and explanation:
 **Code** - holds scripts
 * *Pull_data_from_database.R*: pulls data from database and saves as RData files in Data/Data_from_database, pulls output from other analyses (like the parentage analysis and dispersal kernel fitting) from GitHub and saves as RData files in Data/From_other_analyses
 * *Constants_database_common_functions.R*: processes data from database into useable dataframes and saves as RData in Data/Script_outputs, sets constants
-  * When run the script, get two errors saying "2 failed to parse" and "3 failed to parse". Nothing to worry about, just means that the lat/lon coordinates couldn't be matched to two anemone observations because they don't have times associated with them (2 anems AGD found while snorkeling after running out of air in 2018) (and then one more when all anems, including those without ids, are included)
+  * When run the script, get two errors saying "2 failed to parse" and "3 failed to parse". Nothing to worry about, just means that the lat/lon coordinates couldn't be matched to two anemone observations because they don't have times associated with them (2 anems AGD found while snorkeling after running low on air in 2018) (and then one more when all anems, including those without ids, are included)
 * *Total_anems_proportion_hab_sampled.R*: finds the total number anems at a site (we used metal tagged anems as best estimate of total), calculates proportion habitat sampled at each site in each sampling year, calculates total area sampled across time (for use in egg-recruit survival estimate and as an input into the parentage analyses)
 * *Site_widths_and_distances.R*: finds the width of each site, the distance between sites (including possible buffer to site edges to account for larval navigation), and the distance from each site to the northern and southern edges of the sampling area. 
 * *Density_dependence_scaling.R*: finds the number of anemones occupied by *A. clarkii* (APCL), occupied by other clownfish, and unoccupied during the two seasons when anemones were reasonably comprehensively surveyed, 2015 winter and 2017, for use in scaling up recruits to account for effects of density-dependence in settlement
@@ -54,11 +62,11 @@ Repository contents and explanation:
   * gps_db.RData - GPX table from leyte database
 * *Database_backups* - holds backups of older versions of database data
 * *From_other_analyses* (all loaded in Pull_data_from_database.R, either from GitHub or downloaded file)
-  * all_offspring.RData - info on all offspring included in parentage analysis (from Catalano et al.)
-  * all_parents.RData - info on all parents included in parentage analysis (from Catalano et al.)
+  * all_offspring.RData - info on all offspring included in parentage analysis (from [Catalano et al. 2020](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.15732))
+  * all_parents.RData - info on all parents included in parentage analysis (from [Catalano et al. 2020](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.15732))
   * fish-obs.RData - info on individual fish, tying their genetic and tag ids together 
-  * k_theta_allyear_95CI_values.RData - 95% confidence bounds on k and theta distributions for dispersal kernel (from Catalano et al.)
-  * kernel_summary.RData - dispersal kernel fit information (from Catalano et al.)
+  * k_theta_allyear_95CI_values.RData - 95% confidence bounds on k and theta distributions for dispersal kernel (from [Catalano et al. 2020](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.15732))
+  * kernel_summary.RData - dispersal kernel fit information (from [Catalano et al. 2020](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.15732))
   * length_count8llEA.RData - egg count and female length model fit (work done by Adam Yawdoszyn)
 * *Map_data/Site_hulls* - shapefiles of the sites, used in SiteMap.R to make maps
 * *Script_outputs*
