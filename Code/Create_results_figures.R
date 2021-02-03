@@ -95,6 +95,11 @@ load(file=here::here("Data/Script_outputs","metrics_summary.RData"))
 ### Vectors and values useful for producing figures, like region widths for sensitivity, etc. (from Metrics_with_uncertainty_site_specific.R)
 load(file=here::here("Data/Script_outputs","figure_vectors_and_values.RData"))
 
+# Parameters for analyzing and interpreting results
+NP_decimal_points <- 2  # numbers past decimal point for NP range
+quantile_lower_index = 25  # lower index for 95% quantile reporting
+quantile_upper_index = 975  # upper index for 95% quantile reporting
+
 #################### Plots: ####################
 
 ########## Main text figures ##########
@@ -204,6 +209,26 @@ plot_grid(LEP_plot_freq, LEP_R_plot_DD_freq, LEP_R_local_plot_DD_freq, Fig4_abun
 dev.off()
 
 ##### Figure 5 - SP metrics, NP metrics, connectivity matrices
+# Find 95% quantiles for SP
+SP_vals_95 <- data.frame(site = site_vec_NS, SP_lower = rep(NA, length(site_vec)), SP_upper = rep(NA, length(site_vec)),
+                         SP_min = rep(NA, length(site_vec)), SP_max =  rep(NA, length(site_vec)), stringsAsFactors = FALSE)
+
+for(i in 1:length(site_vec_NS)) {
+  SP_site_vals <- (output_uncert_all_DD$SP_vals_with_params %>% filter(site == site_vec_NS[i]))$SP
+  SP_site_vals_vec <- sort(SP_site_vals)
+  SP_vals_95$site[i] <- site_vec_NS[i]
+  SP_vals_95$SP_lower[i] <- SP_site_vals_vec[quantile_lower_index]
+  SP_vals_95$SP_upper[i] <- SP_site_vals_vec[quantile_upper_index]
+  SP_vals_95$SP_min[i] <- min(SP_site_vals_vec)
+  SP_vals_95$SP_max[i] <- max(SP_site_vals_vec)
+}
+
+SP_vals_95_level_order <- c("Palanas","Wangag","N. Magbangon", "S. Magbangon", "Cabatoan", "Caridad Cemetery",
+                            "Caridad Proper", "Hicgop South", "Sitio Tugas", "Elementary School", "Sitio Lonas",
+                            "San Agustin", "Poroc San Flower", "Poroc Rose", "Visca", "Gabas",
+                            "Tomakin Dako", "Haina", "Sitio Baybayon")
+
+SP_vals_95$site <- replace(SP_vals_95$site, SP_vals_95$site == "Tamakin Dacot", "Tomakin Dako")
 best_est_metrics_mean_offspring_DD$Cmat$org_site <- replace(best_est_metrics_mean_offspring_DD$Cmat$org_site, 
                                                             best_est_metrics_mean_offspring_DD$Cmat$org_site=="Tamakin Dacot", 
                                                             "Tomakin Dako")
@@ -215,20 +240,40 @@ output_uncert_all_DD$SP_vals_with_params$site <- replace(output_uncert_all_DD$SP
                                                          "Tomakin Dako")
 best_est_metrics_mean_offspring_DD$SP$site <- replace(best_est_metrics_mean_offspring_DD$SP$site, best_est_metrics_mean_offspring_DD$SP$site=="Tamakin Dacot", "Tomakin Dako")
 
+
 # SP (accounting for DD)
-SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
-  geom_violin(fill="grey") +
+SP_plot_DD <- ggplot(data = SP_vals_95, aes(x=factor(site, level=SP_vals_95_level_order))) +
+  geom_linerange(data = SP_vals_95, aes(ymin=SP_min, ymax=SP_max), color = "grey") +
+  geom_linerange(data = SP_vals_95, aes(ymin=SP_lower, ymax=SP_upper), color = "black") +
   geom_point(data = best_est_metrics_mean_offspring_DD$SP, aes(x = site, y = SP_value), color = "black") +
   xlab("\nPatch") + ylab(bquote("Self persistence (SP"[i]~")")) + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
 
+# SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
+#   geom_violin(fill = "grey") +
+#   geom_point(data = best_est_metrics_mean_offspring_DD$SP, aes(x = site, y = SP_value), color = "black") +
+#   xlab("\nPatch") + ylab(bquote("Self persistence (SP"[i]~")")) + 
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
 # NP (accounting for DD)
+NP_95_lower <- (metrics_summary %>% filter(metric == "NP_DD lower"))$value
+NP_95_upper <- (metrics_summary %>% filter(metric == "NP_DD upper"))$value
+NP_vals_95 <- output_uncert_all_DD$NP_out_df %>% filter(value >= NP_95_lower & value <= NP_95_upper)
+
 NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='light gray', fill='light gray') +
+  geom_histogram(data = NP_vals_95, aes(x=value, y=..count../sum(..count..)), bins=40, color = "dark gray", fill="dark gray") +
   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$NP, color = "black") +
   xlab(expression(lambda[c])) + ylab("Relative frequency") +
   theme_bw() 
+# 
+# NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
+#   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+#   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$NP, color = "black") +
+#   xlab(expression(lambda[c])) + ylab("Relative frequency") +
+#   theme_bw() 
 
 # realized connectivity matrix
 realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
