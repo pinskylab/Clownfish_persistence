@@ -173,26 +173,49 @@ plot_grid(dispersal_kernel_plot, growth_curve_plot, survival_plot, breeding_size
 dev.off()
 
 ##### Figure 4 - abundance + replacement metrics
+
 # LEP - uncertainty for site-specific LEP values (LEP_i), best estimate for averaged across sites (LEP_*)
 LEP_plot_freq <- ggplot(data = output_uncert_all$LEP_by_site_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=100, color = 'gray', fill = 'gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=100, color = 'light gray', fill = 'light gray') +
   geom_vline(xintercept = mean(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP), color = "black") +
   xlab("Lifetime egg production (LEP"[i]~")") + ylab("Relative frequency") +
   theme_bw()
 
 # LRP averaged across sites with DD compensation
+LEP_R_95_lower <- (metrics_summary %>% filter(metric == "LRP_DD avg lower"))$value
+LEP_R_95_upper <- (metrics_summary %>% filter(metric == "LRP_DD avg upper"))$value
+LEP_R_vals_95 <- output_uncert_all_DD$LEP_R_out_df %>% filter(value >= LEP_R_95_lower & value <= LEP_R_95_upper)
+
 LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=50, color = 'gray', fill = 'gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=50, color = 'light gray', fill = 'light gray') +
+  geom_histogram(data = LEP_R_vals_95, aes(x=value, y=..count../sum(..count..)), bins=50, color = "dark gray", fill = "dark gray") +
   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_mean, color = "black") +
-  xlab(bquote("Lifetime recruit production (LRP)")) + ylab("Relative frequency") + 
+  xlab(bquote("Lifetime recruit production (LRP)")) + ylab("Relative frequency") +
   theme_bw()
 
+# LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
+#   geom_histogram(aes(y=..count../sum(..count..)), bins=50, color = 'gray', fill = 'gray') +
+#   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_mean, color = "black") +
+#   xlab(bquote("Lifetime recruit production (LRP)")) + ylab("Relative frequency") + 
+#   theme_bw()
+
 # LR with DD
+LR_95_lower <- (metrics_summary %>% filter(metric == "LR avg lower DD"))$value
+LR_95_upper <- (metrics_summary %>% filter(metric == "LR avg upper DD"))$value
+LR_vals_95 <- output_uncert_all_DD$LEP_R_local_out_df %>% filter(value >= LR_95_lower & value <= LR_95_upper)
+
 LEP_R_local_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "light gray", fill = "light gray") +
+  geom_histogram(data = LR_vals_95, aes(x=value, y=..count../sum(..count..)), bins=40, color = "dark gray", fill = "dark gray") +
   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_local_mean, color = "black") +
   xlab(bquote("Local replacement (LR)")) + ylab("Relative frequency") +
   theme_bw()
+
+# LEP_R_local_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
+#   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
+#   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_local_mean, color = "black") +
+#   xlab(bquote("Local replacement (LR)")) + ylab("Relative frequency") +
+#   theme_bw()
 
 # Abundance trend 
 Fig4_abundance_plot <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
@@ -464,14 +487,14 @@ dev.off()
 ##### D9 - LRP and LR without DD compensation
 # LRP without DD 
 LRP_plot_freq <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = 'gray', fill = 'gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = 'light gray', fill = 'light gray') +
   geom_vline(xintercept = best_est_metrics_mean_offspring$LEP_R_mean, color = "black") +
   xlab(expression("Lifetime recruit production (LRP"[D]~")")) + ylab("Relative frequency") + 
   theme_bw()
 
 # LR without DD
 LR_plot_freq <- ggplot(data = output_uncert_all$LEP_R_local_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "light gray", fill = "light gray") +
   geom_vline(xintercept = best_est_metrics_mean_offspring$LEP_R_local_mean, color = "black") +
   xlab(expression("Local replacement (LR"[D]~")")) + ylab("Relative frequency") + 
   theme_bw()
@@ -496,7 +519,7 @@ best_est_metrics_mean_offspring$SP$site <- replace(best_est_metrics_mean_offspri
 
 # SP (not accounting for DD)
 SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
-  geom_violin(fill="grey") +
+  geom_violin(fill="light gray") +
   geom_point(data = best_est_metrics_mean_offspring$SP, aes(x = site, y = SP_value), color = "black") +
   xlab("\nPatch") + ylab(expression("Self persistence (SP"[i[D]]~")")) + 
   theme_bw() +
@@ -504,7 +527,7 @@ SP_plot <- ggplot(data = output_uncert_all$SP_vals_with_params, aes(x=reorder(si
 
 # NP (not accounting for DD)
 NP_plot_freq <- ggplot(data = output_uncert_all$NP_out_df, aes(x=value)) +
-  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='light gray', fill='light gray') +
   geom_vline(xintercept = best_est_metrics_mean_offspring$NP, color = "black") +
   xlab(expression(lambda[c[D]])) + ylab("Relative frequency") + 
   theme_bw()
