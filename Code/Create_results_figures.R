@@ -172,6 +172,12 @@ pdf(file = here('Plots/FigureDrafts','Parameter_inputs.pdf'), width=6, height=6)
 plot_grid(dispersal_kernel_plot, growth_curve_plot, survival_plot, breeding_size_plot, labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
+# For correct journal format
+Fig3_plot <- plot_grid(dispersal_kernel_plot, growth_curve_plot, survival_plot, breeding_size_plot, labels = c("a","b","c","d"), nrow=2)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "Fig3.pdf"), plot = Fig3_plot, scale=1, width=6, height=6, units = "in",
+       dpi=1000)
+
 ##### Figure 4 - abundance + replacement metrics
 
 # LEP - uncertainty for site-specific LEP values (LEP_i), best estimate for averaged across sites (LEP_*)
@@ -193,12 +199,6 @@ LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=val
   xlab(bquote("Lifetime recruit production (LRP)")) + ylab("Relative frequency") +
   theme_bw()
 
-# LEP_R_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_out_df, aes(x=value)) +
-#   geom_histogram(aes(y=..count../sum(..count..)), bins=50, color = 'gray', fill = 'gray') +
-#   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_mean, color = "black") +
-#   xlab(bquote("Lifetime recruit production (LRP)")) + ylab("Relative frequency") + 
-#   theme_bw()
-
 # LR with DD
 LR_95_lower <- (metrics_summary %>% filter(metric == "LR avg lower DD"))$value
 LR_95_upper <- (metrics_summary %>% filter(metric == "LR avg upper DD"))$value
@@ -210,12 +210,6 @@ LEP_R_local_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_d
   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_local_mean, color = "black") +
   xlab(bquote("Local replacement (LR)")) + ylab("Relative frequency") +
   theme_bw()
-
-# LEP_R_local_plot_DD_freq <- ggplot(data = output_uncert_all_DD$LEP_R_local_out_df, aes(x=value)) +
-#   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = "gray", fill = "gray") +
-#   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_R_local_mean, color = "black") +
-#   xlab(bquote("Local replacement (LR)")) + ylab("Relative frequency") +
-#   theme_bw()
 
 # Abundance trend 
 Fig4_abundance_plot <- ggplot(data = site_trends_time, aes(x=year, y=mean_nF, group=site)) +
@@ -230,6 +224,12 @@ pdf(file = here::here('Plots/FigureDrafts', 'Abundance_LEP_LRP_LocalReplacement_
 plot_grid(LEP_plot_freq, LEP_R_plot_DD_freq, LEP_R_local_plot_DD_freq, Fig4_abundance_plot,
           labels = c("a","b","c","d"), nrow=2)
 dev.off()
+
+# For correct journal format
+Fig4_plot <- plot_grid(LEP_plot_freq, LEP_R_plot_DD_freq, LEP_R_local_plot_DD_freq, Fig4_abundance_plot, labels = c("a","b","c","d"), nrow=2)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "Fig4.pdf"), plot = Fig4_plot, scale=1, width=6, height=6, units = "in",
+                dpi=1000)
 
 ##### Figure 5 - SP metrics, NP metrics, connectivity matrices
 # Find 95% quantiles for SP
@@ -263,7 +263,6 @@ output_uncert_all_DD$SP_vals_with_params$site <- replace(output_uncert_all_DD$SP
                                                          "Tomakin Dako")
 best_est_metrics_mean_offspring_DD$SP$site <- replace(best_est_metrics_mean_offspring_DD$SP$site, best_est_metrics_mean_offspring_DD$SP$site=="Tamakin Dacot", "Tomakin Dako")
 
-
 # SP (accounting for DD)
 SP_plot_DD <- ggplot(data = SP_vals_95, aes(x=factor(site, level=SP_vals_95_level_order))) +
   geom_linerange(data = SP_vals_95, aes(ymin=SP_min, ymax=SP_max), color = "grey") +
@@ -272,13 +271,6 @@ SP_plot_DD <- ggplot(data = SP_vals_95, aes(x=factor(site, level=SP_vals_95_leve
   xlab("\nPatch") + ylab(bquote("Self persistence (SP"[i]~")")) + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
-
-# SP_plot_DD <- ggplot(data = output_uncert_all_DD$SP_vals_with_params, aes(x=reorder(site, org_geo_order), y=SP)) +
-#   geom_violin(fill = "grey") +
-#   geom_point(data = best_est_metrics_mean_offspring_DD$SP, aes(x = site, y = SP_value), color = "black") +
-#   xlab("\nPatch") + ylab(bquote("Self persistence (SP"[i]~")")) + 
-#   theme_bw() +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
 
 # NP (accounting for DD)
 NP_95_lower <- (metrics_summary %>% filter(metric == "NP_DD lower"))$value
@@ -291,12 +283,6 @@ NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$NP, color = "black") +
   xlab(expression(lambda[c])) + ylab("Relative frequency") +
   theme_bw() 
-# 
-# NP_plot_DD_freq <- ggplot(data = output_uncert_all_DD$NP_out_df, aes(x=value)) +
-#   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color='gray', fill='gray') +
-#   geom_vline(xintercept = best_est_metrics_mean_offspring_DD$NP, color = "black") +
-#   xlab(expression(lambda[c])) + ylab("Relative frequency") +
-#   theme_bw() 
 
 # realized connectivity matrix
 realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes(x=reorder(org_site, org_geo_order), y=reorder(dest_site, dest_geo_order))) +
@@ -312,6 +298,12 @@ realized_C_plot_DD <- ggplot(data = best_est_metrics_mean_offspring_DD$Cmat, aes
 pdf(file = here::here('Plots/FigureDrafts', 'SP_NP_connMatrixR_freq.pdf'), width=11, height=5)  # hacked the color scales being comparable, deal with for real if people like showing both
 plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
+
+# For correct journal format
+Fig5_plot <- plot_grid(SP_plot_DD, realized_C_plot_DD, NP_plot_DD_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "Fig5.pdf"), plot = Fig5_plot, scale=1, width=11, height=5, units = "in",
+                dpi=1000)
 
 ##### Figure 6 - alternative geographies and larval navigation 
 # A: more habitat
@@ -382,12 +374,17 @@ plot_grid(perc_hab_plot, wider_region_plot, wider_region_perc_hab_plot_5cat_with
           nrow=2, labels=c("a","b","c","d"))
 dev.off()
 
+# For correct journal format
+Fig6_plot <- plot_grid(perc_hab_plot, wider_region_plot, wider_region_perc_hab_plot_5cat_with_legend, larv_nav_plot, nrow=2, labels=c("a","b","c","d"))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "Fig6.pdf"), plot = Fig6_plot, scale=1, width=6, height=6, units = "in",
+                dpi=1000)
+
 ########## Appendix figures ##########
 
 ##### D1 - schematic, produced outside of R
-##### D2 - schematic, produced outside of R
 
-##### D3 - parameters and their uncertainty not shown in main text Fig (recruit census size, Linf and k for growth, Pc, # assigned offspring)
+##### D2 - parameters and their uncertainty not shown in main text Fig (recruit census size, Linf and k for growth, Pc, # assigned offspring)
 # Census (start-recruit) size 
 startRecruit_plot <- ggplot(data = output_uncert_all$metric_vals_with_params, aes(x=start_recruit_size)) +
   geom_histogram(bins=40, color="gray", fill="gray") +
@@ -422,7 +419,14 @@ plot_grid(startRecruit_plot, growthLinf_k_plot, probR_plot, assignedOffspring_pl
           labels = c("a","b","c","d"), nrow=2)
 dev.off()
 
-##### D4 - proportion of dispersal kernel from each patch covered by sampling region
+# For correct journal format
+FigD2_plot <- plot_grid(startRecruit_plot, growthLinf_k_plot, probR_plot, assignedOffspring_plot,
+                        labels = c("a","b","c","d"), nrow=2)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD2.pdf"), plot = FigD2_plot, scale=1, width=6, height=6, units = "in",
+                dpi=1000)
+
+##### D3 - proportion of dispersal kernel from each patch covered by sampling region
 # Correct spelling of name for Tomakin Dako patch
 all_parents_site$site <- replace(all_parents_site$site, all_parents_site$site=="Tamakin Dacot", "Tomakin Dako")
 
@@ -435,7 +439,18 @@ ggplot(data = all_parents_site, aes(x = reorder(site, site_geo_order), y = prop_
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dev.off()
 
-##### D5 - survival by patch
+# For correct journal format
+FigD3_plot <- ggplot(data = all_parents_site, aes(x = reorder(site, site_geo_order), y = prop_disp_area_within_sites)) + # the geo orders are all off here...
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_hline(yintercept = 1) +
+  xlab("Patch") + ylab("Proportion kernel within sampled area (P"[d]~")") + 
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD3.pdf"), plot = FigD3_plot, scale=1, width=6, height=6, units = "in",
+                dpi=1000)
+
+##### D4 - survival by patch
 surv_by_site_to_plot <- best_fit_model_dfs$surv_site_size %>%  # change site from factor to character so can update spelling of Tomakin Dako
   mutate_if(is.factor, as.character) %>%
   mutate(site = if_else(site == "Tamakin Dacot", "Tomakin Dako", site))
@@ -449,7 +464,18 @@ ggplot(data = surv_by_site_to_plot, aes(x = size, y = estimate_prob)) +
   theme_bw() 
 dev.off()
 
-##### D6 - size and distance effects on probability of recapture
+# For correct journal format
+FigD4_plot <- ggplot(data = surv_by_site_to_plot, aes(x = size, y = estimate_prob)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin=lcl_prob, ymax=ucl_prob), alpha=0.5) +
+  ylab(expression(paste("Survival probability (",phi[i],")"))) + xlab("Size (cm)") +
+  facet_wrap(~site) +
+  theme_bw() 
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD4.pdf"), plot = FigD4_plot, scale=1, width=6, height=6, units = "in",
+                dpi=1000)
+
+##### D5 - size and distance effects on probability of recapture
 # p (by dist)
 p_by_dist_plot <- ggplot(data = best_fit_model_dfs$recap_dist, aes(x = dist, y = estimate_prob)) +
   geom_line() + 
@@ -469,9 +495,15 @@ pdf(file = here::here("Plots/FigureDrafts", "APP_FIG_recap_effects_Phisiteplussi
 plot_grid(p_by_dist_plot, p_by_size_plot, labels=c("a","b"), nrow=1)
 dev.off()
 
-##### D7 - abundance trends by patch, produced in TimeSeriesPersistence.R
+# For correct journal format
+FigD5_plot <- plot_grid(p_by_dist_plot, p_by_size_plot, labels=c("a","b"), nrow=1)
 
-##### D8 - patch-specific LRP
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD5.pdf"), plot = FigD5_plot, scale=1, width=7, height=4, units = "in",
+                dpi=1000)
+
+##### D6 - abundance trends by patch, produced in TimeSeriesPersistence.R
+
+##### D7 - patch-specific LRP
 # Join so have site name rather than just number
 site_specific_LRP_plot_df <- left_join(output_uncert_all_DD$LEP_R_by_site_out_df, site_vec_order, by = c("site" = "alpha_order"))
 
@@ -484,7 +516,18 @@ ggplot(data = site_specific_LRP_plot_df, aes(x=value)) +
   theme_bw() 
 dev.off()
 
-##### D9 - LRP and LR without DD compensation
+# For correct journal format
+FigD7_plot <- ggplot(data = site_specific_LRP_plot_df, aes(x=value)) +
+  geom_histogram(aes(y=..count../sum(..count..)), bins=50, color='gray', fill='gray') +
+  #geom_vline(xintercept = best_est_metrics_mean_offspring_DD$LEP_by_site, aes(x = site, y = LEP_R), color = "black") +
+  facet_wrap(~site_name) +
+  xlab(bquote("Lifetime recruit production (LRP"[i] ~")")) + ylab("Relative frequency") + 
+  theme_bw()
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD7.pdf"), plot = FigD7_plot, scale=1, width=6, height=6, units = "in",
+                dpi=1000)
+
+##### D8 - LRP and LR without DD compensation
 # LRP without DD 
 LRP_plot_freq <- ggplot(data = output_uncert_all$LEP_R_out_df, aes(x=value)) +
   geom_histogram(aes(y=..count../sum(..count..)), bins=40, color = 'light gray', fill = 'light gray') +
@@ -504,7 +547,14 @@ pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_LRP_LocalReplacement_withou
 plot_grid(LRP_plot_freq, LR_plot_freq, labels = c("a","b"), nrow=1)
 dev.off()
 
-##### D10 - SP, NP, and connectivity matrix without density dependence compensation
+# For correct journal format
+FigD8_plot <- plot_grid(LRP_plot_freq, LR_plot_freq, labels = c("a","b"), nrow=1)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD8.pdf"), plot = FigD8_plot, scale=1, width=6, height=3, units = "in",
+                dpi=1000)
+
+
+##### D9 - SP, NP, and connectivity matrix without density dependence compensation
 # Update patch name to the correct spelling (Tomakin Dako)
 best_est_metrics_mean_offspring$Cmat$org_site <- replace(best_est_metrics_mean_offspring$Cmat$org_site, 
                                                          best_est_metrics_mean_offspring$Cmat$org_site=="Tamakin Dacot", 
@@ -546,7 +596,13 @@ pdf(file = here::here('Plots/FigureDrafts', 'APP_FIG_SP_NP_connMatrixR_withoutDD
 plot_grid(SP_plot, realized_C_plot, NP_plot_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
 dev.off()
 
-##### D11 - uncertainty in LEP (averaged across patches)
+# For correct journal format
+FigD9_plot <- plot_grid(SP_plot, realized_C_plot, NP_plot_freq, rel_widths=c(1.2,1.5,1.2), labels = c("a","b","c"), nrow=1)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD9.pdf"), plot = FigD9_plot, scale=1, width=11, height=5, units = "in",
+                dpi=1000)
+
+##### D10 - uncertainty in LEP (averaged across patches)
 pdf(file = here::here("Plots/FigureDrafts", "LEP_uncertainty_by_param.pdf"), width=6, height=4)
 ggplot(data = LEP_uncert_DD %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
   geom_violin(fill="grey") +
@@ -558,7 +614,20 @@ ggplot(data = LEP_uncert_DD %>% filter(uncertainty_type %in% c("start recruit si
   theme(text=element_text(size=12))
 dev.off()
 
-##### D12 - uncertainty in LRP
+# For correct journal format
+FigD10_plot <- ggplot(data = LEP_uncert_DD %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "growth", "survival", "all"),
+                               value = mean(best_est_metrics_mean_offspring_DD$LEP_by_site$LEP), color = "black")) +
+  xlab("Uncertainty type") + ylab(expression("Lifetime egg production (LEP"["*"]~")")) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  +
+  theme(text=element_text(size=12))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD10.pdf"), plot = FigD10_plot, scale=1, width=6, height=4, units = "in",
+                dpi=1000)
+
+##### D11 - uncertainty in LRP
 LEP_R_uncert_DD_plot <- LEP_R_uncert_DD
 LEP_R_uncert_DD_plot$uncertainty_type <- replace(LEP_R_uncert_DD_plot$uncertainty_type, 
                                                  LEP_R_uncert_DD_plot$uncertainty_type=="prob r", 
@@ -575,7 +644,20 @@ ggplot(data = LEP_R_uncert_DD_plot %>% filter(uncertainty_type %in% c("start rec
   theme(text=element_text(size=12))
 dev.off()
 
-##### D13 - uncertainty in egg-recruit survival
+# For correct journal format
+FigD11_plot <- ggplot(data = LEP_R_uncert_DD_plot %>% filter(uncertainty_type %in% c("start recruit size", "breeding size", "assigned offspring", "capture probability", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("start recruit size", "breeding size", "assigned offspring", "capture probability", "growth", "survival", "all"),
+                               value = best_est_metrics_mean_offspring_DD$LEP_R_mean, color = "black")) +
+  xlab("Uncertainty type") + ylab("Lifetime recruit production (LRP)") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(text=element_text(size=12))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD11.pdf"), plot = FigD11_plot, scale=1, width=6, height=4, units = "in",
+                dpi=1000)
+
+##### D12 - uncertainty in egg-recruit survival
 RperE_uncert_DD_plot <- RperE_uncert_DD
 RperE_uncert_DD_plot$uncertainty_type <- replace(RperE_uncert_DD_plot$uncertainty_type, 
                                                  RperE_uncert_DD_plot$uncertainty_type=="prob r", 
@@ -591,7 +673,20 @@ ggplot(data = RperE_uncert_DD_plot %>% filter(uncertainty_type %in% c("breeding 
   theme(text=element_text(size=12))
 dev.off()
 
-##### D14 - uncertainty in NP
+# For correct journal format
+FigD12_plot <- ggplot(data = RperE_uncert_DD_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "all"),
+                               value = best_est_metrics_mean_offspring_DD$recruits_per_egg), color = "black") +
+  xlab("Uncertainty type") + ylab(expression("Recruits per egg (S"[e]~")")) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(text=element_text(size=12))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD12.pdf"), plot = FigD12_plot, scale=1, width=6, height=4, units = "in",
+                dpi=1000)
+
+##### D13 - uncertainty in NP
 # Rename params to make labels easier to understand
 NP_uncert_DD_for_plot <- NP_uncert_DD
 NP_uncert_DD_for_plot$uncertainty_type <- replace(NP_uncert_DD_for_plot$uncertainty_type, 
@@ -614,3 +709,16 @@ ggplot(data = NP_uncert_DD_for_plot %>% filter(uncertainty_type %in% c("breeding
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme(text = element_text(size=12))
 dev.off()
+
+# For correct journal format
+FigD13_plot <- ggplot(data = NP_uncert_DD_for_plot %>% filter(uncertainty_type %in% c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "dispersal", "recruit census size", "all")), aes(x=uncertainty_type, y=value)) +
+  geom_violin(fill="grey") +
+  geom_point(data = data.frame(uncertainty_type = c("breeding size", "assigned offspring", "capture probability", "growth", "survival", "dispersal", "recruit census size", "all"),
+                               value = best_est_metrics_mean_offspring_DD$NP), color = "black") +
+  xlab("Uncertainty type") + ylab(expression(lambda[c])) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(text = element_text(size=12))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD13.pdf"), plot = FigD13_plot, scale=1, width=6, height=5, units = "in",
+                dpi=1000)

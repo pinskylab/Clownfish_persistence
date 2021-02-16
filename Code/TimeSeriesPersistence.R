@@ -29,7 +29,6 @@ site_vec_NS_TD[17] <- "Tomakin Dako"
 ##### Number of females (just from clownfish table for now - could change this later)
 ## Find raw number of females in database, now using sex column instead of color/size 
 females_df_F <- allfish_caught %>%
-  #filter(dive_type %in% dive_list) %>%  # not filtering by dives b/c most of the fish in 2017 were getting removed? but there are duplicates of tagged fish and such?? not sure how to deal with this...  filter(sex == "F") %>%
   filter(sex == "F") %>%
   group_by(year,site) %>%
   summarize(nFemalesRaw = n())
@@ -83,6 +82,11 @@ for(i in 2:n_sites) {
 # Fix Tomakin Dako name here too
 site_trends_time <- site_trends_time %>%
   mutate(site = if_else(site == "Tamakin Dacot", "Tomakin Dako", site))
+
+# Find average number of females at each site
+average_females_by_site <- site_trends_time %>% 
+  group_by(site) %>%
+  summarize(avg_nF = mean(mean_nF))
 
 ##### Does population summed across patches stay stable?
 # Sites sampled every year
@@ -166,6 +170,16 @@ plot_grid(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]], plot_l
           nrow = 5)
 dev.off()
 
+# For correct journal format
+FigD6_plot <- plot_grid(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]], plot_list[[5]], plot_list[[6]], 
+                        plot_list[[7]], plot_list[[8]], plot_list[[9]], plot_list[[10]], plot_list[[11]],
+                        plot_list[[12]], plot_list[[13]], plot_list[[14]], plot_list[[15]], plot_list[[16]], plot_list[[17]],
+                        plot_list[[18]], plot_list[[19]], sites_together,
+                        labels = c("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t"), 
+                        nrow = 5)
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "FigD6.pdf"), plot = FigD6_plot, scale=1, width=8.5, height=10, units = "in",
+                dpi=1000)
 
 #################### Saving output: ####################
 save(females_df_F, file=here("Data/Script_outputs", "females_df_F.RData"))

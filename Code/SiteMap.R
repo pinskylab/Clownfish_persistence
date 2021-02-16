@@ -35,7 +35,7 @@ metrics_schematic <- plot_grid(LRP_schematic_plot, NULL, SP_schematic_plot, NULL
 
 metrics_schematic_row_1 <- plot_grid(LRP_schematic_plot, SP_schematic_plot, labels = c("a","b"), ncol=2)
 metrics_schematic_row_2 <- plot_grid(NP_schematic_plot, LR_schematic_plot, labels = c("c","d"), ncol=2)
-metrics_schematic_rows <- plot_grid(metrics_schematic_row_1, metrics_schematic_row_2, rel_heights = c(1,1), nrow=2)
+metrics_schematic_rows <- plot_grid(metrics_schematic_row_1, NULL, metrics_schematic_row_2, rel_heights = c(1,0.1,1), nrow=3)
 
 # Data and analyses schematic (formerly Fig D.1)
 data_analyses_schematic <- ggdraw() +
@@ -45,13 +45,14 @@ data_analyses_schematic <- ggdraw() +
 right_columns <- plot_grid(life_cycle_plot, data_analyses_schematic, labels=c("e","f"), ncol=2, rel_widths = c(1, 1.2))
 
 pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height = 6)
-plot_grid(metrics_schematic_rows, NULL, right_columns, nrow = 3, rel_heights = c(1.2,0.3,3))  # but the heights are all messed up!
+plot_grid(metrics_schematic_rows, NULL, right_columns, nrow = 3, rel_heights = c(1.2,0.3,3)) 
 dev.off()
 
-# # Put them together
-# pdf(file=here::here("Plots/LifeCycleSchematic","metrics_life_cycle_schematics.pdf"), height=6)
-# plot_grid(metrics_schematic, NULL, life_cycle_plot, labels=c("","","e"), ncol=3, rel_widths = c(1,0.02,1))
-# dev.off()
+# For correct journal format
+Fig1_plot <- plot_grid(metrics_schematic_rows, NULL, right_columns, nrow = 3, rel_heights = c(1.2,0.3,3))  
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "Fig1.pdf"), plot = Fig1_plot, scale=1, height=6, units = "in",
+                dpi=1000)
 
 #################### Figure 2 (map + photo): ####################
 ############### Figure 2 set-up: ###############
@@ -234,7 +235,13 @@ pdf(file=here::here("Plots/FigureDrafts","Map_and_photo_2.pdf"), height=6)
 plot_grid(sites_with_inset, NULL, right_side, labels=c("a","",""), ncol=3, rel_widths = c(1.5,0.02,1))
 dev.off()
 
-##### Map for connectivity paper - shrink to one column width, adjust text size
+# For correct journal format
+Fig2_plot <- plot_grid(sites_with_inset, NULL, right_side, labels=c("a","",""), ncol=3, rel_widths = c(1.5,0.02,1))
+
+ggplot2::ggsave(filename = here::here("For_submission/Final_submission", "Fig2.pdf"), plot = Fig2_plot, scale=1, height=6, units = "in",
+                dpi=1000)
+
+##### Map for connectivity paper (Catalano et al. 2020 in Molecular Ecology: https://onlinelibrary.wiley.com/doi/full/10.1111/mec.15732) - shrink to one column width, adjust text size
 width_1_column = 80  # mm
 
 # Map of sites

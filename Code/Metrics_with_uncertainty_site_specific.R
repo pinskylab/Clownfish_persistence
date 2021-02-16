@@ -226,7 +226,7 @@ calcMetrics <- function(param_set, site_based_surv_sets, sites_and_dists, site_v
                                  param_set$s, param_set$Linf, param_set$k_growth, param_set$clutches_per_year,
                                  param_set$breeding_size, param_set$start_recruit_size, param_set$start_recruit_sd,
                                  param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
-    LEP_by_site$LEP_parents[i] = findLEP(param_set$min_size, param_set$max_size, param_set$n_bins, param_set$t_steps, Sint_set, Sl_set,
+    LEP_by_site$LEP_parents[i] = findLEP(parent_size, param_set$max_size, param_set$n_bins, param_set$t_steps, Sint_set, Sl_set,
                                          param_set$s, param_set$Linf, param_set$k_growth, param_set$clutches_per_year,
                                          param_set$breeding_size, parent_size, param_set$start_recruit_sd,
                                          param_set$egg_size_slope, param_set$egg_size_intercept, param_set$eyed_effect)
@@ -706,6 +706,7 @@ assignment_rate = n_offspring_matched/n_offspring_genotyped  # proportion of gen
 
 
 #################### Estimate point estimates of metrics ####################
+min_size = 3.5  # start min size at size of recruit
 
 # Put best-estimate intput parameters into one data frame (where starting recruit size is mean size of actual offspring collected ~ 4.38)
 param_best_est_mean_collected_offspring <- data.frame(t_steps = n_tsteps) %>%
