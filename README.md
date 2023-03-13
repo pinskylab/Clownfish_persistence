@@ -10,7 +10,7 @@ Allison G. Dedrick<sup>a,b</sup>, Katrina A. Catalano<sup>a</sup>, Michelle R. S
 <sup>c</sup>Department of Fisheries and Wildlife, Coastal Oregon Marine Experiment Station, Oregon State University, Newport, OR 97365 USA<br>
 <sup>d</sup>Visayas State University, Pangasugan, Baybay City, 6521 Leyte, Philippines<br>
 
-All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder.
+All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder. Access to the BCO-DMO data can be found [here](https://www.bco-dmo.org/dataset/862415) or with the citation found below.
 
 To run the analyses, use the script Metrics_with_uncertainty_site_specific.R, which will source outputs from analyses done in the other scripts. To recreate the figures, use the script Create_results_figures.R, which will source outputs from Metrics_with_uncertainty_site_specific.R.
 
@@ -142,3 +142,5 @@ Notes on other plots:
 * *PhiandpEstimates* - plots showing survival and recapture probabilities (ones starting with surv_ or recap_ are most recent) (produced by ClownfishMarkRecap.R)
 * *LifeCycleSchematic*, *Schematic*, *UndercountingRecruits* - schematic figures
 
+## BCO-DMO Data Accessibility
+Pinsky, M., Stuart, M. (2023) Temperature loggers (HOBO) placed in two locations off the coast of the West coast of Leyte, the Philippines , 2012-2019. Biological and Chemical Oceanography Data Management Office (BCO-DMO). (Version 2) Version Date 2023-03-06. doi:10.26008/1912/bco-dmo.862415.2
