@@ -10,7 +10,7 @@ Allison G. Dedrick<sup>a,b</sup>, Katrina A. Catalano<sup>a</sup>, Michelle R. S
 <sup>c</sup>Department of Fisheries and Wildlife, Coastal Oregon Marine Experiment Station, Oregon State University, Newport, OR 97365 USA<br>
 <sup>d</sup>Visayas State University, Pangasugan, Baybay City, 6521 Leyte, Philippines<br>
 
-All data were collected by members of the Pinsky lab at sites off Leyte, Philippines from 2012-2018. The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder. Access to the BCO-DMO data can be found [here](https://www.bco-dmo.org/dataset/862415) or with the citation found below.
+All data were collected by members of the Pinsky lab at sites off Leyte, [Philippines from 2012-2018](https://github.com/pinskylab/PhilippinesSurveyData). The raw data are housed in the folder Data/Data_from_database, with a brief description in Metadata.md in the Data folder. Access to the BCO-DMO data can be found [here](https://www.bco-dmo.org/dataset/862415) or with the citation found below.
 
 To run the analyses, use the script Metrics_with_uncertainty_site_specific.R, which will source outputs from analyses done in the other scripts. To recreate the figures, use the script Create_results_figures.R, which will source outputs from Metrics_with_uncertainty_site_specific.R.
 
